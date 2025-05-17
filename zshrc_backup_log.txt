@@ -1,0 +1,4 @@
+2025-05-16_20-43-18 - Backup saved: /Users/dheerajchand/.zshrc_backups/.zshrc_2025-05-16_20-43-18.txt
+2025-05-16_20-46-33 - Backup saved: /Users/dheerajchand/.zshrc_backups/.zshrc_2025-05-16_20-46-33.txt
+2025-05-16_21-27-06 - Backup saved: /Users/dheerajchand/.zshrc_backups/.zshrc_2025-05-16_21-27-06.txt
+2025-05-16_21-28-14 - Backup saved: /Users/dheerajchand/.zshrc_backups/.zshrc_2025-05-16_21-28-14.txt
