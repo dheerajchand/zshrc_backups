@@ -1,0 +1,694 @@
+# Path to your oh-my-zsh configuration.
+export ZSH=$HOME/.dotfiles/oh-my-zsh
+
+export ZSH_THEME="powerlevel9k/powerlevel9k"
+POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(dir nvm vcs)
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status history time)
+
+export CASE_SENSITIVE="true"
+export DISABLE_AUTO_TITLE="true"
+
+plugins=(colorize compleat dirpersist autojump git gulp history cp)
+source $ZSH/oh-my-zsh.sh
+
+autoload -U add-zsh-hook
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && . "/opt/homebrew/opt/nvm/nvm.sh"
+[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && . "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+
+load-nvmrc() {
+  if [[ -f .nvmrc && -r .nvmrc ]]; then
+    nvm use &> /dev/null
+  else
+    nvm use stable
+  fi
+}
+add-zsh-hook chpwd load-nvmrc
+load-nvmrc
+
+unsetopt correct
+
+# MacOS things
+defaults write -g ApplePressAndHoldEnabled -bool true
+
+export WORKING_ON_LAPTOP="True"
+
+# Default editor
+# Set Zed as the default GUI editor
+export EDITOR="zed"
+export VISUAL="zed"
+
+# Use Neovim as fallback in the terminal when Zed is unavailable
+alias vim="nvim"
+alias edit="nvim"
+
+
+# Python things
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+eval "$(pyenv init --path)"
+
+function cleanvenv {
+    pip freeze | grep -v "^-e" | xargs pip uninstall -y
+}
+
+export PREFERRED_VENV="geo31111"
+pyenv activate $PREFERRED_VENV
+
+# Useful functions
+export ZSHRC_BACKUPS=~/.zshrc_backups
+
+# Ensure backup directory exists
+mkdir -p "$ZSHRC_BACKUPS"
+
+function backup_zshrc {
+    local prev_dir="$(pwd)"  # ✅ Save current directory
+    timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
+    backup_file="$ZSHRC_BACKUPS/.zshrc_$timestamp.txt"
+    log_file="$ZSHRC_BACKUPS/zshrc_backup_log.txt"
+
+    # Ensure backup directory is initialized as a Git repository
+    if [[ ! -d "$ZSHRC_BACKUPS/.git" ]]; then
+        echo "⚠️ Backup directory is not a Git repository. Initializing..."
+        git -C "$ZSHRC_BACKUPS" init
+        git -C "$ZSHRC_BACKUPS" remote add origin "<YOUR_GIT_REPO_URL>"  # 🔧 Replace with your repo URL
+    fi
+
+    # Copy .zshrc file and save as .txt
+    cp ~/.dotfiles/homedir/.zshrc "$backup_file"
+
+    # Log the backup in a .txt file
+    echo "$timestamp - Backup saved: $backup_file" >> "$log_file"
+
+    # Add changes to Git, commit, and push
+    git -C "$ZSHRC_BACKUPS" add .
+    git -C "$ZSHRC_BACKUPS" commit -m "Backup .zshrc at $timestamp"
+    git -C "$ZSHRC_BACKUPS" push origin main  # 🔧 Adjust branch name if needed
+
+    echo "✅ Backup created at $backup_file"
+    echo "📜 Logged in $log_file"
+    echo "🚀 Changes committed & pushed to Git repository!"
+
+    cd "$prev_dir"  # ✅ Restore original directory
+    echo "🔄 Returned to: $prev_dir"
+}
+
+function zshreboot {
+    source ~/.zshrc
+}
+
+function zshconfig {
+    zed ~/.config/zsh/zshrc
+}
+
+# PSQL settings
+export PGHOST="localhost"
+export PGUSER="dheerajchand"
+export PGPASSWORD="dessert"
+export PGPORT="5432"
+export PGDATABASE="gis"
+
+export GEODJANGO_TEMPLATE_SQL_DATABASE="geodjango_template_db"
+export GEODJANGO_TEMPLATE_SQL_USER="dheerajchand"
+export GEODJANGO_TEMPLATE_SQL_PASSWORD="dessert"
+export GEODJANGO_TEMPLATE_SQL_PORT="5432"
+
+export PATH="/Users/dheerajchand/.rd/bin:$PATH"
+export DEFAULT_DOCKER_CONTEXT="rancher-desktop"
+
+# GIS things
+export GDAL_LIBRARY_PATH="$(gdal-config --prefix)/lib/libgdal.dylib"
+export GEOS_LIBRARY_PATH="$(geos-config --prefix)/lib/libgeos_c.dylib"
+
+function update_local_repo {
+    for remote in `git branch -r`; do git branch --track ${remote#origin/} $remote; done
+}
+export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+
+# useful functions
+
+# -------------------------------
+# Function to Check Internet Connectivity
+# -------------------------------
+function is_online {
+    ping -c 1 google.com &> /dev/null && echo "online" || echo "offline"
+}
+
+
+# ------------------------------------------------------------------
+# 3. Zeppelin Setup & Notebook Functions
+# ------------------------------------------------------------------
+
+export ZEPPELIN_HOME="$HOME/zeppelin"
+export PATH="$ZEPPELIN_HOME/bin:$PATH"
+mkdir -p "$ZEPPELIN_HOME"
+
+check_zeppelin() {
+    if [[ ! -d "$ZEPPELIN_HOME" ]]; then
+        echo "❌ Zeppelin directory not found: $ZEPPELIN_HOME"
+        return 1
+    elif ! "$ZEPPELIN_HOME/bin/zeppelin-daemon.sh" status > /dev/null 2>&1; then
+        echo "Zeppelin is not running."
+        return 1
+    else
+        echo "✅ Zeppelin is running."
+        return 0
+    fi
+}
+
+function start_zeppelin {
+    echo "Starting Zeppelin on port 9090..."
+
+    # Ensure Zeppelin is stopped before starting fresh
+    "$ZEPPELIN_HOME/bin/zeppelin-daemon.sh" stop
+
+    # Explicitly set Zeppelin's port to 9090 in config
+    sed -i '' 's/<value>8080<\/value>/<value>9090<\/value>/' "$ZEPPELIN_HOME/conf/zeppelin-site.xml"
+
+    # Start Zeppelin with the new port configuration
+    "$ZEPPELIN_HOME/bin/zeppelin-daemon.sh" start
+
+    sleep 3  # Wait for Zeppelin to initialize
+
+    echo "✅ Zeppelin started at: http://localhost:9090"
+}
+
+
+function stop_zeppelin() {
+    echo "Stopping Zeppelin..."
+    "$ZEPPELIN_HOME/bin/zeppelin-daemon.sh" stop
+    echo "Zeppelin stopped."
+}
+
+function restart_zeppelin() {
+    stop_zeppelin
+    start_zeppelin
+}
+
+function reset_zeppelin() {
+    stop_zeppelin
+    sleep 3
+
+    echo "🔍 Ensuring Zeppelin is fully stopped..."
+    if ps aux | grep -i 'zeppelin' | grep -v 'grep' > /dev/null; then
+        echo "❌ Zeppelin is still running! Killing processes..."
+        pkill -9 -f 'zeppelin'
+        sleep 2
+    fi
+
+    # Cleanup
+    [ -d "$ZEPPELIN_HOME/run" ] && rm -rf "$ZEPPELIN_HOME/run"
+    [ -d "$ZEPPELIN_HOME/logs" ] && rm -rf "$ZEPPELIN_HOME/logs"
+    [ -d "$ZEPPELIN_HOME/local-repo/spark" ] && rm -rf "$ZEPPELIN_HOME/local-repo/spark"
+
+    start_zeppelin
+    sleep 3  # Allow restart
+
+    # ✅ Verify Zeppelin is running
+    if ps aux | grep -i 'zeppelin' | grep -v 'grep' > /dev/null; then
+        echo "✅ Zeppelin restarted successfully!"
+    else
+        echo "❌ Zeppelin failed to start. Check logs!"
+        tail -n 50 "$ZEPPELIN_HOME/logs/zeppelin.log"
+    fi
+}
+
+
+# ✅ Function to Check PySpark & Notebook Dependencies
+function check_pyspark_dependencies() {
+    if ! command -v pyspark &> /dev/null; then
+        echo "❌ PySpark not found! Install it with: pip install pyspark"
+        return 1
+    fi
+
+    if ! command -v jupyter &> /dev/null && ! command -v "$ZEPPELIN_HOME/bin/zeppelin-daemon.sh" &> /dev/null; then
+        echo "❌ Neither Jupyter nor Zeppelin found! Install Jupyter: pip install notebook"
+        return 1
+    fi
+
+    echo "✅ Dependencies verified!"
+    return 0
+}
+
+# ✅ Function to Dynamically Check Dependencies Based on Notebook Type
+function check_notebook_dependencies {
+    local notebook_type="$1"
+
+    case "$notebook_type" in
+        jupyter|jupyterlab)
+            if ! command -v pyspark &> /dev/null; then
+                echo "❌ PySpark not found! Install it with: pip install pyspark"
+                return 1
+            fi
+            if ! command -v jupyter &> /dev/null; then
+                echo "❌ Jupyter not found! Install it with: pip install notebook"
+                return 1
+            fi
+            ;;
+        zeppelin)
+            if [[ ! -d "$ZEPPELIN_HOME" ]] || ! command -v "$ZEPPELIN_HOME/bin/zeppelin-daemon.sh" &> /dev/null; then
+                echo "❌ Zeppelin is missing! Ensure it's installed and configured."
+                return 1
+            fi
+            ;;
+        databricks)
+            if ! command -v databricks &> /dev/null; then
+                echo "❌ Databricks CLI not found! Install it with: pip install databricks-cli"
+                return 1
+            fi
+            ;;
+        vscode)
+            if ! command -v code &> /dev/null; then
+                echo "❌ VS Code not found! Ensure it's installed and available in PATH."
+                return 1
+            fi
+            ;;
+        *)
+            echo "❌ Unknown notebook type: $notebook_type"
+            return 1
+            ;;
+    esac
+
+    echo "✅ Dependencies verified for $notebook_type!"
+    return 0
+}
+
+# ✅ Function to Specifically Check PySpark Dependencies
+function check_pyspark_dependencies {
+    if ! command -v pyspark &> /dev/null; then
+        echo "❌ PySpark not found! Install it with: pip install pyspark"
+        return 1
+    fi
+
+    echo "✅ PySpark dependencies verified!"
+    return 0
+}
+
+# ✅ Function to Manage Different Notebook Types (Now with Full Dependency Validation)
+function notebook_manager {
+    local notebook_type="$1"
+    local port="${2:-8888}"  # Default to port 8888
+    local notebook_dir="${3:-$(pwd)}"  # Default to current directory
+
+    # ✅ Validate dependencies dynamically based on requested notebook type
+    check_notebook_dependencies "$notebook_type" || return 1
+
+    case "$notebook_type" in
+        jupyter)
+            export PYSPARK_DRIVER_PYTHON="jupyter"
+            export PYSPARK_DRIVER_PYTHON_OPTS="notebook --no-browser --port=$port --notebook-dir=$notebook_dir"
+            echo "🚀 Starting PySpark Jupyter Notebook on http://localhost:$port..."
+            pyspark || { echo "❌ Jupyter Notebook launch failed!"; return 1; }
+            ;;
+        jupyterlab)
+            export PYSPARK_DRIVER_PYTHON="jupyter"
+            export PYSPARK_DRIVER_PYTHON_OPTS="lab --no-browser --port=$port --notebook-dir=$notebook_dir"
+            echo "🚀 Starting Jupyter Lab on http://localhost:$port..."
+            pyspark || { echo "❌ Jupyter Lab launch failed!"; return 1; }
+            ;;
+        zeppelin)
+            echo "🚀 Starting Zeppelin Notebook..."
+            start_zeppelin || { echo "❌ Zeppelin launch failed!"; return 1; }
+            ;;
+        databricks)
+            echo "🚀 Launching Databricks CLI..."
+            databricks workspace import_dir "$notebook_dir" || { echo "❌ Databricks CLI failed!"; return 1; }
+            ;;
+        vscode)
+            echo "🚀 Opening VS Code for notebook editing..."
+            code "$notebook_dir" || { echo "❌ VS Code launch failed!"; return 1; }
+            ;;
+        *)
+            echo "❌ Invalid notebook type: $notebook_type. Available options: jupyter, jupyterlab, zeppelin, databricks, vscode."
+            return 1
+            ;;
+    esac
+}
+
+# ✅ Wrapper Function for PySpark Notebook Launching (Now Calls the Notebook Manager)
+function pyspark_notebook {
+    local notebook_type="${1:-jupyter}"  # Default to Jupyter if no type is provided
+    notebook_manager "$notebook_type"
+}
+
+# -------------------------------
+# BIG CONFIGS FOR JAVA RELATED THINGS
+# -------------------------------
+
+# java
+
+# export JAVA_HOME=$(sdk home java)
+export JAVA_HOME=""
+export PATH=$JAVA_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$JAVA_HOME/lib:$LD_LIBRARY_PATH
+
+function set_best_java_version {
+    if [[ -z "$JAVA_HOME" ]]; then
+        echo "🔍 JAVA_HOME is not set. Detecting best Java version for Hadoop & Spark..."
+
+        local best_java_version
+        local log_file="$HOME/.java_version.log"
+
+        if [[ "$(is_online)" == "online" ]]; then
+            best_java_version=$(sdk list java | awk '/11\.0/ {print $NF}' | sort -r | head -n 1)
+
+            if [[ -z "$best_java_version" ]]; then
+                echo "⚠ No recommended Java version found online! Defaulting to Java 11."
+                best_java_version="11.0.22-tem"
+            fi
+        else
+            echo "⚠ No internet connection detected! Defaulting to Java 11."
+            best_java_version="11.0.22-tem"
+        fi
+
+        if [[ -z "$best_java_version" ]]; then
+            echo "❌ Java detection failed. Falling back to Java 11."
+            best_java_version="11.0.22-tem"
+        fi
+
+        sdk install java $best_java_version
+        sdk default java $best_java_version
+
+        export JAVA_HOME=$(sdk home java $best_java_version)
+        export PATH=$JAVA_HOME/bin:$PATH
+        export LD_LIBRARY_PATH=$JAVA_HOME/lib:$LD_LIBRARY_PATH
+
+        echo "✅ Java version set to $best_java_version for Spark & Hadoop compatibility."
+        echo "$(date): Java version set to $best_java_version" >> "$log_file"
+    fi
+}
+
+# Run automatically if JAVA_HOME is missing
+set_best_java_version
+
+# Hadoop
+
+function set_latest_hadoop_version {
+    echo "🔍 Detecting latest compatible Hadoop version for Spark 3.4.0..."
+
+    local latest_version
+    local log_file="$HOME/.hadoop_version.log"
+    local attempts=0
+    local max_attempts=3
+
+    if [[ "$(is_online)" == "online" ]]; then
+        # Exclude 3.3.5 from selection
+        latest_version=$(sdk list hadoop | grep '3.3' | grep -v '[*>+-]' | grep -v '3.3.5' | sort -r | head -n 1 | awk '{print $1}')
+
+        if [[ -z "$latest_version" ]]; then
+            echo "⚠ No compatible Hadoop version found online! Defaulting to 3.3.6."
+            latest_version="3.3.6"
+        fi
+    else
+        echo "⚠ No internet connection detected! Defaulting to 3.3.6."
+        latest_version="3.3.6"
+    fi
+
+    echo "⏳ Attempting to install Hadoop $latest_version..."
+    if sdk install hadoop $latest_version; then
+        echo "✅ Successfully installed Hadoop $latest_version."
+    else
+        echo "❌ Failed to install Hadoop $latest_version. Falling back to 3.3.6..."
+        sdk install hadoop 3.3.6
+        latest_version="3.3.6"
+    fi
+
+    export HADOOP_CURRENT_VERSION="$latest_version"
+    export HADOOP_HOME=$(sdk home hadoop $HADOOP_CURRENT_VERSION)
+    export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native"
+    export LD_LIBRARY_PATH=$HADOOP_HOME/lib/native:$LD_LIBRARY_PATH
+    export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop/
+    export PATH="$HADOOP_HOME/bin:$PATH"
+
+    echo "✅ Hadoop version set to $HADOOP_CURRENT_VERSION for Spark compatibility."
+    echo "$(date): Hadoop version set to $HADOOP_CURRENT_VERSION" >> "$log_file"
+}
+
+set_latest_hadoop_version
+
+# Maven Configuration Variables
+DEFAULT_MAVEN_VERSION="3.9.6"
+MAVEN_CANDIDATE_PATH="$SDKMAN_CANDIDATES_DIR/maven"
+MAVEN_INSTALL_PATH="$MAVEN_CANDIDATE_PATH/$DEFAULT_MAVEN_VERSION"
+
+# Function to check and install Maven via SDKMAN
+setup_maven() {
+    if command -v mvn &>/dev/null; then
+        echo "Maven is installed: $(mvn -version | head -n 1)"
+    else
+        echo "Maven not found. Installing Maven $DEFAULT_MAVEN_VERSION via SDKMAN..."
+
+        # Install Maven with SDKMAN
+        sdk install maven "$DEFAULT_MAVEN_VERSION" || {
+            echo "Failed to install Maven. Please check SDKMAN setup."
+            return 1
+        }
+
+        # Verify installation
+        if command -v mvn &>/dev/null; then
+            echo "Maven installation successful: $(mvn -version | head -n 1)"
+        else
+            echo "Maven installation failed."
+        fi
+    fi
+}
+
+# -------------------------------
+# Spark Environment Configuration
+# -------------------------------
+export SPARK_LOCAL_IP="127.0.0.1"
+export SPARK_MASTER_HOST="127.0.0.1"
+export SPARK_MASTER_PORT="7077"
+export SPARK_WORKER_INSTANCES="$(nproc)"  # Auto-set based on detected CPU cores
+export SPARK_DRIVER_MEMORY="4g"  # Adjust as needed
+export SPARK_EXECUTOR_MEMORY="4g"  # Set memory allocation for Spark jobs
+export SPARK_WORKER_MEMORY="2g"  # Control memory allocation for workers
+export SPARK_CONF_DIR="$SPARK_HOME/conf"
+export SPARK_CLIENT_CONFIG="$HOME/.spark-client-defaults.properties"
+
+export PYSPARK_PYTHON="/Users/dheerajchand/.pyenv/shims/python3"
+export PYSPARK_DRIVER_PYTHON="/Users/dheerajchand/.pyenv/shims/python3"
+
+# -------------------------------
+# Dependency Configuration (Online & Offline Mode)
+# -------------------------------
+
+# Define Maven package dependencies
+export DEFAULT_SPARK_JARS="graphframes:graphframes:0.8.3-spark3.5-s_2.12,org.apache.sedona:sedona-spark-shaded-3.5_2.12:1.6.0,org.datasyslab:geotools-wrapper:1.6.0-28.2,org.apache.spark:spark-core_2.12:3.5.3"
+
+# Define local Spark JAR paths dynamically from Maven-style dependencies
+export LOCAL_SPARK_JAR_PATH="$HOME/local_jars"
+mkdir -p $LOCAL_SPARK_JAR_PATH
+F
+export DEFAULT_LOCAL_SPARK_JARS=$(echo "$DEFAULT_SPARK_JARS" | awk -F ':' '{print ($1 == "graphframes" ? $1 "-" $3 : $1 "_" $2 "-" $3) ".jar"}' | sed 's/,/\n/g' | awk -v path="$LOCAL_SPARK_JAR_PATH" '{print path "/" $0}')
+
+# -------------------------------
+# Function to Dynamically Select Dependencies
+# -------------------------------
+function get_spark_dependencies {
+    local online_status=$(is_online)
+
+    if [[ "$online_status" == "online" ]]; then
+        echo "--packages $(echo "$DEFAULT_SPARK_JARS" | tr ',' ',')"
+    else
+        echo "--jars $(echo "$DEFAULT_LOCAL_SPARK_JARS" | tr '\n' ',')"
+    fi
+}
+
+# -------------------------------
+# Default Spark Submit Settings
+# -------------------------------
+default_spark_submit() {
+    CMD="spark-submit \
+    $(get_spark_dependencies) \
+    --master \"${SPARK_MASTER:-local[*]}\" \
+    --driver-memory ${SPARK_DRIVER_MEMORY:-4g} \
+    --executor-memory ${SPARK_EXECUTOR_MEMORY:-4g} \
+    --conf spark.executor.instances=${SPARK_EXECUTOR_INSTANCES:-4} \
+    --properties-file $SPARK_CLIENT_CONFIG \
+    $@"
+    echo "Executing: $CMD"
+    eval "$CMD"
+}
+
+
+# -------------------------------
+# Default Spark Shell Settings
+# -------------------------------
+function default_spark_shell() {
+    spark-shell \
+    --master "local[*]" \
+    --driver-memory ${SPARK_DRIVER_MEMORY} \
+    --executor-memory ${SPARK_EXECUTOR_MEMORY} \
+    --properties-file "$SPARK_CLIENT_CONFIG"
+}
+
+function default_pyspark_shell() {
+    pyspark \
+    --master "local[*]" \
+    --driver-memory ${SPARK_DRIVER_MEMORY} \
+    --executor-memory ${SPARK_EXECUTOR_MEMORY} \
+    --properties-file "$SPARK_CLIENT_CONFIG"
+}
+# -------------------------------
+# Spark Submission Arguments (Ensuring Correct Dependency Handling)
+# -------------------------------
+export PYSPARK_SUBMIT_ARGS="$(get_spark_dependencies) pyspark-shell"
+
+# -------------------------------
+# Function to Test Spark Setup
+# -------------------------------
+function test_spark {
+    echo "🚀 Validating Spark functionality..."
+
+    python3 - <<EOF
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+from graphframes import GraphFrame
+
+try:
+    spark = SparkSession.builder.appName("TestPySpark").getOrCreate()
+    result = spark.sql("SELECT 'Spark is running!' AS status").collect()
+    print("✅ Spark SQL Execution Successful:", result[0]["status"])
+
+    # Explicit GraphFrames verification
+    vertices = spark.createDataFrame([("A",), ("B",)], ["id"])
+    edges = spark.createDataFrame([("A", "B")], ["src", "dst"])
+    g = GraphFrame(vertices, edges)
+    g.vertices.show()
+except Exception as e:
+    print("❌ Spark SQL or GraphFrames Execution Failed:", str(e))
+EOF
+
+    echo "🔍 Checking Spark worker processes..."
+    local worker_processes=$(ps aux | grep -i "spark.deploy.worker.Worker" | grep -v "grep")
+
+    if [[ -z "$worker_processes" ]]; then
+        echo "❌ No active Spark worker processes found!"
+    else
+        echo "✅ Active Spark worker processes detected:"
+        echo "$worker_processes"
+    fi
+
+    echo "✅ Spark functionality test complete!"
+}
+
+# -------------------------------
+# Function for Detecting Spark Instances
+# -------------------------------
+
+function detect_spark_instances {
+    echo "🔍 Checking active Spark instances..."
+    local running_processes=$(ps aux | grep -i 'spark' | grep -v 'grep')
+
+    if [[ -z "$running_processes" ]]; then
+        echo "❌ No active Spark instances detected."
+        return 1
+    else
+        echo "✅ Active Spark processes detected:"
+        echo "$running_processes"
+        return 0
+    fi
+}
+
+# -------------------------------
+# Function for a Graceful Spark Restart
+# -------------------------------
+function graceful_spark_restart {
+    echo "🔍 Detecting active Spark instances..."
+    detect_spark_instances
+
+    read "confirm_stop?Would you like to stop all Spark processes before restarting? (y/n): "
+    if [[ "$confirm_stop" == "y" ]]; then
+        stop_spark
+    fi
+
+    sleep 5
+
+    local retries=5  # Prevent infinite loops
+    for attempt in $(seq 1 $retries); do
+        echo "🔍 Ensuring Spark processes are fully stopped... (Attempt $attempt)"
+        if [[ -z "$(ps aux | grep -i 'spark' | grep -v 'grep')" ]]; then
+            echo "✅ Spark processes stopped successfully."
+            break
+        fi
+
+        echo "⚠ Warning: Workers still running—retrying shutdown..."
+        stop_spark
+        sleep 5
+        detect_spark_instances
+    done
+
+    echo "🚀 Starting Spark master..."
+    ${SPARK_HOME}/sbin/start-master.sh
+    echo "✅ Master running at http://${SPARK_MASTER_HOST}:8080"
+
+    echo "🚀 Starting fresh Spark workers..."
+    start_spark_workers
+
+    echo "✅ Spark restart complete!"
+}
+
+# -------------------------------
+# Spark Worker Management
+# -------------------------------
+function stop_spark {
+    echo "🚨 Stopping all Spark processes..."
+    pkill -9 -f 'org.apache.spark.deploy.master.Master'
+    pkill -9 -f 'org.apache.spark.deploy.worker.Worker'
+    pkill -9 -f 'spark'
+    pkill -9 -f 'java' || echo "✅ No lingering Spark Java processes found."
+    sleep 5
+}
+
+function start_spark_workers {
+    echo "🚀 Starting Spark workers..."
+
+    export SPARK_LOCAL_IP="127.0.0.1"
+    export SPARK_WORKER_LOG_DIR="${SPARK_HOME}/logs"
+    mkdir -p ${SPARK_WORKER_LOG_DIR}
+
+    local instances="${SPARK_WORKER_INSTANCES:-2}"  # Defaults to 2 if unset
+
+    for i in $(seq 1 $instances); do
+        nohup java -Xmx${SPARK_WORKER_MEMORY} -cp "${SPARK_HOME}/jars/*" org.apache.spark.deploy.worker.Worker spark://${SPARK_MASTER_HOST}:${SPARK_MASTER_PORT} >> ${SPARK_WORKER_LOG_DIR}/worker-$i.log 2>&1 &
+        echo "✅ Started Spark worker process $i"
+    done
+
+    echo "✅ All Spark workers started successfully!"
+}
+
+function stop_spark_workers() {
+    echo "🚫 Stopping Spark workers..."
+
+    # Kill all processes executing the Spark Worker class.
+    # Using pkill with -f ensures we match the full command line.
+    pkill -f 'org.apache.spark.deploy.worker.Worker'
+
+    # Optionally, wait a moment and confirm they're gone.
+    sleep 2
+    if pgrep -f 'org.apache.spark.deploy.worker.Worker' > /dev/null; then
+        echo "⚠️ Some Spark workers are still running!"
+    else
+        echo "✅ All Spark workers stopped successfully!"
+    fi
+}
+
+# path export to fix java/spark
+
+export PATH="/opt/homebrew/opt/sdkman-cli/libexec/candidates/spark/current/bin:$PATH"
+
+# USEFUL paths
+
+export GEOCODE="/Users/dheerajchand/Documents/Professional/Siege_Analytics/Clients/TAN/Projects/tan_geocoding_test"
+
+
+fortune
+# SDKMAN Setup
+export SDKMAN_DIR=$(brew --prefix sdkman-cli)/libexec
+[[ -s "${SDKMAN_DIR}/bin/sdkman-init.sh" ]] && source "${SDKMAN_DIR}/bin/sdkman-init.sh"
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="/Users/dheerajchand/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
