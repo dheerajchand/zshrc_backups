@@ -1,445 +1,294 @@
-# Enhanced zshrc Configuration
+# 🚀 Enterprise Spark + Hadoop + YARN Development Environment
 
-A comprehensive zsh configuration with advanced Spark, Hadoop, and big data development features.
+A comprehensive, production-ready zshrc configuration for big data development with Apache Spark, Hadoop, and YARN integration.
 
-## 🚀 Key Features
+## 🎯 Overview
 
-### **Core Development Stack**
-- **Java 17.0.12-tem** - LTS version optimized for Spark/Hadoop
-- **Scala 2.12.18 + 3.3.4** - Dual version setup (Spark compatibility + modern development)
-- **Spark 3.5.3** - Pinned stable version with enhanced dependency management
-- **Hadoop 3.3.6** - Integrated HDFS and YARN for distributed computing
-- **Maven 3.9.6** - Build system with JAR management
+This zshrc provides a complete enterprise-grade development environment with:
+- **Apache Spark 3.5.3** with Sedona (geospatial) and GraphFrames support
+- **Hadoop 3.3.6** with HDFS and YARN cluster management
+- **Java 17** optimized for Spark/Hadoop compatibility
+- **Dual Scala support** (2.12.18 for Spark + 3.3.4 for modern development)
+- **Intelligent dependency management** with online/offline JAR handling
+- **Comprehensive backup/restore system** for configuration management
+- **Auto-setup system** for seamless environment initialization
 
-### **Smart Auto-Setup System**
-- Automatically installs and configures optimal versions
-- Online/offline detection with graceful fallbacks
-- Background execution to avoid shell startup delays
-- Pinned known-good versions to prevent breaking changes
-- Unified environment variable management
+## ✨ Key Features
 
-### **Advanced Spark + Hadoop Integration**
-- **HDFS Storage** - Distributed file system for large datasets
-- **YARN Resource Management** - Cluster resource scheduling
-- **Intelligent dependency resolution** - Online packages vs local JARs
-- **Multiple execution modes** - Local, distributed, Kubernetes, HDFS-backed
-- **Sedona 1.7.1** - Modern spatial data processing with HDFS integration
-- **GraphFrames** - Graph analytics with distributed storage
+### 🔥 Spark Capabilities
+- **Multiple execution modes**: Local, distributed, YARN, Kubernetes
+- **Smart environment detection** and automatic optimization
+- **Heavy API workload optimization** for geocoding, web scraping, etc.
+- **Advanced spatial analytics** with Apache Sedona
+- **Graph processing** with GraphFrames
+- **Comprehensive testing framework**
 
-### **Unified Configuration Management**
-- Single source of truth for all environment variables
-- Consistent pattern across Java, Spark, and Hadoop
-- Environment variable inheritance from zshrc to all services
-- Centralized data directory management
+### 🏗️ Hadoop + YARN Integration
+- **Full HDFS cluster** with web monitoring
+- **YARN resource management** with application tracking
+- **Java 17 compatibility fixes** for modern JVM support
+- **Automated service management** (start/stop/restart)
+- **Health monitoring** and diagnostics
 
-### **Function Backup System**
-- Automatic backup of critical functions on startup
-- Emergency restore capabilities
-- Version-controlled backup history
-- Protection against configuration corruption
+### 🛠️ Developer Experience
+- **Pinned known-good versions** to prevent breakage
+- **Automatic dependency resolution** (online/offline)
+- **Rich logging and diagnostics**
+- **Backup/restore system** with Git integration
+- **Emergency recovery functions**
 
-## 📋 Available Functions
+## 📦 Installation
 
-### **Core Spark Functions**
+### Prerequisites
+- macOS with Homebrew
+- SDKMAN for Java/Scala/Spark/Hadoop management
+- Oh My Zsh with Powerlevel9k theme
+
+### Setup
+1. Replace your `~/.zshrc` with this configuration
+2. Run the setup functions:
+   ```bash
+   # Enable auto-setup (runs on shell startup)
+   enable_auto_setup
+
+   # Or run setup manually
+   auto_setup_environment
+   ```
+
+## 🎮 Usage Examples
+
+### Basic Spark Operations
 ```bash
-default_spark_submit <file>         # Local execution with dependency resolution
-distributed_spark_submit <file>     # Cluster execution with optimization
-smart_spark_submit <file>           # Auto-detect best execution environment
-heavy_api_submit <file> [mode]     # Optimized for API-heavy workloads
-flexible_spark_submit <file> [mode] # Multi-mode execution (local/distributed/k8s/smart)
+# Run a Spark script with smart environment detection
+smart_spark_submit my_script.py
+
+# Run with specific mode
+default_spark_submit my_script.py           # Local mode
+distributed_spark_submit my_script.py       # Distributed cluster
+spark_yarn_submit my_script.py              # YARN mode
+heavy_api_submit my_script.py yarn          # API-heavy workloads
 ```
 
-### **Hadoop Cluster Management**
+### Hadoop + YARN Management
 ```bash
-start_hadoop                       # Start complete Hadoop cluster (HDFS + YARN)
-stop_hadoop                        # Stop all Hadoop services
-restart_hadoop                     # Restart Hadoop cluster with fresh state
-hadoop_status                      # Check Hadoop service health and status
-init_hadoop_dirs                   # Create Hadoop data directories
-```
-
-### **Spark Cluster Management**
-```bash
-spark_start                        # Start local Spark cluster
-spark_stop                         # Stop Spark cluster
-spark_restart                      # Restart cluster with fresh state
-spark_status                       # Check cluster health and status
-```
-
-### **HDFS Operations**
-```bash
-hdfs_format                        # Format HDFS namenode (destructive)
-hdfs_safe_mode                     # Check/manage HDFS safe mode
-hdfs_report                        # HDFS cluster health report
-hdfs_ls [path]                     # List HDFS directory contents
-hdfs_put <local> <hdfs>           # Upload file to HDFS
-hdfs_get <hdfs> <local>           # Download file from HDFS
-```
-
-### **Testing & Diagnostics**
-```bash
-test_spark_comprehensive           # Full Sedona + GraphFrames functionality test
-test_spark_dependencies            # Test dependency resolution system
-test_hadoop_integration            # Test Spark + HDFS integration
-spark_test_simple                  # Quick cluster connectivity test
-hadoop_test_simple                 # Quick HDFS connectivity test
-```
-
-### **Dependency Management**
-```bash
-download_maven_jars <coords> <path> # Download Maven JAR dependencies
-download_hadoop_slf4j_jars         # Download SLF4J JARs for Hadoop logging
-```
-
-### **Auto-Setup System**
-```bash
-enable_auto_setup                  # Enable automatic version management
-disable_auto_setup                 # Disable auto-setup
-auto_setup_environment             # Run version setup manually
-setup_environment_status           # Check current setup status
-show_version_strategy              # Display pinned version strategy
-verify_version_compatibility       # Check installed version compatibility
-```
-
-### **Individual Component Setup**
-```bash
-setup_java_version                 # Install/configure Java 17
-setup_scala_version                # Install dual Scala versions
-setup_spark_version                # Install Spark 3.5.3
-setup_hadoop_version               # Install Hadoop 3.3.6
-setup_maven                        # Install Maven
-```
-
-### **Function Backup System**
-```bash
-backup_critical_functions          # Create backup of important functions
-restore_critical_functions         # Restore functions from backup
-emergency_restore_test_function    # Emergency inline restore
-list_function_backups              # Show available backups
-```
-
-### **zshrc Management**
-```bash
-backup_zshrc                       # Create versioned zshrc backup with git
-zshreboot                          # Reload zshrc configuration
-zshconfig                          # Open zshrc in editor
-```
-
-## 🔧 Configuration Variables
-
-### **Core Environment Variables**
-```bash
-export JAVA_HOME="/opt/homebrew/opt/sdkman-cli/libexec/candidates/java/current"
-export HADOOP_HOME="/path/to/hadoop"
-export SPARK_HOME="/path/to/spark"
-export HADOOP_DATA_DIR="$HOME/hadoop-data"    # Unified data directory
-export HADOOP_LOCAL_JARS="$HADOOP_HOME/share/hadoop/common/lib/"
-```
-
-### **Auto-Setup Control**
-```bash
-export AUTO_SETUP_ON_STARTUP="false"    # Enable/disable auto-setup
-export AUTO_SETUP_CHECK_ONLINE="true"   # Check connectivity before setup
-export AUTO_SETUP_VERBOSE="false"       # Detailed setup output
-```
-
-### **Spark Configuration**
-```bash
-export SPARK_DRIVER_MEMORY="2g"         # Driver memory allocation
-export SPARK_EXECUTOR_MEMORY="1g"       # Executor memory allocation
-export SPARK_WORKER_MEMORY="2g"         # Worker memory allocation
-export SPARK_WORKER_INSTANCES="4"       # Number of worker instances
-```
-
-### **Hadoop Configuration**
-```bash
-export HADOOP_CONF_DIR="$HADOOP_HOME/etc/hadoop"
-export YARN_CONF_DIR="$HADOOP_HOME/etc/hadoop"
-export HDFS_NAMENODE_USER="$USER"       # Namenode process user
-export HDFS_DATANODE_USER="$USER"       # Datanode process user
-export HDFS_SECONDARYNAMENODE_USER="$USER"  # Secondary namenode user
-export YARN_RESOURCEMANAGER_USER="$USER"    # YARN resource manager user
-export YARN_NODEMANAGER_USER="$USER"        # YARN node manager user
-```
-
-### **Dependency Management**
-```bash
-export DEFAULT_SPARK_JARS="..."         # Online JAR dependencies
-export LOCAL_SPARK_JAR_PATH="$HOME/local_jars"  # Local JAR storage
-```
-
-## 🏗️ Architecture
-
-### **Pinned Version Strategy**
-This configuration uses a "pinned known-good versions" approach:
-
-- **Java 17.0.12-tem** - Proven LTS version with full Spark/Hadoop support
-- **Scala 2.12.18** - Required for Spark 3.5.3 compatibility (default)
-- **Scala 3.3.4** - Available for modern development (`sdk use scala 3.3.4`)
-- **Spark 3.5.3** - Your current working version (no surprise upgrades)
-- **Hadoop 3.3.6** - Stable integration with Spark ecosystem, HDFS + YARN
-
-### **Unified Environment Variable Pattern**
-All configuration follows a consistent pattern:
-```bash
-# In zshrc (single source of truth)
-export HADOOP_DATA_DIR="$HOME/hadoop-data"
-
-# In service config files (hadoop-env.sh, spark-env.sh)
-export HADOOP_DATA_DIR=${HADOOP_DATA_DIR:-$HOME/hadoop-data}
-
-# In XML config files (hdfs-site.xml, core-site.xml)
-<value>file://${env.HADOOP_DATA_DIR}/hdfs/namenode</value>
-```
-
-### **Spark + Hadoop Integration Architecture**
-```mermaid
-graph TD
-    A[Spark Application] --> B[Spark Driver]
-    B --> C[Spark Executors]
-    B --> D[HDFS Client]
-    D --> E[HDFS NameNode]
-    E --> F[HDFS DataNodes]
-    C --> G[Local Processing]
-    C --> H[HDFS Read/Write]
-    H --> F
-    B --> I[YARN ResourceManager]
-    I --> J[YARN NodeManagers]
-    J --> C
-```
-
-### **Dependency Resolution Logic**
-```mermaid
-graph TD
-    A[Spark Submit] --> B{Online?}
-    B -->|Yes| C[Use --packages with Maven repos]
-    B -->|No| D[Check local JARs]
-    D -->|Found| E[Use --jars with local files]
-    D -->|Missing| F[Download essential JARs]
-    F --> E
-    E --> G{HDFS Available?}
-    G -->|Yes| H[Use HDFS for input/output]
-    G -->|No| I[Use local filesystem]
-```
-
-### **Smart Environment Detection**
-The `smart_spark_submit` function automatically detects:
-1. **Kubernetes** - If kubectl available and K8s master configured
-2. **YARN Cluster** - If Hadoop YARN is running
-3. **Local Cluster** - If Spark master/workers running
-4. **HDFS Storage** - If HDFS is available for data storage
-5. **Cluster Startup** - Offers to start local cluster if available
-6. **Fallback** - Local mode as safe default
-
-## 🧪 Testing Strategy
-
-### **Comprehensive Testing**
-The `test_spark_comprehensive` function validates:
-- ✅ Core Spark functionality (RDD, DataFrame, SQL)
-- ✅ Sedona spatial operations (modern 1.7.1+ initialization)
-- ✅ GraphFrames graph analytics
-- ✅ Dependency resolution (online/offline modes)
-- ✅ HDFS integration and file operations
-- ✅ Cross-component integration
-
-### **Hadoop Integration Testing**
-The `test_hadoop_integration` function validates:
-- ✅ HDFS connectivity and file operations
-- ✅ Spark reading/writing to HDFS
-- ✅ YARN resource management
-- ✅ Distributed processing across cluster
-
-### **Development Workflow**
-```bash
-# 1. Check current setup
-setup_environment_status
-
-# 2. Start Hadoop cluster
+# Start the full Hadoop stack
 start_hadoop
 
-# 3. Start Spark cluster
-spark_start
+# Check cluster status
+hadoop_status
+yarn_cluster_info
 
-# 4. Run comprehensive test
+# Stop services
+stop_hadoop
+```
+
+### Testing and Diagnostics
+```bash
+# Comprehensive functionality test
 test_spark_comprehensive
 
-# 5. Test Hadoop integration
-test_hadoop_integration
+# Test Hadoop + Spark integration
+test_hadoop_spark_integration
 
-# 6. If issues, verify versions
+# Run demo with 100K records
+hadoop_spark_demo
+```
+
+## 💾 Backup/Restore System
+
+### Creating Backups
+```bash
+# Create a backup (saved as visible file for easy sharing)
+backup_zshrc
+
+# List available backups
+list_zshrc_backups
+```
+
+### Restoring Configuration
+```bash
+# Restore from latest backup
+restore_zshrc
+
+# Restore specific backup
+restore_zshrc 2023-05-29_11-24-59
+
+# Emergency restore (no confirmation)
+restore_zshrc_emergency
+```
+
+**Note**: Backup files are saved as **visible files** (no leading dot) making them easy to:
+- Attach to emails
+- Upload to cloud storage
+- Share with team members
+- Copy between systems
+
+## 🔧 Configuration Management
+
+### Version Strategy
+The configuration uses a **pinned known-good version strategy**:
+
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| Java | 17.0.12-tem | LTS with Spark/Hadoop support |
+| Scala | 2.12.18 | Spark 3.5.3 compatibility |
+| Scala | 3.3.4 | Modern Scala development |
+| Spark | 3.5.3 | Current stable release |
+| Hadoop | 3.3.6 | Stable with Spark integration |
+| Maven | 3.9.6 | Latest stable |
+
+### Auto-Setup System
+```bash
+# Check setup status
+setup_environment_status
+
+# Verify version compatibility
 verify_version_compatibility
 
-# 7. Auto-fix if needed
-auto_setup_environment
+# Show version strategy
+show_version_strategy
 ```
 
-## 🚨 Emergency Procedures
+## 🌐 Web Interfaces
 
-### **If Functions Break**
+When Hadoop services are running, access these web UIs:
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| HDFS NameNode | http://localhost:9870 | HDFS cluster management |
+| YARN ResourceManager | http://localhost:8088 | YARN job management |
+| HDFS DataNode | http://localhost:9864 | HDFS data node status |
+
+## 🚀 Key Functions Reference
+
+### Spark Functions
+- `default_spark_submit` - Local execution with dependency resolution
+- `distributed_spark_submit` - Cluster execution
+- `smart_spark_submit` - Auto-detect best execution mode
+- `heavy_api_submit` - Optimized for API-heavy workloads
+- `flexible_spark_submit` - Multi-mode execution (local/distributed/yarn/k8s)
+
+### Hadoop Functions
+- `start_hadoop` - Start HDFS + YARN services
+- `stop_hadoop` - Stop all Hadoop services
+- `hadoop_status` - Check service status
+- `yarn_application_list` - List YARN applications
+- `yarn_cluster_info` - Show cluster information
+
+### Testing Functions
+- `test_spark_comprehensive` - Full Sedona + GraphFrames test
+- `test_hadoop_spark_integration` - Integration test
+- `hadoop_spark_demo` - Demo with large dataset
+
+### Setup Functions
+- `auto_setup_environment` - Initialize all components
+- `setup_hadoop_spark_integration` - Configure integration
+- `verify_version_compatibility` - Check version compatibility
+
+### Backup Functions
+- `backup_zshrc` - Create configuration backup
+- `restore_zshrc` - Restore from backup
+- `backup_critical_functions` - Backup important functions
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+**XML Configuration Errors**
+If you see XML parsing errors, ensure all `<name>` tags are correct:
 ```bash
-# Emergency restore critical functions
+# Fix XML tags (macOS)
+sed -i '' 's/<n>/<name>/g' ~/.dotfiles/homedir/.zshrc
+sed -i '' 's/<\/n>/<\/name>/g' ~/.dotfiles/homedir/.zshrc
+```
+
+**YARN Startup Issues**
+Java 17 compatibility is automatically handled, but if you see module access errors:
+```bash
+setup_java17_hadoop_compatibility
+```
+
+**Dependency Resolution**
+The system handles both online (Maven) and offline (local JARs) dependency resolution:
+```bash
+# Test dependency resolution
+test_spark_dependencies
+
+# Download JARs for offline use
+download_spark_jars_if_needed
+```
+
+### Emergency Recovery
+```bash
+# If functions are lost/corrupted
 emergency_restore_test_function
 
-# Or restore from backup
-restore_critical_functions
-
-# Check available backups
-list_function_backups
+# If entire config is broken
+restore_zshrc_emergency
 ```
 
-### **If zshrc Corrupts**
+## 🎯 Performance Optimizations
+
+### Heavy API Workloads
+For geocoding, web scraping, or API-intensive tasks:
 ```bash
-# Manual restoration (this README's parent directory)
-cp .zshrc_YYYY-MM-DD_HH-MM-SS.txt ~/.zshrc
-source ~/.zshrc
+heavy_api_submit my_script.py auto
 ```
 
-### **If Spark Breaks**
+Includes optimizations:
+- Increased timeouts for slow API responses
+- Enhanced serialization for complex data
+- Python worker reuse for faster initialization
+- Adaptive query execution
+
+### Memory Configuration
+Default memory settings are optimized for development:
+- Driver: 2GB
+- Executor: 1GB
+- Can be adjusted via environment variables
+
+## 📚 Advanced Usage
+
+### Custom Spark Configurations
 ```bash
-# Reset to known-good versions
-auto_setup_environment
-
-# Test basic functionality
-spark_test_simple
-
-# Full diagnostic
-test_spark_comprehensive
-```
-
-### **If Hadoop Breaks**
-```bash
-# Stop all services
-stop_hadoop
-
-# Reinitialize data directories
-init_hadoop_dirs
-
-# Format namenode (DESTRUCTIVE)
-hdfs_format
-
-# Restart services
-start_hadoop
-
-# Test basic functionality
-hadoop_test_simple
-```
-
-## 🔄 Maintenance Tasks
-
-### **Regular Updates**
-```bash
-# Check for component updates (manual)
-setup_environment_status
-
-# Update Python packages
-pip install --upgrade apache-sedona pyspark
-
-# Backup before major changes
-backup_zshrc
-backup_critical_functions
-```
-
-### **HDFS Maintenance**
-```bash
-# Check HDFS health
-hdfs_report
-
-# Clean up HDFS trash
-hdfs dfs -expunge
-
-# Check disk usage
-hdfs dfs -df -h
-
-# Rebalance HDFS blocks
-hdfs balancer
-```
-
-### **Performance Tuning**
-```bash
-# For API-heavy workloads
-heavy_api_submit your_script.py
-
-# For large datasets with HDFS
+# Set custom memory before running
 export SPARK_DRIVER_MEMORY="4g"
 export SPARK_EXECUTOR_MEMORY="2g"
-flexible_spark_submit your_script.py distributed
+
+# Run with custom settings
+default_spark_submit my_script.py
 ```
 
-## 📊 Compatibility Matrix
-
-| Component | Version | Status | Notes |
-|-----------|---------|--------|-------|
-| Java      | 17.0.12-tem | ✅ | LTS, Spark/Hadoop compatible |
-| Scala     | 2.12.18 | ✅ | Spark 3.5.3 required |
-| Scala     | 3.3.4   | ✅ | Modern development |
-| Spark     | 3.5.3   | ✅ | Your current stable version |
-| Hadoop    | 3.3.6   | ✅ | HDFS + YARN integrated |
-| Sedona    | 1.7.1   | ✅ | Spatial processing with HDFS |
-| GraphFrames | 0.8.3 | ✅ | Graph analytics with HDFS |
-
-## 🛠️ Customization
-
-### **Adding New Functions**
-1. Add function to zshrc
-2. Run `backup_critical_functions`
-3. Test with `zsh -n ~/.zshrc`
-4. Reload with `zshreboot`
-
-### **Modifying Versions**
-1. Edit target versions in setup functions
-2. Run `auto_setup_environment`
-3. Verify with `verify_version_compatibility`
-
-### **Environment-Specific Settings**
+### YARN Job Management
 ```bash
-# Add to your zshrc for customization
-export SPARK_DRIVER_MEMORY="4g"        # Increase for your workload
-export HADOOP_DATA_DIR="$HOME/big-data" # Custom data directory
-export AUTO_SETUP_VERBOSE="true"       # Debug setup issues
-export SPARK_WORKER_INSTANCES="8"      # More workers for large datasets
+# List all applications
+yarn_application_list
+
+# View logs for specific application
+yarn_logs application_12345
+
+# Kill all running applications
+yarn_kill_all_apps
 ```
 
-### **Custom Hadoop Configuration**
-```bash
-# Custom HDFS settings in hdfs-site.xml
-<property>
-    <name>dfs.replication</name>
-    <value>3</value>  <!-- Increase for production -->
-</property>
-```
+## 🛡️ Safety Features
 
-## 🎯 Use Cases
+- **Automatic backups** before any restore operation
+- **Confirmation prompts** for destructive operations
+- **Version compatibility checks** before setup
+- **Emergency recovery functions** for crisis situations
+- **Git integration** for backup versioning
 
-### **Large-Scale Data Processing**
-- **HDFS Storage**: Store TB+ datasets across distributed nodes
-- **Spark + HDFS**: Process large files without local storage limits
-- **YARN Scheduling**: Efficiently share cluster resources
+## 🌟 Enterprise Features
 
-### **Geospatial Analytics**
-- **Sedona + HDFS**: Process massive spatial datasets
-- **Distributed Joins**: Spatial joins across partitioned data
-- **Scalable Processing**: Handle continent-scale geographic data
-
-### **Graph Analytics**
-- **GraphFrames + HDFS**: Analyze large graph structures
-- **Distributed Algorithms**: PageRank, connected components
-- **Persistent Storage**: Store graph results in HDFS
-
-## 📝 Changelog
-
-- **v4.0** - Full Hadoop integration with HDFS and YARN
-- **v3.0** - Enhanced auto-setup system with pinned versions
-- **v2.0** - Function backup system and emergency restore
-- **v1.0** - Advanced Spark integration with Sedona + GraphFrames
-
-## 🤝 Contributing
-
-To contribute improvements:
-1. `backup_zshrc` before changes
-2. Test thoroughly with `test_spark_comprehensive` and `test_hadoop_integration`
-3. Update this README
-4. Share your enhancements!
+- **Pinned versions** prevent unexpected breakage
+- **Comprehensive logging** for debugging
+- **Health monitoring** and diagnostics
+- **Multi-mode execution** for different environments
+- **Scalable architecture** from laptop to cluster
 
 ---
 
-*Generated for enhanced zshrc configuration with enterprise-grade big data development features including full Hadoop ecosystem integration.*
+**Ready to process big data like a pro!** 🚀
+
+For questions or issues, check the function documentation or run the built-in diagnostic tools.
