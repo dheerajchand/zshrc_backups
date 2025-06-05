@@ -1,6 +1,6 @@
 # 🚀 Enterprise Spark + Hadoop + YARN Development Environment
 
-A comprehensive, production-ready zshrc configuration for big data development with Apache Spark, Hadoop, and YARN integration.
+A comprehensive, production-ready zshrc configuration for big data development with Apache Spark, Hadoop, and YARN integration, featuring enhanced Jupyter and DataSpell notebook support.
 
 ## 🎯 Overview
 
@@ -9,6 +9,7 @@ This zshrc provides a complete enterprise-grade development environment with:
 - **Hadoop 3.3.6** with HDFS and YARN cluster management
 - **Java 17** optimized for Spark/Hadoop compatibility
 - **Dual Scala support** (2.12.18 for Spark + 3.3.4 for modern development)
+- **Enhanced Jupyter Lab and DataSpell integration** (replaces Zeppelin)
 - **Intelligent dependency management** with online/offline JAR handling
 - **Comprehensive backup/restore system** for configuration management
 - **Auto-setup system** for seamless environment initialization
@@ -29,6 +30,13 @@ This zshrc provides a complete enterprise-grade development environment with:
 - **Java 17 compatibility fixes** for modern JVM support
 - **Automated service management** (start/stop/restart)
 - **Health monitoring** and diagnostics
+
+### 📓 Enhanced Notebook Support
+- **Optimized Jupyter Lab integration** with Spark auto-configuration
+- **DataSpell setup and templates** for JetBrains users
+- **Ready-to-use notebook templates** with Spark pre-configured
+- **Smart dependency resolution** for seamless development
+- **Enhanced Python path management** for project imports
 
 ### 🛠️ Developer Experience
 - **Pinned known-good versions** to prevent breakage
@@ -66,7 +74,10 @@ smart_spark_submit my_script.py
 default_spark_submit my_script.py           # Local mode
 distributed_spark_submit my_script.py       # Distributed cluster
 spark_yarn_submit my_script.py              # YARN mode
-heavy_api_submit my_script.py yarn          # API-heavy workloads
+heavy_api_submit my_script.py auto          # API-heavy workloads
+
+# Enhanced local submit with path management
+local_heavy_api_submit --path /my/project my_script.py
 ```
 
 ### Hadoop + YARN Management
@@ -80,6 +91,22 @@ yarn_cluster_info
 
 # Stop services
 stop_hadoop
+```
+
+### Notebook Development
+```bash
+# Start optimized Jupyter Lab with Spark
+jupyter_spark 8889
+
+# Setup DataSpell environment
+dataspell_spark
+
+# Create notebook templates
+create_notebook_templates
+
+# General notebook manager
+notebook_manager jupyterlab 8890 /my/project
+notebook_manager dataspell
 ```
 
 ### Testing and Diagnostics
@@ -149,6 +176,48 @@ verify_version_compatibility
 show_version_strategy
 ```
 
+## 📓 Notebook Integration
+
+### Jupyter Lab
+The enhanced Jupyter integration provides:
+- **Automatic Spark configuration** with optimized settings
+- **Sedona and GraphFrames** pre-loaded
+- **Smart dependency resolution** (online/offline)
+- **Reduced logging verbosity** for cleaner output
+- **Template notebooks** with common patterns
+
+```bash
+# Start Jupyter Lab with Spark optimization
+jupyter_spark 8889 /my/project
+
+# Use notebook manager for more control
+notebook_manager jupyterlab 8890 /my/notebooks
+```
+
+### DataSpell
+Enhanced support for JetBrains DataSpell:
+- **Automated environment setup** with proper Python interpreter
+- **Spark configuration templates** ready to copy/paste
+- **Environment variable management**
+- **Optimized memory settings** for interactive development
+
+```bash
+# Setup DataSpell configuration
+dataspell_spark
+
+# Creates template file at ~/.dataspell_spark_config.py
+```
+
+### Templates and Examples
+```bash
+# Create starter templates
+create_notebook_templates
+
+# Templates are created in ~/.notebook_templates/
+# - spark_jupyter_template.ipynb (Jupyter)
+# - spark_dataspell_template.py (DataSpell)
+```
+
 ## 🌐 Web Interfaces
 
 When Hadoop services are running, access these web UIs:
@@ -158,6 +227,8 @@ When Hadoop services are running, access these web UIs:
 | HDFS NameNode | http://localhost:9870 | HDFS cluster management |
 | YARN ResourceManager | http://localhost:8088 | YARN job management |
 | HDFS DataNode | http://localhost:9864 | HDFS data node status |
+| Spark Master UI | http://localhost:8080 | Spark cluster management |
+| Jupyter Lab | http://localhost:8889 | Interactive notebook development |
 
 ## 🚀 Key Functions Reference
 
@@ -166,6 +237,7 @@ When Hadoop services are running, access these web UIs:
 - `distributed_spark_submit` - Cluster execution
 - `smart_spark_submit` - Auto-detect best execution mode
 - `heavy_api_submit` - Optimized for API-heavy workloads
+- `local_heavy_api_submit` - Enhanced local submit with path management
 - `flexible_spark_submit` - Multi-mode execution (local/distributed/yarn/k8s)
 
 ### Hadoop Functions
@@ -174,6 +246,13 @@ When Hadoop services are running, access these web UIs:
 - `hadoop_status` - Check service status
 - `yarn_application_list` - List YARN applications
 - `yarn_cluster_info` - Show cluster information
+
+### Notebook Functions
+- `jupyter_spark` - Start optimized Jupyter Lab with Spark
+- `dataspell_spark` - Setup DataSpell environment
+- `notebook_manager` - General notebook launcher
+- `create_notebook_templates` - Create starter templates
+- `notebook_help` - Show notebook help
 
 ### Testing Functions
 - `test_spark_comprehensive` - Full Sedona + GraphFrames test
@@ -195,10 +274,10 @@ When Hadoop services are running, access these web UIs:
 ### Common Issues
 
 **XML Configuration Errors**
-If you see XML parsing errors, ensure all `<name>` tags are correct:
+If you see XML parsing errors, ensure all `<n>` tags are correct:
 ```bash
 # Fix XML tags (macOS)
-sed -i '' 's/<n>/<name>/g' ~/.dotfiles/homedir/.zshrc
+sed -i '' 's/<n>/<n>/g' ~/.dotfiles/homedir/.zshrc
 sed -i '' 's/<\/n>/<\/name>/g' ~/.dotfiles/homedir/.zshrc
 ```
 
@@ -218,6 +297,19 @@ test_spark_dependencies
 download_spark_jars_if_needed
 ```
 
+**Notebook Issues**
+For Jupyter or DataSpell problems:
+```bash
+# Check notebook dependencies
+check_notebook_dependencies jupyter
+
+# Recreate templates
+create_notebook_templates
+
+# Get help
+notebook_help
+```
+
 ### Emergency Recovery
 ```bash
 # If functions are lost/corrupted
@@ -233,6 +325,8 @@ restore_zshrc_emergency
 For geocoding, web scraping, or API-intensive tasks:
 ```bash
 heavy_api_submit my_script.py auto
+# or
+local_heavy_api_submit --path /my/utils my_script.py
 ```
 
 Includes optimizations:
@@ -240,11 +334,12 @@ Includes optimizations:
 - Enhanced serialization for complex data
 - Python worker reuse for faster initialization
 - Adaptive query execution
+- Reduced logging verbosity
 
 ### Memory Configuration
 Default memory settings are optimized for development:
-- Driver: 2GB
-- Executor: 1GB
+- Driver: 2GB (4GB for heavy API workloads)
+- Executor: 1GB (2GB for heavy API workloads)
 - Can be adjusted via environment variables
 
 ## 📚 Advanced Usage
@@ -271,6 +366,21 @@ yarn_logs application_12345
 yarn_kill_all_apps
 ```
 
+### Notebook Development Workflow
+```bash
+# 1. Create project directory
+mkdir my_spark_project && cd my_spark_project
+
+# 2. Start Jupyter with Spark optimization
+jupyter_spark 8889
+
+# 3. Or setup DataSpell
+dataspell_spark
+
+# 4. Copy templates to get started quickly
+cp ~/.notebook_templates/spark_jupyter_template.ipynb ./
+```
+
 ## 🛡️ Safety Features
 
 - **Automatic backups** before any restore operation
@@ -286,9 +396,45 @@ yarn_kill_all_apps
 - **Health monitoring** and diagnostics
 - **Multi-mode execution** for different environments
 - **Scalable architecture** from laptop to cluster
+- **Enhanced notebook support** for data science workflows
+
+## 🔄 Migration from Zeppelin
+
+If you were previously using Zeppelin, the notebook functions provide enhanced alternatives:
+
+| Old Zeppelin Function | New Notebook Function | Benefit |
+|-----------------------|----------------------|---------|
+| Manual Zeppelin setup | `jupyter_spark` | Automatic Spark integration |
+| Complex interpreter config | `dataspell_spark` | Pre-configured templates |
+| Limited Python support | Enhanced Jupyter/DataSpell | Full Python ecosystem |
+| Connection issues | Reliable local integration | No web UI dependencies |
+
+## 💡 Tips and Best Practices
+
+1. **Use templates**: Always start with `create_notebook_templates` for consistent setup
+2. **Pin your environment**: Use `backup_zshrc` before making changes
+3. **Test integration**: Run `test_spark_comprehensive` after setup
+4. **Monitor resources**: Use web UIs to check cluster health
+5. **Optimize for your workload**: Use `heavy_api_submit` for API-heavy tasks
 
 ---
 
 **Ready to process big data like a pro!** 🚀
 
 For questions or issues, check the function documentation or run the built-in diagnostic tools.
+
+### Quick Start Commands
+```bash
+# Essential setup
+enable_auto_setup
+auto_setup_environment
+create_notebook_templates
+
+# Start development
+jupyter_spark 8889
+# or
+dataspell_spark
+
+# Test everything works
+test_spark_comprehensive
+```
