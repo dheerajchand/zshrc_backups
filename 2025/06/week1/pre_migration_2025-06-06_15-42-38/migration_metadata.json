@@ -1,0 +1,14 @@
+{
+    "migration_timestamp": "2025-06-06_15-42-38",
+    "migration_type": "pre_migration_backup",
+    "original_zshrc_size": "  108424",
+    "original_zshrc_lines": "    2724",
+    "migration_script_version": "1.0.0",
+    "system_info": {
+        "os": "Darwin",
+        "hostname": "dheeraj-astra",
+        "user": "dheerajchand",
+        "shell": "/bin/zsh",
+        "zsh_version": ""
+    }
+}

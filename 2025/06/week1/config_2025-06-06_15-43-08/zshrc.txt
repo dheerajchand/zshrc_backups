@@ -1,0 +1,66 @@
+# =====================================================
+# MODULAR ZSH CONFIGURATION
+# =====================================================
+# Fast, modular, and maintainable shell configuration
+
+# =====================================================
+# CORE MODULES (Always Load)
+# =====================================================
+
+# Core shell setup
+[[ -f ~/.config/zsh/core.zsh ]] && source ~/.config/zsh/core.zsh
+
+# Environment and paths
+[[ -f ~/.config/zsh/environment.zsh ]] && source ~/.config/zsh/environment.zsh
+
+# Utilities
+[[ -f ~/.config/zsh/utilities.zsh ]] && source ~/.config/zsh/utilities.zsh
+
+# =====================================================
+# CONDITIONAL MODULES (Load Only If Tools Exist)
+# =====================================================
+
+# Spark module
+if [[ -d "${SPARK_HOME:-/opt/homebrew/opt/sdkman-cli/libexec/candidates/spark/current}" && -f ~/.config/zsh/spark.zsh ]]; then
+    source ~/.config/zsh/spark.zsh
+fi
+
+# Hadoop module
+if [[ -d "${HADOOP_HOME:-/opt/homebrew/opt/sdkman-cli/libexec/candidates/hadoop/current}" && -f ~/.config/zsh/hadoop.zsh ]]; then
+    source ~/.config/zsh/hadoop.zsh
+fi
+
+# =====================================================
+# OPTIONAL MODULES
+# =====================================================
+
+[[ -f ~/.config/zsh/notebooks.zsh ]] && source ~/.config/zsh/notebooks.zsh
+[[ -f ~/.config/zsh/auto-setup.zsh ]] && source ~/.config/zsh/auto-setup.zsh
+[[ -f ~/.config/zsh/backup-system.zsh ]] && source ~/.config/zsh/backup-system.zsh
+[[ -f ~/.config/zsh/local.zsh ]] && source ~/.config/zsh/local.zsh
+
+# =====================================================
+# FINAL TOUCHES
+# =====================================================
+
+command -v fortune &>/dev/null && fortune
+
+function zsh_help {
+    echo "🚀 Modular ZSH Configuration Help"
+    echo ""
+    echo "📂 Configuration:"
+    echo "   ~/.zshrc                    - This lightweight main file"
+    echo "   ~/.config/zsh/              - Modular configuration directory"
+    echo ""
+    echo "🔧 Management:"
+    echo "   backup_zsh_config [msg]     - Create backup with commit message"
+    echo "   list_zsh_backups            - Show organized backup list"
+    echo "   zshconfig                   - Edit configuration directory"
+    echo "   zshreboot                   - Reload configuration"
+    echo ""
+    echo "🆘 Emergency:"
+    echo "   $(cat /tmp/zsh_migration_backup_path 2>/dev/null || echo 'See migration log')/restore_original.sh"
+}
+
+alias help='zsh_help'
+alias zhelp='zsh_help'
