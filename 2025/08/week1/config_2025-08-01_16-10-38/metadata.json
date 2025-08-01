@@ -1,0 +1,9 @@
+{
+    "timestamp": "2025-08-01_16-10-38",
+    "commit_message": "1. Moved Docker to its own zsh module 2. Added function to switch between Docker and Rancher",
+    "backup_type": "modular",
+    "system": "Darwin",
+    "user": "dheerajchand",
+    "hostname": "",
+    "shell_version": "5.9"
+}
