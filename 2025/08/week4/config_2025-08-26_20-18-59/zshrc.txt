@@ -1,0 +1,336 @@
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# =====================================================
+# MODULAR ZSH CONFIGURATION
+# =====================================================
+# Fast, modular, and maintainable shell configuration
+
+# =====================================================
+# CORE MODULES (Always Load)
+# =====================================================
+
+# Core shell setup
+[[ -f ~/.config/zsh/core.zsh ]] && source ~/.config/zsh/core.zsh
+
+# Environment and paths
+[[ -f ~/.config/zsh/environment.zsh ]] && source ~/.config/zsh/environment.zsh
+
+# Utilities
+[[ -f ~/.config/zsh/utilities.zsh ]] && source ~/.config/zsh/utilities.zsh
+
+# Python
+[[ -f "$HOME/.config/zsh/python/init.zsh" ]] && source "$HOME/.config/zsh/python/init.zsh"
+
+# Powerlevel10k theme
+source /opt/homebrew/share/powerlevel10k/powerlevel10k.zsh-theme
+
+# =====================================================
+# CONDITIONAL MODULES (Load Only If Tools Exist)
+# =====================================================
+
+# Spark module
+if [[ -d "${SPARK_HOME:-/opt/homebrew/opt/sdkman-cli/libexec/candidates/spark/current}" && -f ~/.config/zsh/spark.zsh ]]; then
+    source ~/.config/zsh/spark.zsh
+fi
+
+# Hadoop module
+if [[ -d "${HADOOP_HOME:-/opt/homebrew/opt/sdkman-cli/libexec/candidates/hadoop/current}" && -f ~/.config/zsh/hadoop.zsh ]]; then
+    source ~/.config/zsh/hadoop.zsh
+fi
+
+# =====================================================
+# OPTIONAL MODULES
+# =====================================================
+
+[[ -f ~/.config/zsh/notebooks.zsh ]] && source ~/.config/zsh/notebooks.zsh
+[[ -f ~/.config/zsh/docker.zsh ]] && source ~/.config/zsh/docker.zsh
+[[ -f ~/.config/zsh/auto-setup.zsh ]] && source ~/.config/zsh/auto-setup.zsh
+[[ -f ~/.config/zsh/backup-system.zsh ]] && source ~/.config/zsh/backup-system.zsh
+[[ -f ~/.config/zsh/local.zsh ]] && source ~/.config/zsh/local.zsh
+
+# =====================================================
+# FINAL TOUCHES
+# =====================================================
+
+command -v fortune &>/dev/null && fortune
+
+function zsh_help {
+    echo "🚀 Modular ZSH Configuration Help"
+    echo ""
+    echo "📂 Configuration:"
+    echo "   ~/.zshrc                    - This lightweight main file"
+    echo "   ~/.config/zsh/              - Modular configuration directory"
+    echo ""
+    echo "🔧 Management:"
+    echo "   backup_zsh_config [msg]     - Create backup with commit message"
+    echo "   list_zsh_backups            - Show organized backup list"
+    echo "   zshconfig                   - Edit configuration directory"
+    echo "   zshreboot                   - Reload configuration"
+    echo ""
+    echo "🐳 Docker Management:"
+    echo "   dr / use_rancher            - Switch to Rancher Desktop"
+    echo "   dd / use_docker_desktop     - Switch to Docker Desktop"
+    echo "   dstatus / docker_status     - Show current Docker configuration"
+    echo "   dreset / docker_reset       - Reset to default Docker provider"
+    echo ""
+    echo "🆘 Emergency:"
+    echo "   $(cat /tmp/zsh_migration_backup_path 2>/dev/null || echo 'See migration log')/restore_original.sh"
+}
+
+alias help='zsh_help'
+alias zhelp='zsh_help'
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="/Users/dheerajchand/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
+
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# =====================================================
+# ZSH FUNCTION TESTING FRAMEWORK
+# =====================================================
+
+# Colors for testing output
+ZSH_TEST_RED='\033[0;31m'
+ZSH_TEST_GREEN='\033[0;32m'
+ZSH_TEST_YELLOW='\033[1;33m'
+ZSH_TEST_BLUE='\033[0;34m'
+ZSH_TEST_NC='\033[0m' # No Color
+
+# Test counter
+ZSH_TESTS_RUN=0
+ZSH_TESTS_PASSED=0
+ZSH_TESTS_FAILED=0
+
+# Test assertion function
+zsh_assert() {
+    local test_name="$1"
+    local expected="$2"
+    local actual="$3"
+
+    ZSH_TESTS_RUN=$((ZSH_TESTS_RUN + 1))
+
+    if [[ "$expected" == "$actual" ]]; then
+        echo -e "${ZSH_TEST_GREEN}✅ PASS${ZSH_TEST_NC}: $test_name"
+        ZSH_TESTS_PASSED=$((ZSH_TESTS_PASSED + 1))
+        return 0
+    else
+        echo -e "${ZSH_TEST_RED}❌ FAIL${ZSH_TEST_NC}: $test_name"
+        echo -e "  Expected: $expected"
+        echo -e "  Actual:   $actual"
+        ZSH_TESTS_FAILED=$((ZSH_TESTS_FAILED + 1))
+        return 1
+    fi
+}
+
+# Test function existence
+zsh_assert_function_exists() {
+    local func_name="$1"
+    local test_name="Function $func_name exists"
+
+    if type "$func_name" >/dev/null 2>&1; then
+        echo -e "${ZSH_TEST_GREEN}✅ PASS${ZSH_TEST_NC}: $test_name"
+        ZSH_TESTS_PASSED=$((ZSH_TESTS_PASSED + 1))
+        return 0
+    else
+        echo -e "${ZSH_TEST_RED}❌ FAIL${ZSH_TEST_NC}: $test_name"
+        ZSH_TESTS_FAILED=$((ZSH_TESTS_FAILED + 1))
+        return 1
+    fi
+}
+
+# Test environment variables
+zsh_assert_env_var() {
+    local var_name="$1"
+    local expected_value="$2"
+    local test_name="Environment variable $var_name"
+
+    local actual_value="${(P)var_name}"
+
+    if [[ "$expected_value" == "$actual_value" ]]; then
+        echo -e "${ZSH_TEST_GREEN}✅ PASS${ZSH_TEST_NC}: $test_name = $actual_value"
+        ZSH_TESTS_PASSED=$((ZSH_TESTS_PASSED + 1))
+        return 0
+    else
+        echo -e "${ZSH_TEST_RED}❌ FAIL${ZSH_TEST_NC}: $test_name"
+        echo -e "  Expected: $expected_value"
+        echo -e "  Actual:   $actual_value"
+        ZSH_TESTS_FAILED=$((ZSH_TESTS_FAILED + 1))
+        return 1
+    fi
+}
+
+# Test function output
+zsh_assert_function_output() {
+    local func_name="$1"
+    local expected_pattern="$2"
+    local test_name="Function $func_name output"
+
+    # Capture function output (suppress errors)
+    local output
+    output=$(eval "$func_name" 2>/dev/null)
+
+    if [[ "$output" =~ "$expected_pattern" ]]; then
+        echo -e "${ZSH_TEST_GREEN}✅ PASS${ZSH_TEST_NC}: $test_name contains '$expected_pattern'"
+        ZSH_TESTS_PASSED=$((ZSH_TESTS_PASSED + 1))
+        return 0
+    else
+        echo -e "${ZSH_TEST_RED}❌ FAIL${ZSH_TEST_NC}: $test_name"
+        echo -e "  Expected pattern: $expected_pattern"
+        echo -e "  Actual output: $output"
+        ZSH_TESTS_FAILED=$((ZSH_TESTS_FAILED + 1))
+        return 1
+    fi
+}
+
+# Test function return code
+zsh_assert_function_success() {
+    local func_name="$1"
+    local test_name="Function $func_name succeeds"
+
+    ZSH_TESTS_RUN=$((ZSH_TESTS_RUN + 1))
+
+    if eval "$func_name" >/dev/null 2>&1; then
+        echo -e "${ZSH_TEST_GREEN}✅ PASS${ZSH_TEST_NC}: $test_name"
+        ZSH_TESTS_PASSED=$((ZSH_TESTS_PASSED + 1))
+        return 0
+    else
+        echo -e "${ZSH_TEST_RED}❌ FAIL${ZSH_TEST_NC}: $test_name"
+        ZSH_TESTS_FAILED=$((ZSH_TESTS_FAILED + 1))
+        return 1
+    fi
+}
+
+# Test summary
+zsh_print_test_summary() {
+    echo -e "\n${ZSH_TEST_BLUE}📊 Zsh Function Test Summary${ZSH_TEST_NC}"
+    echo -e "=================================="
+    echo -e "Tests Run:    $ZSH_TESTS_RUN"
+    echo -e "Tests Passed: ${ZSH_TEST_GREEN}$ZSH_TESTS_PASSED${ZSH_TEST_NC}"
+    echo -e "Tests Failed: ${ZSH_TEST_RED}$ZSH_TESTS_FAILED${ZSH_TEST_NC}"
+
+    if [[ $ZSH_TESTS_FAILED -eq 0 ]]; then
+        echo -e "\n${ZSH_TEST_GREEN}🎉 All zsh function tests passed!${ZSH_TEST_NC}"
+        return 0
+    else
+        echo -e "\n${ZSH_TEST_RED}❌ Some zsh function tests failed${ZSH_TEST_NC}"
+        return 1
+    fi
+}
+
+# Reset test counters
+zsh_reset_test_counters() {
+    ZSH_TESTS_RUN=0
+    ZSH_TESTS_PASSED=0
+    ZSH_TESTS_FAILED=0
+}
+
+# Test Spark environment setup
+zsh_test_spark_environment() {
+    echo -e "\n${ZSH_TEST_BLUE}🔧 Testing Spark Environment${ZSH_TEST_NC}"
+    echo -e "============================="
+
+    # Test SPARK_HOME
+    zsh_assert_env_var "SPARK_HOME" "/opt/homebrew/opt/sdkman-cli/libexec/candidates/spark/current"
+
+    # Test Java
+    zsh_assert_env_var "JAVA_HOME" "/opt/homebrew/opt/sdkman-cli/libexec/candidates/java/current"
+
+    # Test Hadoop
+    zsh_assert_env_var "HADOOP_HOME" "/opt/homebrew/opt/sdkman-cli/libexec/candidates/hadoop/current"
+}
+
+# Test Spark function existence
+zsh_test_spark_functions() {
+    echo -e "\n${ZSH_TEST_BLUE}🚀 Testing Spark Functions${ZSH_TEST_NC}"
+    echo -e "=========================="
+
+    # Core functions
+    zsh_assert_function_exists "spark_start"
+    zsh_assert_function_exists "spark_stop"
+    zsh_assert_function_exists "spark_status"
+    zsh_assert_function_exists "show_spark_config"
+
+    # Submit functions
+    zsh_assert_function_exists "default_spark_submit"
+    zsh_assert_function_exists "distributed_spark_submit"
+    zsh_assert_function_exists "smart_spark_submit"
+    zsh_assert_function_exists "heavy_api_submit"
+    zsh_assert_function_exists "local_heavy_api_submit"
+    zsh_assert_function_exists "flexible_spark_submit"
+
+    # Testing functions
+    zsh_assert_function_exists "test_spark_comprehensive"
+    zsh_assert_function_exists "spark_test_simple"
+}
+
+# Test function behavior
+zsh_test_spark_function_behavior() {
+    echo -e "\n${ZSH_TEST_BLUE}🧪 Testing Function Behavior${ZSH_TEST_NC}"
+    echo -e "============================="
+
+    # Test spark_status output
+    local status_output
+    status_output=$(spark_status 2>/dev/null)
+    zsh_assert "spark_status contains 'Spark Cluster Status'" "Spark Cluster Status" "$(echo $status_output | grep -o 'Spark Cluster Status')"
+
+    # Test show_spark_config output
+    local config_output
+    config_output=$(show_spark_config 2>/dev/null)
+    zsh_assert "show_spark_config contains 'Enhanced Spark Configuration'" "Enhanced Spark Configuration" "$(echo $config_output | grep -o 'Enhanced Spark Configuration')"
+}
+
+# Test dependency resolution
+zsh_test_dependency_resolution() {
+    echo -e "\n${ZSH_TEST_BLUE}📦 Testing Dependency Resolution${ZSH_TEST_NC}"
+    echo -e "================================="
+
+    # Test that get_spark_dependencies function exists
+    zsh_assert_function_exists "get_spark_dependencies"
+
+    # Test that dependencies are resolved
+    local deps_output
+    deps_output=$(get_spark_dependencies 2>/dev/null)
+    zsh_assert "get_spark_dependencies returns dependencies" "sedona" "$(echo $deps_output | grep -o 'sedona')"
+}
+
+# Main test runner
+zsh_run_all_tests() {
+    echo -e "${ZSH_TEST_BLUE}🧪 Running Zsh Function Tests${ZSH_TEST_NC}"
+    echo -e "================================="
+
+    zsh_reset_test_counters
+
+    zsh_test_spark_environment
+    zsh_test_spark_functions
+    zsh_test_spark_function_behavior
+    zsh_test_dependency_resolution
+
+    zsh_print_test_summary
+}
+
+# Quick test aliases
+alias test-zsh='zsh_run_all_tests'
+alias test-spark-env='zsh_test_spark_environment'
+alias test-spark-funcs='zsh_test_spark_functions'
+alias test-spark-behavior='zsh_test_spark_function_behavior'
+alias test-spark-deps='zsh_test_dependency_resolution'
+
+# Add to existing show_spark_config function
+function show_spark_config() {
+    # ... your existing show_spark_config content ...
+
+    echo ""
+    echo "🧪 Zsh Function Testing:"
+    echo "   test-zsh              - Run all zsh function tests"
+    echo "   test-spark-env        - Test Spark environment variables"
+    echo "   test-spark-funcs      - Test Spark function existence"
+    echo "   test-spark-behavior   - Test Spark function behavior"
+    echo "   test-spark-deps       - Test dependency resolution"
+}
