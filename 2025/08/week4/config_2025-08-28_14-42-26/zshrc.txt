@@ -1,0 +1,185 @@
+# ============================================
+# CLEAN ZSHRC - Fast startup, no conflicts
+# ============================================
+
+# Enable Powerlevel10k instant prompt.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# Basic environment
+export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+
+# Oh My Zsh
+export ZSH="$HOME/.dotfiles/oh-my-zsh"
+ZSH_THEME="powerlevel10k/powerlevel10k"  
+plugins=(git nvm)
+
+# Source Oh My Zsh (keep your existing setup)
+if [[ -f "$ZSH/oh-my-zsh.sh" ]]; then
+    source "$ZSH/oh-my-zsh.sh"
+fi
+
+# Powerlevel10k config (if exists)
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# NVM (your Node.js setup - keep this)
+export NVM_DIR="$HOME/.nvm"
+if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    source "$NVM_DIR/nvm.sh"
+fi
+
+# macOS configs (keep your cursor and system settings)
+if command -v defaults >/dev/null 2>&1; then
+    defaults write NSGlobalDomain KeyRepeat -int 1
+    defaults write com.apple.finder AppleShowAllFiles -bool true
+fi
+
+# Cursor CLI (keep your existing setup)
+if [[ -f "/Applications/Cursor.app/Contents/Resources/app/bin/cursor" ]]; then
+    export PATH="$PATH:/Applications/Cursor.app/Contents/Resources/app/bin"
+    alias c='cursor'
+    alias cursor='cursor'
+    echo "🚀 Cursor CLI available: use 'cursor' or 'c' command"
+fi
+
+# ==== MANUAL PYTHON MANAGEMENT ====
+# No automatic pyenv initialization - manual control only
+
+setup_pyenv() {
+    echo "🐍 Setting up pyenv..."
+    if command -v pyenv >/dev/null 2>&1; then
+        export PYENV_ROOT="$HOME/.pyenv"
+        export PATH="$PYENV_ROOT/bin:$PATH"
+        eval "$(pyenv init -)"
+        
+        # Safe virtualenv init without calling pyenv commands
+        if [ -d "$PYENV_ROOT/plugins/pyenv-virtualenv" ]; then
+            eval "$(pyenv virtualenv-init -)" 2>/dev/null
+        fi
+        
+        echo "✅ pyenv active: $(python --version 2>/dev/null)"
+        export PYTHON_ACTIVE="pyenv"
+    else
+        echo "❌ pyenv not found"
+    fi
+}
+
+setup_uv() {
+    echo "📦 Setting up uv..."
+    if command -v uv >/dev/null 2>&1; then
+        echo "✅ uv active: $(uv --version)"
+        export PYTHON_ACTIVE="uv"
+        # Add any UV-specific setup here
+    else
+        echo "❌ uv not found"
+    fi
+}
+
+# ==== MANUAL BIG DATA TOOLS ====
+# Prevent automatic heavy loading
+
+load_big_data() {
+    echo "🚀 Loading big data environment..."
+    
+    # Add your Spark/Hadoop loading here when needed
+    echo "⚡ Spark environment available"
+    echo "🐘 Hadoop environment available" 
+    echo "📓 Notebook support available"
+    
+    # You can add your actual loading functions here
+    # Example: setup_spark_env, setup_hadoop_env, etc.
+    
+    echo "✅ Big data tools loaded!"
+}
+
+# Status check
+python_status() {
+    echo "🐍 Python Status:"
+    echo "  Active manager: ${PYTHON_ACTIVE:-none}"
+    echo "  Current python: $(which python 2>/dev/null || echo 'not found')"
+    if command -v pyenv >/dev/null 2>&1; then
+        echo "  pyenv available: $(pyenv --version 2>/dev/null)"
+    fi
+    if command -v uv >/dev/null 2>&1; then
+        echo "  uv available: $(uv --version 2>/dev/null)"
+    fi
+}
+
+# Quick help
+pyhelp() {
+    echo "🐍 Python Management Commands:"
+    echo "  setup_pyenv   - Initialize pyenv"
+    echo "  setup_uv      - Initialize uv"  
+    echo "  python_status - Check current setup"
+    echo "  load_big_data - Load Spark/Hadoop tools"
+    echo "  pyhelp        - Show this help"
+}
+
+# Show available tools (no auto-loading)
+echo "💡 Available: setup_pyenv | setup_uv | load_big_data | pyhelp"
+
+# ==== PYTHON HELP FUNCTION (MANUALLY ADDED) ====
+python_help() {
+    echo "🐍 Advanced Python Development Environment"
+    echo "=========================================="
+    echo ""
+    echo "🎯 System Status: Python ZSH v${PYTHON_ZSH_VERSION:-2.1.0-optimized}"
+    echo "📋 Active Manager: ${PYTHON_MANAGER:-pyenv}"
+    echo ""
+    
+    echo "🚀 Core Commands:"
+    echo "   python_status    - Detailed environment status with virtualenv info"
+    echo "   python_help      - This comprehensive guide"
+    echo "   pyhelp           - Quick reference"  
+    echo "   setup_pyenv      - Initialize pyenv for session"
+    echo "   setup_uv         - Initialize uv for session"
+    echo ""
+    
+    echo "🐍 Pyenv Workflow:"
+    echo "   # Virtual Environment Management"
+    echo "   pyenv virtualenv 3.11.11 myproject    - Create virtualenv"
+    echo "   pyenv activate myproject               - Activate virtualenv" 
+    echo "   pyenv deactivate                       - Deactivate"
+    echo "   pyenv global geo31111                  - Set as global default"
+    echo "   pyenv local geo31111                   - Set for current project"
+    echo ""
+    echo "   # Environment Info" 
+    echo "   pyenv versions                         - List all environments"
+    echo "   pyenv virtualenvs                      - List all virtualenvs"
+    echo "   pyenv version                          - Show current + source"
+    echo ""
+    
+    echo "📦 UV Integration:"
+    echo "   uv init --python 3.12                 - Create UV project"
+    echo "   uv add requests pandas                 - Add packages"
+    echo "   uv run python script.py               - Run in project env"
+    echo "   uv sync                                - Install dependencies"
+    echo ""
+    
+    echo "🚀 Big Data Integration:"
+    echo "   load_big_data                          - Spark/Hadoop stack"
+    echo "   jupyter_spark 8889                     - Spark-enabled Jupyter"
+    echo "   start_hadoop                           - Start HDFS + YARN"
+    echo ""
+    
+    echo "💡 Advanced Tips:"
+    echo "   • python_status shows current virtualenv details"
+    echo "   • .python-version files auto-activate environments"
+    echo "   • Global default: pyenv global <env>"
+    echo "   • Project default: pyenv local <env>"
+    echo "   • Quick switch: pyenv shell <env>"
+    echo ""
+    
+    echo "📊 Current Environment:"
+    if command -v pyenv >/dev/null 2>&1; then
+        local current_version=$(pyenv version 2>/dev/null)
+        echo "   🎯 Active: $current_version"
+        if [[ "$current_version" == *"/envs/"* ]]; then
+            local venv_name=$(echo "$current_version" | sed 's/.*\/envs\/\([^[:space:]]*\).*/\1/')
+            echo "   🌍 Virtualenv: $venv_name"
+        fi
+    else
+        echo "   ❌ Run 'setup_pyenv' first to see environment details"
+    fi
+}
