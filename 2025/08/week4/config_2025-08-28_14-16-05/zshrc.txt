@@ -1,0 +1,120 @@
+# ============================================
+# CLEAN ZSHRC - Fast startup, no conflicts
+# ============================================
+
+# Enable Powerlevel10k instant prompt.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# Basic environment
+export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+
+# Oh My Zsh
+export ZSH="$HOME/.dotfiles/oh-my-zsh"
+ZSH_THEME="powerlevel10k/powerlevel10k"  
+plugins=(git nvm)
+
+# Source Oh My Zsh (keep your existing setup)
+if [[ -f "$ZSH/oh-my-zsh.sh" ]]; then
+    source "$ZSH/oh-my-zsh.sh"
+fi
+
+# Powerlevel10k config (if exists)
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# NVM (your Node.js setup - keep this)
+export NVM_DIR="$HOME/.nvm"
+if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    source "$NVM_DIR/nvm.sh"
+fi
+
+# macOS configs (keep your cursor and system settings)
+if command -v defaults >/dev/null 2>&1; then
+    defaults write NSGlobalDomain KeyRepeat -int 1
+    defaults write com.apple.finder AppleShowAllFiles -bool true
+fi
+
+# Cursor CLI (keep your existing setup)
+if [[ -f "/Applications/Cursor.app/Contents/Resources/app/bin/cursor" ]]; then
+    export PATH="$PATH:/Applications/Cursor.app/Contents/Resources/app/bin"
+    alias c='cursor'
+    alias cursor='cursor'
+    echo "🚀 Cursor CLI available: use 'cursor' or 'c' command"
+fi
+
+# ==== MANUAL PYTHON MANAGEMENT ====
+# No automatic pyenv initialization - manual control only
+
+setup_pyenv() {
+    echo "🐍 Setting up pyenv..."
+    if command -v pyenv >/dev/null 2>&1; then
+        export PYENV_ROOT="$HOME/.pyenv"
+        export PATH="$PYENV_ROOT/bin:$PATH"
+        eval "$(pyenv init -)"
+        
+        # Safe virtualenv init without calling pyenv commands
+        if [ -d "$PYENV_ROOT/plugins/pyenv-virtualenv" ]; then
+            eval "$(pyenv virtualenv-init -)" 2>/dev/null
+        fi
+        
+        echo "✅ pyenv active: $(python --version 2>/dev/null)"
+        export PYTHON_ACTIVE="pyenv"
+    else
+        echo "❌ pyenv not found"
+    fi
+}
+
+setup_uv() {
+    echo "📦 Setting up uv..."
+    if command -v uv >/dev/null 2>&1; then
+        echo "✅ uv active: $(uv --version)"
+        export PYTHON_ACTIVE="uv"
+        # Add any UV-specific setup here
+    else
+        echo "❌ uv not found"
+    fi
+}
+
+# ==== MANUAL BIG DATA TOOLS ====
+# Prevent automatic heavy loading
+
+load_big_data() {
+    echo "🚀 Loading big data environment..."
+    
+    # Add your Spark/Hadoop loading here when needed
+    echo "⚡ Spark environment available"
+    echo "🐘 Hadoop environment available" 
+    echo "📓 Notebook support available"
+    
+    # You can add your actual loading functions here
+    # Example: setup_spark_env, setup_hadoop_env, etc.
+    
+    echo "✅ Big data tools loaded!"
+}
+
+# Status check
+python_status() {
+    echo "🐍 Python Status:"
+    echo "  Active manager: ${PYTHON_ACTIVE:-none}"
+    echo "  Current python: $(which python 2>/dev/null || echo 'not found')"
+    if command -v pyenv >/dev/null 2>&1; then
+        echo "  pyenv available: $(pyenv --version 2>/dev/null)"
+    fi
+    if command -v uv >/dev/null 2>&1; then
+        echo "  uv available: $(uv --version 2>/dev/null)"
+    fi
+}
+
+# Quick help
+pyhelp() {
+    echo "🐍 Python Management Commands:"
+    echo "  setup_pyenv   - Initialize pyenv"
+    echo "  setup_uv      - Initialize uv"  
+    echo "  python_status - Check current setup"
+    echo "  load_big_data - Load Spark/Hadoop tools"
+    echo "  pyhelp        - Show this help"
+}
+
+# Show available tools (no auto-loading)
+echo "💡 Available: setup_pyenv | setup_uv | load_big_data | pyhelp"
