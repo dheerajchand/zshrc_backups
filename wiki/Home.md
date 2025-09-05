@@ -4,15 +4,35 @@ Welcome to the comprehensive documentation for your enhanced zsh configuration s
 
 ## 📚 **Documentation Sections**
 
+### **📖 [GitHub Wiki Documentation](https://github.com/dheerajchand/siege_analytics_zshrc/wiki)**
+- **Professional documentation** with comprehensive guides
+- **Complete system documentation** for all components
+- **Interactive navigation** and search functionality
+- **Siege Analytics branding** with custom styling
+
 ### **🚀 [Quick Start Guide](Quick-Start)**
 - Installation and setup
 - First-time configuration
 - Essential commands
 
+### **🎯 [Idiot-Proof Guide](../IDIOT_LEVEL_GUIDE.md)**
+- **Complete beginner-friendly setup guide**
+- **Step-by-step instructions** for all skill levels
+- **Multiple setup options** (simple, power user, bash)
+- **Troubleshooting guide** with common solutions
+- **Environment variable setup** and management
+- **Quick reference card** with essential commands
+
 ### **🏗️ [System Architecture](System-Architecture)**
 - Modular design overview
 - Configuration flow
 - Environment variables
+
+### **🐚 [Bash Compatibility](Bash-Compatibility)**
+- Cross-shell compatibility layer
+- Platform-specific adaptations
+- Function translation between zsh and bash
+- Installation scripts for both shells
 
 ### **⚡ [Spark & Big Data](Spark-Big-Data)**
 - Spark shell management
@@ -38,6 +58,12 @@ Welcome to the comprehensive documentation for your enhanced zsh configuration s
 - Custom functions
 - Performance optimization
 - Troubleshooting
+
+### **🧪 [Testing Framework](Testing-Framework)**
+- Comprehensive unit testing for Zsh functions
+- pytest-like functionality for shell scripting
+- Test coverage and reporting
+- CI/CD integration
 
 ## 🎯 **What Makes This Special?**
 
@@ -69,6 +95,18 @@ smart_spark_shell          # Intelligent shell selection
 setup_pyenv                # Initialize pyenv
 setup_uv                   # Initialize uv
 python_status              # Check environment status
+
+# Testing framework
+test_system                # Run quick system tests
+test_backup                # Test backup system
+test_python                # Test Python functions
+test_spark                 # Test Spark functions
+test_jvm                   # Test JVM/Hadoop/YARN functions
+test_jupyter               # Test Jupyter functions
+test_compatibility         # Test bash compatibility
+test_bash_install          # Test bash installation
+zsh run-tests.zsh          # Run comprehensive test suite
+zsh run-tests.zsh --coverage # Run tests with coverage
 ```
 
 ## 🔗 **Repository Links**

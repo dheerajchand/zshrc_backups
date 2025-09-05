@@ -6,8 +6,12 @@
 export ZSHRC_CONFIG_DIR="$HOME/.config/zsh"
 export ZSHRC_BACKUPS="$HOME/.zshrc_backups"
 
+# Zshrc sync configuration
+export ZSHRC_WORKING_FILE="$HOME/.dotfiles/homedir/.zshrc"
+export ZSHRC_REPO_FILE="$ZSHRC_CONFIG_DIR/zshrc"
+
 # Automatic backup triggers
-export AUTO_BACKUP_ON_CHANGE=true
+export AUTO_BACKUP_ON_CHANGE=false
 export AUTO_BACKUP_INTERVAL=3600  # 1 hour in seconds
 
 # Performance optimization: PATH deduplication
@@ -845,9 +849,9 @@ alias repostatus='zsh_repo_status'
 alias autobackup='enhanced_backup'
 alias optimize='deduplicate_path'
 
-# Auto-backup hook for zsh
-autoload -U add-zsh-hook
-add-zsh-hook preexec auto_backup_trigger
+# Auto-backup hook for zsh (DISABLED - was causing unwanted auto-commits)
+# autoload -U add-zsh-hook
+# add-zsh-hook preexec auto_backup_trigger
 
 # Backup critical functions (placeholder for functions that might not exist)
 function backup_critical_functions {
@@ -862,3 +866,402 @@ function spark_fix_logging {
     # This function can be extended to fix Spark logging issues
     return 0
 }
+
+# =====================================================
+# ZSHRC SYNC FUNCTIONS
+# =====================================================
+
+# Sync zshrc from working file to repository
+function sync_zshrc_to_repo {
+    # Sync the working zshrc file to the repository for distribution.
+    #
+    # This function copies the current working zshrc file to the repository
+    # so that others can use the configuration when they clone the repo.
+    # It handles the symlink issue by providing actual file content.
+    #
+    # Args:
+    #     None
+    #
+    # Returns:
+    #     None
+    #
+    # Example:
+    #     sync_zshrc_to_repo  # Copy working zshrc to repo
+    
+    echo "🔄 Syncing zshrc from working file to repository..."
+    
+    # Check if working file exists
+    if [[ ! -f "$ZSHRC_WORKING_FILE" ]]; then
+        echo "❌ Working zshrc file not found: $ZSHRC_WORKING_FILE"
+        echo "💡 Make sure your zshrc symlink is properly configured"
+        return 1
+    fi
+    
+    # Check if repo directory exists
+    if [[ ! -d "$ZSHRC_CONFIG_DIR" ]]; then
+        echo "❌ Repository directory not found: $ZSHRC_CONFIG_DIR"
+        return 1
+    fi
+    
+    # Create backup of current repo file
+    if [[ -f "$ZSHRC_REPO_FILE" ]]; then
+        local backup_file="$ZSHRC_REPO_FILE.backup.$(date +%Y%m%d_%H%M%S)"
+        cp "$ZSHRC_REPO_FILE" "$backup_file"
+        echo "💾 Created backup: $(basename "$backup_file")"
+    fi
+    
+    # Copy working file to repository
+    if cp "$ZSHRC_WORKING_FILE" "$ZSHRC_REPO_FILE"; then
+        echo "✅ Successfully synced zshrc to repository"
+        echo "📁 Source: $ZSHRC_WORKING_FILE"
+        echo "📁 Target: $ZSHRC_REPO_FILE"
+        
+        # Show file sizes for verification
+        local source_size=$(wc -l < "$ZSHRC_WORKING_FILE")
+        local target_size=$(wc -l < "$ZSHRC_REPO_FILE")
+        echo "📊 Lines: $source_size → $target_size"
+        
+        return 0
+    else
+        echo "❌ Failed to sync zshrc to repository"
+        return 1
+    fi
+}
+
+# Sync zshrc from repository to working file
+function sync_zshrc_from_repo {
+    # Sync the repository zshrc file to the working file.
+    #
+    # This function copies the repository zshrc file to the working location.
+    # Useful when you want to restore from a repository version or when
+    # setting up a new environment.
+    #
+    # Args:
+    #     None
+    #
+    # Returns:
+    #     None
+    #
+    # Example:
+    #     sync_zshrc_from_repo  # Copy repo zshrc to working file
+    
+    echo "🔄 Syncing zshrc from repository to working file..."
+    
+    # Check if repo file exists
+    if [[ ! -f "$ZSHRC_REPO_FILE" ]]; then
+        echo "❌ Repository zshrc file not found: $ZSHRC_REPO_FILE"
+        echo "💡 Make sure you're in the correct repository directory"
+        return 1
+    fi
+    
+    # Check if working directory exists
+    local working_dir=$(dirname "$ZSHRC_WORKING_FILE")
+    if [[ ! -d "$working_dir" ]]; then
+        echo "❌ Working directory not found: $working_dir"
+        return 1
+    fi
+    
+    # Create backup of current working file
+    if [[ -f "$ZSHRC_WORKING_FILE" ]]; then
+        local backup_file="$ZSHRC_WORKING_FILE.backup.$(date +%Y%m%d_%H%M%S)"
+        cp "$ZSHRC_WORKING_FILE" "$backup_file"
+        echo "💾 Created backup: $(basename "$backup_file")"
+    fi
+    
+    # Copy repo file to working location
+    if cp "$ZSHRC_REPO_FILE" "$ZSHRC_WORKING_FILE"; then
+        echo "✅ Successfully synced zshrc from repository"
+        echo "📁 Source: $ZSHRC_REPO_FILE"
+        echo "📁 Target: $ZSHRC_WORKING_FILE"
+        
+        # Show file sizes for verification
+        local source_size=$(wc -l < "$ZSHRC_REPO_FILE")
+        local target_size=$(wc -l < "$ZSHRC_WORKING_FILE")
+        echo "📊 Lines: $source_size → $target_size"
+        
+        echo "💡 You may need to reload your shell: source ~/.zshrc"
+        return 0
+    else
+        echo "❌ Failed to sync zshrc from repository"
+        return 1
+    fi
+}
+
+# Compare zshrc files
+function compare_zshrc_files {
+    # Compare the working zshrc file with the repository version.
+    #
+    # This function shows the differences between the working zshrc file
+    # and the repository version, helping you understand what changes
+    # need to be synced.
+    #
+    # Args:
+    #     None
+    #
+    # Returns:
+    #     None
+    #
+    # Example:
+    #     compare_zshrc_files  # Show differences between files
+    
+    echo "🔍 Comparing zshrc files..."
+    echo "📁 Working file: $ZSHRC_WORKING_FILE"
+    echo "📁 Repository file: $ZSHRC_REPO_FILE"
+    echo ""
+    
+    # Check if both files exist
+    if [[ ! -f "$ZSHRC_WORKING_FILE" ]]; then
+        echo "❌ Working zshrc file not found: $ZSHRC_WORKING_FILE"
+        return 1
+    fi
+    
+    if [[ ! -f "$ZSHRC_REPO_FILE" ]]; then
+        echo "❌ Repository zshrc file not found: $ZSHRC_REPO_FILE"
+        return 1
+    fi
+    
+    # Show file info
+    echo "📊 File Information:"
+    echo "   Working file: $(wc -l < "$ZSHRC_WORKING_FILE") lines, $(stat -f%z "$ZSHRC_WORKING_FILE") bytes"
+    echo "   Repository file: $(wc -l < "$ZSHRC_REPO_FILE") lines, $(stat -f%z "$ZSHRC_REPO_FILE") bytes"
+    echo ""
+    
+    # Check if files are identical
+    if cmp -s "$ZSHRC_WORKING_FILE" "$ZSHRC_REPO_FILE"; then
+        echo "✅ Files are identical - no sync needed"
+        return 0
+    fi
+    
+    # Show differences
+    echo "📋 Differences found:"
+    echo "===================="
+    diff -u "$ZSHRC_REPO_FILE" "$ZSHRC_WORKING_FILE" || true
+    echo ""
+    echo "💡 Use 'sync_zshrc_to_repo' to update repository with working changes"
+    echo "💡 Use 'sync_zshrc_from_repo' to update working file with repository changes"
+}
+
+# Complete zshrc sync workflow
+function sync_zshrc_workflow {
+    # Complete workflow for syncing zshrc changes to repository.
+    #
+    # This function performs a complete sync workflow:
+    # 1. Compares files to show differences
+    # 2. Syncs working file to repository
+    # 3. Commits changes to git
+    # 4. Pushes to remote repository
+    #
+    # Args:
+    #     None
+    #
+    # Returns:
+    #     None
+    #
+    # Example:
+    #     sync_zshrc_workflow  # Complete sync and push workflow
+    
+    echo "🚀 Starting complete zshrc sync workflow..."
+    echo "=========================================="
+    
+    # Step 1: Compare files
+    echo "📋 Step 1: Comparing files..."
+    compare_zshrc_files
+    echo ""
+    
+    # Step 2: Sync to repository
+    echo "📋 Step 2: Syncing to repository..."
+    if ! sync_zshrc_to_repo; then
+        echo "❌ Sync failed - aborting workflow"
+        return 1
+    fi
+    echo ""
+    
+    # Step 3: Commit changes
+    echo "📋 Step 3: Committing changes..."
+    cd "$ZSHRC_CONFIG_DIR"
+    
+    if git add zshrc; then
+        if git diff --cached --quiet; then
+            echo "ℹ️  No changes to commit"
+        else
+            git commit -m "Update zshrc: Sync from working file
+
+- Synced working zshrc file to repository
+- Ensures repository contains latest configuration
+- Fixes symlink issues for repository users
+- Timestamp: $(date)"
+            echo "✅ Changes committed"
+        fi
+    else
+        echo "❌ Failed to stage changes"
+        return 1
+    fi
+    echo ""
+    
+    # Step 4: Push to remote
+    echo "📋 Step 4: Pushing to remote repository..."
+    if git push; then
+        echo "✅ Changes pushed to remote repository"
+    else
+        echo "❌ Failed to push changes"
+        return 1
+    fi
+    echo ""
+    
+    echo "🎉 Zshrc sync workflow completed successfully!"
+    echo "💡 Repository now contains the latest zshrc configuration"
+}
+
+# Show zshrc sync status
+function zshrc_sync_status {
+    # Show the current status of zshrc files and sync state.
+    #
+    # This function displays information about both zshrc files,
+    # their modification times, sizes, and whether they're in sync.
+    #
+    # Args:
+    #     None
+    #
+    # Returns:
+    #     None
+    #
+    # Example:
+    #     zshrc_sync_status  # Show sync status information
+    
+    echo "📊 Zshrc Sync Status"
+    echo "==================="
+    echo ""
+    
+    # Working file status
+    if [[ -f "$ZSHRC_WORKING_FILE" ]]; then
+        local working_size=$(stat -f%z "$ZSHRC_WORKING_FILE")
+        local working_lines=$(wc -l < "$ZSHRC_WORKING_FILE")
+        local working_mtime=$(stat -f%Sm -t "%Y-%m-%d %H:%M:%S" "$ZSHRC_WORKING_FILE")
+        echo "📁 Working File: $ZSHRC_WORKING_FILE"
+        echo "   Size: $working_size bytes, $working_lines lines"
+        echo "   Modified: $working_mtime"
+        echo "   Type: $(file "$ZSHRC_WORKING_FILE" | cut -d: -f2-)"
+    else
+        echo "❌ Working file not found: $ZSHRC_WORKING_FILE"
+    fi
+    echo ""
+    
+    # Repository file status
+    if [[ -f "$ZSHRC_REPO_FILE" ]]; then
+        local repo_size=$(stat -f%z "$ZSHRC_REPO_FILE")
+        local repo_lines=$(wc -l < "$ZSHRC_REPO_FILE")
+        local repo_mtime=$(stat -f%Sm -t "%Y-%m-%d %H:%M:%S" "$ZSHRC_REPO_FILE")
+        echo "📁 Repository File: $ZSHRC_REPO_FILE"
+        echo "   Size: $repo_size bytes, $repo_lines lines"
+        echo "   Modified: $repo_mtime"
+        echo "   Type: $(file "$ZSHRC_REPO_FILE" | cut -d: -f2-)"
+    else
+        echo "❌ Repository file not found: $ZSHRC_REPO_FILE"
+    fi
+    echo ""
+    
+    # Sync status
+    if [[ -f "$ZSHRC_WORKING_FILE" ]] && [[ -f "$ZSHRC_REPO_FILE" ]]; then
+        if cmp -s "$ZSHRC_WORKING_FILE" "$ZSHRC_REPO_FILE"; then
+            echo "✅ Files are in sync"
+        else
+            echo "⚠️  Files are out of sync"
+            echo "💡 Use 'compare_zshrc_files' to see differences"
+            echo "💡 Use 'sync_zshrc_workflow' to sync and push changes"
+        fi
+    else
+        echo "❌ Cannot compare files - one or both missing"
+    fi
+    echo ""
+    
+    # Git status
+    if [[ -d "$ZSHRC_CONFIG_DIR/.git" ]]; then
+        cd "$ZSHRC_CONFIG_DIR"
+        echo "📊 Git Status:"
+        echo "   Branch: $(git branch --show-current)"
+        echo "   Status: $(git status --porcelain | wc -l | tr -d ' ') files modified"
+        if git diff --quiet zshrc; then
+            echo "   Zshrc: No uncommitted changes"
+        else
+            echo "   Zshrc: Has uncommitted changes"
+        fi
+    else
+        echo "❌ Not in a git repository"
+    fi
+}
+
+# Test configuration script
+function test_config_script {
+    # Test the shell configuration script functionality.
+    #
+    # This function tests the configure-shell.sh script to ensure it works
+    # correctly with different modes and options.
+    #
+    # Args:
+    #     None
+    #
+    # Returns:
+    #     None
+    #
+    # Example:
+    #     test_config_script  # Test the configuration script
+    
+    echo "🧪 Testing shell configuration script..."
+    echo "========================================"
+    
+    local script_path="$ZSHRC_CONFIG_DIR/configure-shell.sh"
+    
+    # Check if script exists
+    if [[ ! -f "$script_path" ]]; then
+        echo "❌ Configuration script not found: $script_path"
+        return 1
+    fi
+    
+    # Check if script is executable
+    if [[ ! -x "$script_path" ]]; then
+        echo "⚠️  Script is not executable, making it executable..."
+        chmod +x "$script_path"
+    fi
+    
+    echo "✅ Script found and executable: $script_path"
+    echo ""
+    
+    # Test help functionality
+    echo "📋 Testing help functionality..."
+    if "$script_path" --help > /dev/null 2>&1; then
+        echo "✅ Help functionality works"
+    else
+        echo "❌ Help functionality failed"
+        return 1
+    fi
+    
+    # Test validation
+    echo "📋 Testing validation..."
+    if "$script_path" --mode invalid 2>&1 | grep -q "Invalid mode"; then
+        echo "✅ Validation works"
+    else
+        echo "❌ Validation failed"
+        return 1
+    fi
+    
+    # Test dry run (validation only)
+    echo "📋 Testing dry run..."
+    if "$script_path" --mode standalone --shell zsh 2>&1 | grep -q "Configuration Summary"; then
+        echo "✅ Dry run works"
+    else
+        echo "❌ Dry run failed"
+        return 1
+    fi
+    
+    echo ""
+    echo "🎉 Configuration script tests passed!"
+    echo "💡 You can now use: ./configure-shell.sh --help"
+}
+
+# Convenience aliases for zshrc sync functions
+alias zshrc-sync='sync_zshrc_to_repo'
+alias zshrc-restore='sync_zshrc_from_repo'
+alias zshrc-compare='compare_zshrc_files'
+alias zshrc-workflow='sync_zshrc_workflow'
+alias zshrc-status='zshrc_sync_status'
+alias test-config='test_config_script'
