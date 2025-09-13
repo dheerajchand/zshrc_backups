@@ -1,0 +1,25 @@
+{
+    "timestamp": "2025-09-13_11-06-46",
+    "commit_message": "feat: enhance Docker switching with mutual exclusion and default-off behavior
+
+- Change default Docker provider from 'rancher' to 'none' 
+- Add docker_off() function to stop both Docker providers
+- Implement mutual exclusion: switching to one provider stops the other
+- Add automatic startup of selected provider if not running
+- Update docker_status() to show actual running vs configured status
+- Change docker_reset() to turn off all providers (new default behavior)
+- Update docker_auto_detect() to be non-intrusive (report only, no auto-switch)
+- Add 'doff' alias for docker_off function
+- Improve PATH cleanup to handle both Docker providers
+- Add helpful command hints to status output
+
+This resolves Docker provider conflicts and reduces memory usage by keeping
+both providers off unless explicitly needed.",
+    "backup_type": "modular",
+    "system": "Darwin",
+    "user": "dheerajchand",
+    "hostname": "",
+    "shell_version": "5.9",
+    "config_dir": "/Users/dheerajchand/.config/zsh",
+    "backup_dir": "/Users/dheerajchand/.zshrc_backups"
+}
