@@ -1,0 +1,28 @@
+{
+    "timestamp": "2025-09-15_22-50-30",
+    "commit_message": "feat: add comprehensive debugging and maintenance documentation system
+
+- 🚨 Added DEBUGGING_DIRECTIVES.md with mandatory investigation protocol
+- 📚 Created TROUBLESHOOTING.md with common problems & solutions  
+- 🔧 Added MAINTENANCE.md with systematic maintenance procedures
+- 📖 Updated README.md with troubleshooting section
+- 🏗️ Enhanced SYSTEM_ARCHITECTURE.md with debugging guidance
+- 📋 Updated DEVELOPMENT_STATUS.md with maintenance checklist
+
+Key Features:
+- Mandatory 5-step debugging process (INVESTIGATE → BASELINE → TEST → VERIFY → PROCEED)
+- Environment-specific rules (uv run vs python3, PATH management)
+- Performance monitoring and health checks
+- Emergency recovery procedures
+- Automated maintenance scripts
+
+This addresses the repeated debugging failures and provides systematic
+approaches to prevent PATH explosion and other configuration issues.",
+    "backup_type": "modular",
+    "system": "Darwin",
+    "user": "dheerajchand",
+    "hostname": "",
+    "shell_version": "5.9",
+    "config_dir": "/Users/dheerajchand/.config/zsh",
+    "backup_dir": "/Users/dheerajchand/.zshrc_backups"
+}
