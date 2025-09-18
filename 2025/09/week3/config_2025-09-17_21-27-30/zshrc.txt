@@ -1,0 +1,16 @@
+#!/usr/bin/env zsh
+# =====================================================
+# SIEGE ANALYTICS ZSH SYSTEM POINTER
+# =====================================================
+#
+# This file simply points to the Siege Analytics ZSH system
+# located at ~/.config/zsh/zshrc (NOT atomantic's oh-my-zsh)
+#
+# The actual configuration is in the Siege Analytics repository
+# =====================================================
+
+# CRITICAL: Clear any stale loading flags for fresh shell sessions
+unset MODULAR_ZSHRC_LOADED
+
+# Source the Siege Analytics ZSH configuration
+source "$HOME/.config/zsh/zshrc"
