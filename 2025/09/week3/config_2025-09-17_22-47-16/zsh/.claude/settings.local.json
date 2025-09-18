@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed:*)",
+      "Bash(git checkout:*)",
+      "Read(///**)",
+      "Bash(chmod:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(backup \"A+ documentation and comprehensive testing suite\")",
+      "Bash(find:*)",
+      "Bash(git merge:*)",
+      "Bash(command -v push)",
+      "Bash(push \"Complete systematic ZSH configuration review and merge to main\")",
+      "Bash(git push:*)",
+      "Bash(source:*)",
+      "Bash(/dev/null)",
+      "Bash(jobs)",
+      "Bash(backup \"Update tests and documentation for staggered mode default\")",
+      "Bash(./tests/test-three-tier-system.sh:*)",
+      "Bash(xargs:*)",
+      "Bash(./tests/test-modular-system.zsh)",
+      "Bash(zsh_mode_status)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
