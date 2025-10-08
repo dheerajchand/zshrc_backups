@@ -1,0 +1,11 @@
+{
+    "timestamp": "2025-10-08_14-43-11",
+    "commit_message": "docs: Update comprehensive security documentation and reorganize hostile testing framework",
+    "backup_type": "modular",
+    "system": "Darwin",
+    "user": "dheerajchand",
+    "hostname": "",
+    "shell_version": "5.9",
+    "config_dir": "/Users/dheerajchand/.config/zsh",
+    "backup_dir": "/Users/dheerajchand/.zshrc_backups"
+}
