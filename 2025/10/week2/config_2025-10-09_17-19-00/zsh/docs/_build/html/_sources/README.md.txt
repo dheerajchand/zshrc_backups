@@ -35,31 +35,17 @@ make serve
 
 ```
 docs/
-├── _build/html/                    # Built HTML documentation
-├── _static/                        # Static assets (CSS, images)
-├── big-data/                       # Big data tools documentation
-├── core-systems/                   # Core system documentation
-├── development/                    # Development workflows
-├── getting-started/                # Installation and setup guides
-├── security/                       # Security documentation
-├── DIRECTORY_CLEANUP_SAFETY_PLAN.md # 🛡️ Directory safety framework
-├── MAIN_README.md                  # 📋 Main project documentation
-├── SYSTEM_ARCHITECTURE.md         # 🏗️ System architecture guide
-├── conf.py                         # Sphinx configuration
-├── index.rst                       # Main documentation index
-├── Makefile                        # Build automation
-└── requirements.txt                # Python dependencies
+├── _build/html/          # Built HTML documentation
+├── _static/              # Static assets (CSS, images)
+├── big-data/             # Big data tools documentation
+├── core-systems/         # Core system documentation
+├── development/          # Development workflows
+├── getting-started/      # Installation and setup guides
+├── conf.py              # Sphinx configuration
+├── index.rst            # Main documentation index
+├── Makefile             # Build automation
+└── requirements.txt     # Python dependencies
 ```
-
-## 🛡️ **Security Documentation**
-
-### **NEW: Directory Safety Framework**
-- **`DIRECTORY_CLEANUP_SAFETY_PLAN.md`** - Comprehensive safety plan for directory operations
-  - 7-phase safety strategy with forensic analysis
-  - Safe move procedures with automatic rollback
-  - Atomic operations and dependency mapping
-  - Emergency procedures and system recovery
-  - **Production-ready** with hostile testing certification
 
 ## 🔗 Integration
 
