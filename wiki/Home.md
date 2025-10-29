@@ -76,11 +76,10 @@ Welcome to the comprehensive documentation for your enhanced zsh configuration s
 ## 🚀 **Quick Commands Reference**
 
 ```bash
-# Core functions
-zsh_help                    # Display comprehensive help
-zshconfig                   # Edit configuration directory
-zshreboot                   # Reload configuration
-backup_zsh_config          # Create configuration backup
+# Backup and sync
+backup "your message"       # Backup to both repos
+sync_zsh                    # Sync repositories
+list_backups                # List all backups
 
 # macOS management
 toggle_hidden_files         # Toggle Finder hidden files
