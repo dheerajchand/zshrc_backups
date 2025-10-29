@@ -81,31 +81,28 @@ backup "your message"       # Backup to both repos
 sync_zsh                    # Sync repositories
 list_backups                # List all backups
 
-# macOS management
-toggle_hidden_files         # Toggle Finder hidden files
-toggle_key_repeat          # Toggle key repeat behavior
+# Core utilities
+modules                     # Show loaded modules
+help                       # Show all commands
+is_online                   # Check connectivity
 
-# Spark management
-pyspark_shell              # Python shell with dependencies
-spark_shell_scala          # Scala shell with optimization
-smart_spark_shell          # Intelligent shell selection
+# Python management  
+py_env_switch list          # List Python environments
+ds_project_init my_proj     # Create data science project
+python_status               # Environment status
 
-# Python management
-setup_pyenv                # Initialize pyenv
-setup_uv                   # Initialize uv
-python_status              # Check environment status
+# Spark & Big Data
+spark_status                # Spark cluster status
+start_hadoop                # Start Hadoop ecosystem
+smart_spark_submit job.py   # Intelligent job submission
 
-# Testing framework
-test_system                # Run quick system tests
-test_backup                # Test backup system
-test_python                # Test Python functions
-test_spark                 # Test Spark functions
-test_jvm                   # Test JVM/Hadoop/YARN functions
-test_jupyter               # Test Jupyter functions
-test_compatibility         # Test bash compatibility
-test_bash_install          # Test bash installation
-zsh run-tests.zsh          # Run comprehensive test suite
-zsh run-tests.zsh --coverage # Run tests with coverage
+# Docker
+docker_status               # Docker system status
+docker_cleanup              # System cleanup
+
+# Database
+pg_connect dbname           # Connect to PostgreSQL
+setup_credentials           # Setup credentials
 ```
 
 ## 🔗 **Repository Links**
