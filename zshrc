@@ -204,6 +204,8 @@ help() {
     echo "  sync                   - Sync repository"
     echo ""
     echo "🛠️  Utilities:"
+    echo "  zshconfig              - Edit zsh configuration"
+    echo "  zshreboot (reload)     - Reload zsh configuration"
     echo "  is_online              - Check internet (used by Spark)"
     echo "  mkcd <dir>             - Create and cd"
     echo "  extract <file>         - Universal archive extraction"

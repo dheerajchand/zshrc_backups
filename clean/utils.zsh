@@ -79,6 +79,42 @@ path_clean() {
     echo "✅ PATH cleaned: $(echo $PATH | tr ':' '\n' | wc -l | tr -d ' ') directories"
 }
 
+# Edit zsh configuration
+zshconfig() {
+    local editor="${EDITOR:-vim}"
+    local config_dir="${ZSH_CONFIG_DIR:-$HOME/.config/zsh}"
+    
+    if [[ ! -d "$config_dir" ]]; then
+        echo "❌ Configuration directory not found: $config_dir"
+        return 1
+    fi
+    
+    echo "🔧 Opening configuration directory: $config_dir"
+    echo "📝 Using editor: $editor"
+    
+    # Open the directory in the specified editor
+    if command -v "$editor" >/dev/null 2>&1; then
+        "$editor" "$config_dir"
+    else
+        echo "❌ Editor not found: $editor"
+        echo "💡 Set EDITOR environment variable or install $editor"
+        return 1
+    fi
+}
+
+# Reload zsh configuration
+zshreboot() {
+    echo "🔄 Reloading zsh configuration..."
+    
+    # Use exec to replace current shell with fresh one (cleanest reload)
+    exec zsh
+}
+
+# Aliases for common variations
+alias reload='zshreboot'
+alias zshreload='zshreboot'
+alias editconfig='zshconfig'
+
 echo "✅ utils loaded"
 
 
