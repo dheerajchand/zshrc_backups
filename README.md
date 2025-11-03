@@ -6,6 +6,78 @@
 [![Security Tested](https://img.shields.io/badge/Security-Hostile%20Tested-red.svg)](docs/api-reference/testing-philosophy.rst)
 [![Test Coverage](https://img.shields.io/badge/Test%20Coverage-100%25-brightgreen.svg)](tests/hostile-comprehensive-final.zsh)
 
+## 📦 Installation
+
+### **New Laptop / Fresh Install**
+
+**One-line installer:**
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/dheerajchand/siege_analytics_zshrc/main/install.sh)
+```
+
+**Manual installation:**
+```bash
+# 1. Clone the repository
+git clone https://github.com/dheerajchand/siege_analytics_zshrc.git ~/.config/zsh
+
+# 2. Run the installer
+cd ~/.config/zsh
+chmod +x install.sh
+./install.sh
+
+# 3. Restart your terminal
+exec zsh
+```
+
+**What gets installed:**
+- ✅ Modular zsh configuration (8 modules)
+- ✅ Oh-My-Zsh with Powerlevel10k theme
+- ✅ Automatic Python environment activation (pyenv)
+- ✅ Spark/Hadoop/Docker integration
+- ✅ PostgreSQL credential management
+- ✅ Git self-backup system
+
+**Prerequisites (installer will check):**
+- `zsh` (macOS default shell)
+- `git`
+- `homebrew` (recommended for macOS)
+
+**Optional dependencies (for full features):**
+```bash
+# Python environment management
+brew install pyenv pyenv-virtualenv
+pyenv install 3.11.11
+pyenv virtualenv 3.11.11 geo31111
+
+# Big data tools (Hadoop/Spark via SDKMAN)
+curl -s https://get.sdkman.io | bash
+sdk install hadoop
+sdk install spark
+
+# Docker Desktop
+# Download from: https://www.docker.com/products/docker-desktop
+```
+
+### **Existing System / Update**
+
+```bash
+# Pull latest changes
+cd ~/.config/zsh
+git pull origin main
+
+# Reload configuration
+exec zsh
+```
+
+### **Troubleshooting Installation**
+
+If you encounter issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md):
+- ❌ `pip: command not found` → [Fix here](TROUBLESHOOTING.md#pythonpyenv-not-working---command-not-found-pippython)
+- ❌ Claude CLI crashes → [Fix here](TROUBLESHOOTING.md#claude-cli-crashes-with-javascript-error)
+- ❌ Modules not loading → [Fix here](TROUBLESHOOTING.md#module-not-loading)
+
+---
+
 ## ✅ Production Status
 
 **All systems operational and verified:**
@@ -15,16 +87,21 @@
 - 📦 **12 modules auto-loaded** - Complete development environment
 - 🧪 **Comprehensive verification** - Real terminal testing
 
-## 🚀 Quick Start
+## 🚀 Quick Start (After Installation)
 
-### **Instant Setup**
+### **First Terminal Launch**
 ```bash
-# Your system is already configured and ready!
-# Open a new terminal - everything loads automatically
+# Configuration loads automatically!
+# You'll see a welcome screen showing:
+#   - Active Python environment
+#   - Current directory
+#   - Docker status
+#   - Quick command hints
 
 # Verify system status
 modules                    # Show loaded modules
 help                      # Complete guide
+python_status            # Check Python environment
 ```
 
 ### **Key Features Available Now**

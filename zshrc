@@ -229,11 +229,38 @@ modules() {
 # Powerlevel10k configuration
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
-# Welcome message
-echo ""
-echo "✅ ZSH loaded successfully"
-echo "💡 Type 'help' for commands or 'modules' to see what's loaded"
-echo ""
+# Welcome message - show useful context
+if [[ -o interactive ]]; then
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🚀 ZSH Configuration Loaded"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # Show Python environment
+    if command -v pyenv >/dev/null 2>&1; then
+        local pyenv_version=$(pyenv version-name 2>/dev/null || echo 'system')
+        echo "🐍 Python: $pyenv_version"
+    fi
+    
+    # Show current directory
+    echo "📁 Location: $(pwd)"
+    
+    # Show key services status
+    if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+        echo "🐳 Docker: running"
+    fi
+    
+    # Quick tips
+    echo ""
+    echo "💡 Quick Commands:"
+    echo "   help          - Show all available commands"
+    echo "   modules       - List loaded modules"
+    echo "   python_status - Check Python environment"
+    echo "   backup        - Commit and push config to GitHub"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+fi
 
 # Export FEC API key (from old config)
 export FEC_API_KEY="37J9ykQjEo7xjA0I8Zb0vC0H8AwCQhIcsGlWYDZv"
