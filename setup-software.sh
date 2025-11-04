@@ -1,0 +1,570 @@
+#!/usr/bin/env bash
+# =================================================================
+# Software Stack Installer for ZSH Configuration
+# =================================================================
+# Installs and configures all software managed by the zsh config:
+# - SDKMAN (Java, Hadoop, Spark)
+# - pyenv (Python environments)
+# - Docker Desktop
+# - PostgreSQL
+# - Optional tools
+# =================================================================
+
+set -e  # Exit on error
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Configuration
+PYTHON_VERSION="3.11.11"
+DEFAULT_VENV="geo31111"
+HADOOP_VERSION="3.3.6"
+SPARK_VERSION="3.5.0"
+JAVA_VERSION="11.0.20-tem"  # Temurin (Eclipse Adoptium)
+
+# Functions
+print_header() {
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}$1${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+}
+
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+print_info() {
+    echo -e "${CYAN}ℹ️  $1${NC}"
+}
+
+print_step() {
+    echo -e "${BLUE}▶ $1${NC}"
+}
+
+check_os() {
+    print_header "Detecting Operating System"
+    
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        OS="macos"
+        print_success "macOS detected"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        OS="linux"
+        print_success "Linux detected"
+    else
+        print_error "Unsupported OS: $OSTYPE"
+        exit 1
+    fi
+    
+    export OS
+}
+
+install_homebrew() {
+    print_header "Installing Homebrew (macOS Package Manager)"
+    
+    if command -v brew >/dev/null 2>&1; then
+        print_success "Homebrew already installed: $(brew --version | head -1)"
+        return
+    fi
+    
+    print_step "Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    
+    # Add to PATH for this session
+    if [[ -f /opt/homebrew/bin/brew ]]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
+    
+    print_success "Homebrew installed"
+}
+
+install_sdkman() {
+    print_header "Installing SDKMAN (Java, Hadoop, Spark Manager)"
+    
+    if [[ -d "$HOME/.sdkman" ]]; then
+        print_success "SDKMAN already installed"
+        source "$HOME/.sdkman/bin/sdkman-init.sh"
+        return
+    fi
+    
+    print_step "Installing SDKMAN..."
+    curl -s "https://get.sdkman.io" | bash
+    
+    # Source SDKMAN for this session
+    source "$HOME/.sdkman/bin/sdkman-init.sh"
+    
+    print_success "SDKMAN installed"
+}
+
+install_java() {
+    print_header "Installing Java (via SDKMAN)"
+    
+    source "$HOME/.sdkman/bin/sdkman-init.sh"
+    
+    if sdk list java | grep -q "installed.*$JAVA_VERSION"; then
+        print_success "Java $JAVA_VERSION already installed"
+        return
+    fi
+    
+    print_step "Installing Java $JAVA_VERSION (Temurin)..."
+    sdk install java "$JAVA_VERSION" || true
+    sdk default java "$JAVA_VERSION"
+    
+    print_success "Java installed: $(java -version 2>&1 | head -1)"
+}
+
+install_hadoop() {
+    print_header "Installing Hadoop (via SDKMAN)"
+    
+    source "$HOME/.sdkman/bin/sdkman-init.sh"
+    
+    if sdk list hadoop 2>/dev/null | grep -q "installed.*$HADOOP_VERSION"; then
+        print_success "Hadoop $HADOOP_VERSION already installed"
+    else
+        print_step "Installing Hadoop $HADOOP_VERSION..."
+        sdk install hadoop "$HADOOP_VERSION" || true
+        sdk default hadoop "$HADOOP_VERSION"
+        print_success "Hadoop installed"
+    fi
+    
+    # Create Hadoop data directories
+    print_step "Creating Hadoop data directories..."
+    mkdir -p ~/hadoop-data/namenode
+    mkdir -p ~/hadoop-data/datanode
+    mkdir -p ~/hadoop-data/tmp
+    print_success "Hadoop directories created"
+    
+    # Configure Hadoop
+    print_step "Configuring Hadoop..."
+    local hadoop_home="$HOME/.sdkman/candidates/hadoop/current"
+    
+    if [[ -d "$hadoop_home/etc/hadoop" ]]; then
+        # Backup existing configs
+        [[ -f "$hadoop_home/etc/hadoop/core-site.xml" ]] && \
+            cp "$hadoop_home/etc/hadoop/core-site.xml" "$hadoop_home/etc/hadoop/core-site.xml.bak"
+        
+        # Create core-site.xml
+        cat > "$hadoop_home/etc/hadoop/core-site.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>fs.defaultFS</name>
+        <value>hdfs://localhost:9000</value>
+    </property>
+    <property>
+        <name>hadoop.tmp.dir</name>
+        <value>file:///Users/REPLACE_USER/hadoop-data/tmp</value>
+    </property>
+</configuration>
+EOF
+        sed -i '' "s/REPLACE_USER/$USER/g" "$hadoop_home/etc/hadoop/core-site.xml"
+        
+        # Create hdfs-site.xml
+        cat > "$hadoop_home/etc/hadoop/hdfs-site.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>dfs.replication</name>
+        <value>1</value>
+    </property>
+    <property>
+        <name>dfs.namenode.name.dir</name>
+        <value>file:///Users/REPLACE_USER/hadoop-data/namenode</value>
+    </property>
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <value>file:///Users/REPLACE_USER/hadoop-data/datanode</value>
+    </property>
+</configuration>
+EOF
+        sed -i '' "s/REPLACE_USER/$USER/g" "$hadoop_home/etc/hadoop/hdfs-site.xml"
+        
+        # Create yarn-site.xml
+        cat > "$hadoop_home/etc/hadoop/yarn-site.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>yarn.nodemanager.aux-services</name>
+        <value>mapreduce_shuffle</value>
+    </property>
+    <property>
+        <name>yarn.resourcemanager.hostname</name>
+        <value>localhost</value>
+    </property>
+</configuration>
+EOF
+        
+        print_success "Hadoop configured"
+    else
+        print_warning "Hadoop config directory not found, skipping configuration"
+    fi
+}
+
+install_spark() {
+    print_header "Installing Spark (via SDKMAN)"
+    
+    source "$HOME/.sdkman/bin/sdkman-init.sh"
+    
+    if sdk list spark 2>/dev/null | grep -q "installed.*$SPARK_VERSION"; then
+        print_success "Spark $SPARK_VERSION already installed"
+    else
+        print_step "Installing Spark $SPARK_VERSION..."
+        sdk install spark "$SPARK_VERSION" || true
+        sdk default spark "$SPARK_VERSION"
+        print_success "Spark installed"
+    fi
+    
+    # Create Spark directories
+    print_step "Creating Spark directories..."
+    mkdir -p ~/spark-events
+    mkdir -p ~/spark-jars
+    print_success "Spark directories created"
+    
+    # Configure Spark
+    print_step "Configuring Spark..."
+    local spark_home="$HOME/.sdkman/candidates/spark/current"
+    
+    if [[ -d "$spark_home/conf" ]]; then
+        # Create spark-defaults.conf
+        cat > "$spark_home/conf/spark-defaults.conf" << EOF
+# Spark Configuration
+spark.master                     spark://localhost:7077
+spark.eventLog.enabled           true
+spark.eventLog.dir               file://$HOME/spark-events
+spark.history.fs.logDirectory    file://$HOME/spark-events
+spark.driver.memory              2g
+spark.executor.memory            2g
+EOF
+        
+        print_success "Spark configured"
+    else
+        print_warning "Spark config directory not found, skipping configuration"
+    fi
+}
+
+install_pyenv() {
+    print_header "Installing pyenv (Python Version Manager)"
+    
+    if command -v pyenv >/dev/null 2>&1; then
+        print_success "pyenv already installed: $(pyenv --version)"
+        return
+    fi
+    
+    if [[ "$OS" == "macos" ]]; then
+        print_step "Installing pyenv via Homebrew..."
+        brew install pyenv pyenv-virtualenv
+    else
+        print_step "Installing pyenv via git..."
+        curl https://pyenv.run | bash
+    fi
+    
+    # Add to current session
+    export PYENV_ROOT="$HOME/.pyenv"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    eval "$(pyenv init --path)"
+    eval "$(pyenv init -)"
+    eval "$(pyenv virtualenv-init -)"
+    
+    print_success "pyenv installed"
+}
+
+install_python() {
+    print_header "Installing Python $PYTHON_VERSION"
+    
+    # Ensure pyenv is in PATH for this session
+    export PYENV_ROOT="$HOME/.pyenv"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    eval "$(pyenv init --path)" 2>/dev/null || true
+    eval "$(pyenv init -)" 2>/dev/null || true
+    
+    if pyenv versions --bare | grep -q "^${PYTHON_VERSION}$"; then
+        print_success "Python $PYTHON_VERSION already installed"
+    else
+        print_step "Installing Python $PYTHON_VERSION..."
+        pyenv install "$PYTHON_VERSION"
+        print_success "Python $PYTHON_VERSION installed"
+    fi
+    
+    # Create virtual environment
+    print_step "Creating virtual environment: $DEFAULT_VENV..."
+    if pyenv versions --bare | grep -q "^${DEFAULT_VENV}$"; then
+        print_success "Virtual environment $DEFAULT_VENV already exists"
+    else
+        pyenv virtualenv "$PYTHON_VERSION" "$DEFAULT_VENV"
+        print_success "Virtual environment $DEFAULT_VENV created"
+    fi
+    
+    # Set as global default
+    pyenv global "$DEFAULT_VENV"
+    print_success "Python environment configured"
+}
+
+install_python_packages() {
+    print_header "Installing Essential Python Packages"
+    
+    # Ensure we're in the right environment
+    export PYENV_ROOT="$HOME/.pyenv"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    eval "$(pyenv init --path)" 2>/dev/null || true
+    eval "$(pyenv init -)" 2>/dev/null || true
+    pyenv shell "$DEFAULT_VENV" 2>/dev/null || true
+    
+    print_step "Installing packages..."
+    
+    # Upgrade pip first
+    python -m pip install --upgrade pip
+    
+    # Essential packages
+    pip install -q \
+        ipython \
+        jupyter \
+        pandas \
+        numpy \
+        matplotlib \
+        seaborn \
+        requests \
+        pyspark \
+        pyarrow \
+        pytest
+    
+    print_success "Python packages installed"
+}
+
+check_docker() {
+    print_header "Checking Docker"
+    
+    if command -v docker >/dev/null 2>&1; then
+        if docker info >/dev/null 2>&1; then
+            print_success "Docker is installed and running"
+        else
+            print_warning "Docker is installed but not running"
+            echo ""
+            echo "Start Docker Desktop to use Docker features"
+        fi
+    else
+        print_warning "Docker not installed"
+        echo ""
+        echo "To install Docker:"
+        echo "  1. Download Docker Desktop: https://www.docker.com/products/docker-desktop"
+        echo "  2. Install and start Docker Desktop"
+        echo "  3. Run this script again or just use Docker"
+    fi
+}
+
+check_postgresql() {
+    print_header "Checking PostgreSQL"
+    
+    if command -v psql >/dev/null 2>&1; then
+        print_success "PostgreSQL client installed: $(psql --version)"
+    else
+        print_warning "PostgreSQL not installed"
+        echo ""
+        if [[ "$OS" == "macos" ]]; then
+            echo "To install PostgreSQL:"
+            echo "  brew install postgresql@15"
+            echo "  brew services start postgresql@15"
+        else
+            echo "To install PostgreSQL:"
+            echo "  sudo apt-get install postgresql postgresql-contrib"
+        fi
+    fi
+}
+
+format_namenode() {
+    print_header "Formatting Hadoop NameNode"
+    
+    source "$HOME/.sdkman/bin/sdkman-init.sh"
+    local hadoop_home="$HOME/.sdkman/candidates/hadoop/current"
+    
+    if [[ ! -d "$hadoop_home" ]]; then
+        print_error "Hadoop not installed"
+        return 1
+    fi
+    
+    print_step "Formatting NameNode..."
+    "$hadoop_home/bin/hdfs" namenode -format -force
+    print_success "NameNode formatted"
+}
+
+verify_installation() {
+    print_header "Verifying Installation"
+    
+    local all_good=true
+    
+    # Check SDKMAN
+    if [[ -d "$HOME/.sdkman" ]]; then
+        print_success "SDKMAN: Installed"
+    else
+        print_error "SDKMAN: Not found"
+        all_good=false
+    fi
+    
+    # Check Java
+    if command -v java >/dev/null 2>&1; then
+        print_success "Java: $(java -version 2>&1 | head -1)"
+    else
+        print_error "Java: Not found"
+        all_good=false
+    fi
+    
+    # Check Hadoop
+    if [[ -d "$HOME/.sdkman/candidates/hadoop/current" ]]; then
+        print_success "Hadoop: Installed at ~/.sdkman/candidates/hadoop/current"
+    else
+        print_error "Hadoop: Not found"
+        all_good=false
+    fi
+    
+    # Check Spark
+    if [[ -d "$HOME/.sdkman/candidates/spark/current" ]]; then
+        print_success "Spark: Installed at ~/.sdkman/candidates/spark/current"
+    else
+        print_error "Spark: Not found"
+        all_good=false
+    fi
+    
+    # Check pyenv
+    if command -v pyenv >/dev/null 2>&1; then
+        print_success "pyenv: $(pyenv --version)"
+    else
+        print_error "pyenv: Not found"
+        all_good=false
+    fi
+    
+    # Check Python
+    export PYENV_ROOT="$HOME/.pyenv"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    if command -v python >/dev/null 2>&1; then
+        print_success "Python: $(python --version)"
+    else
+        print_error "Python: Not found"
+        all_good=false
+    fi
+    
+    # Check Docker
+    if command -v docker >/dev/null 2>&1; then
+        print_success "Docker: Installed"
+    else
+        print_warning "Docker: Not installed (optional)"
+    fi
+    
+    echo ""
+    if $all_good; then
+        print_success "All core components verified!"
+    else
+        print_error "Some components failed verification"
+        return 1
+    fi
+}
+
+print_next_steps() {
+    print_header "Installation Complete! 🎉"
+    
+    echo "Next steps:"
+    echo ""
+    echo "1. ${GREEN}Restart your terminal${NC} or run:"
+    echo "   ${CYAN}exec zsh${NC}"
+    echo ""
+    echo "2. Verify everything works:"
+    echo "   ${CYAN}python --version${NC}"
+    echo "   ${CYAN}java -version${NC}"
+    echo "   ${CYAN}hadoop version${NC}"
+    echo "   ${CYAN}spark-submit --version${NC}"
+    echo ""
+    echo "3. Start Hadoop (first time):"
+    echo "   ${CYAN}start_hadoop${NC}"
+    echo ""
+    echo "4. Start Spark cluster:"
+    echo "   ${CYAN}spark_start${NC}"
+    echo ""
+    echo "5. Check status:"
+    echo "   ${CYAN}hadoop_status${NC}"
+    echo "   ${CYAN}spark_status${NC}"
+    echo ""
+    echo "6. Web UIs will be available at:"
+    echo "   Hadoop NameNode: ${BLUE}http://localhost:9870${NC}"
+    echo "   YARN ResourceManager: ${BLUE}http://localhost:8088${NC}"
+    echo "   Spark Master: ${BLUE}http://localhost:8080${NC}"
+    echo "   Spark History: ${BLUE}http://localhost:18080${NC}"
+    echo ""
+    
+    if [[ ! $(command -v docker) ]]; then
+        echo "📦 Optional: Install Docker Desktop for container features"
+        echo "   https://www.docker.com/products/docker-desktop"
+        echo ""
+    fi
+    
+    print_success "Ready to use your data science environment!"
+}
+
+# Main installation flow
+main() {
+    clear
+    print_header "Software Stack Installer"
+    
+    echo "This script will install:"
+    echo "  • SDKMAN (Java, Hadoop, Spark manager)"
+    echo "  • Java $JAVA_VERSION"
+    echo "  • Hadoop $HADOOP_VERSION"
+    echo "  • Spark $SPARK_VERSION"
+    echo "  • pyenv (Python version manager)"
+    echo "  • Python $PYTHON_VERSION"
+    echo "  • Python virtual environment: $DEFAULT_VENV"
+    echo "  • Essential Python packages (pandas, numpy, jupyter, pyspark, etc.)"
+    echo ""
+    echo "Installation time: ~15-30 minutes"
+    echo ""
+    echo "Press Enter to continue or Ctrl+C to cancel..."
+    read
+    
+    check_os
+    
+    if [[ "$OS" == "macos" ]]; then
+        install_homebrew
+    fi
+    
+    install_sdkman
+    install_java
+    install_hadoop
+    install_spark
+    install_pyenv
+    install_python
+    install_python_packages
+    
+    # Optional components
+    check_docker
+    check_postgresql
+    
+    # Format namenode for first use
+    format_namenode
+    
+    if verify_installation; then
+        print_next_steps
+    else
+        print_error "Installation verification failed"
+        echo ""
+        echo "Please check the errors above and try again"
+        exit 1
+    fi
+}
+
+# Run the installer
+main "$@"
+

@@ -8,55 +8,76 @@
 
 ## 📦 Installation
 
-### **New Laptop / Fresh Install**
+### **Complete Setup (New Laptop)**
 
-**One-line installer:**
+**Two-step installation for full environment:**
+
+**Step 1: Install ZSH Configuration**
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/dheerajchand/siege_analytics_zshrc/main/install.sh)
 ```
 
-**Manual installation:**
+**Step 2: Install Software Stack**
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/dheerajchand/siege_analytics_zshrc/main/setup-software.sh)
+```
+
+**What gets installed:**
+
+*Step 1 (ZSH Config):*
+- ✅ Modular zsh configuration (8 modules)
+- ✅ Oh-My-Zsh with Powerlevel10k theme
+- ✅ Symlinks and shell setup
+
+*Step 2 (Software Stack):*
+- ✅ **SDKMAN** - Java, Hadoop, Spark manager
+- ✅ **Java 11** (Temurin/Eclipse Adoptium)
+- ✅ **Hadoop 3.3.6** - Configured and ready
+- ✅ **Spark 3.5.0** - Configured and ready
+- ✅ **pyenv** - Python version manager
+- ✅ **Python 3.11.11** - With virtual environment `geo31111`
+- ✅ **Python packages** - pandas, numpy, jupyter, pyspark, etc.
+- ✅ Checks Docker and PostgreSQL (optional)
+
+**Time:** ~5 minutes for config + ~20 minutes for software
+
+---
+
+### **Manual Installation**
+
+If you prefer to install manually:
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/dheerajchand/siege_analytics_zshrc.git ~/.config/zsh
 
-# 2. Run the installer
+# 2. Install ZSH configuration
 cd ~/.config/zsh
 chmod +x install.sh
 ./install.sh
 
-# 3. Restart your terminal
+# 3. Install software stack
+chmod +x setup-software.sh
+./setup-software.sh
+
+# 4. Restart your terminal
 exec zsh
 ```
 
-**What gets installed:**
-- ✅ Modular zsh configuration (8 modules)
-- ✅ Oh-My-Zsh with Powerlevel10k theme
-- ✅ Automatic Python environment activation (pyenv)
-- ✅ Spark/Hadoop/Docker integration
-- ✅ PostgreSQL credential management
-- ✅ Git self-backup system
+---
 
-**Prerequisites (installer will check):**
-- `zsh` (macOS default shell)
-- `git`
-- `homebrew` (recommended for macOS)
+### **Minimal Install (Config Only)**
 
-**Optional dependencies (for full features):**
+If you just want the zsh configuration without the full software stack:
+
 ```bash
-# Python environment management
-brew install pyenv pyenv-virtualenv
-pyenv install 3.11.11
-pyenv virtualenv 3.11.11 geo31111
-
-# Big data tools (Hadoop/Spark via SDKMAN)
-curl -s https://get.sdkman.io | bash
-sdk install hadoop
-sdk install spark
-
-# Docker Desktop
-# Download from: https://www.docker.com/products/docker-desktop
+bash <(curl -fsSL https://raw.githubusercontent.com/dheerajchand/siege_analytics_zshrc/main/install.sh)
 ```
+
+Then install software as needed:
+- Python: `brew install pyenv pyenv-virtualenv`
+- Big data: `curl -s https://get.sdkman.io | bash`
+- Docker: Download from docker.com
 
 ### **Existing System / Update**
 
