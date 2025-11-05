@@ -13,9 +13,9 @@ if command -v pyenv >/dev/null 2>&1; then
     export PYENV_ROOT="$HOME/.pyenv"
     export PATH="$PYENV_ROOT/bin:$PATH"
     
-    # Initialize pyenv
-    eval "$(pyenv init --path)"
-    eval "$(pyenv init -)"
+    # Initialize pyenv (suppress rehash warnings - cosmetic sandbox issue)
+    eval "$(pyenv init --path 2>/dev/null)"
+    eval "$(pyenv init - 2>/dev/null)"
     
     # Initialize virtualenv plugin if available
     if command -v pyenv-virtualenv-init >/dev/null 2>&1; then

@@ -267,3 +267,7 @@ fi
 # Export FEC API key (from old config)
 export FEC_API_KEY="37J9ykQjEo7xjA0I8Zb0vC0H8AwCQhIcsGlWYDZv"
 
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="/Users/dheerajchand/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
