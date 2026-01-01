@@ -226,8 +226,32 @@ icloud_snapshot() {
     echo "Wrote $out"
 }
 
+icloud_preflight() {
+    local status
+    if ! command -v brctl >/dev/null 2>&1; then
+        echo "Preflight: brctl not found; cannot detect active iCloud sync."
+        return 0
+    fi
+    status="$(_run_with_timeout 6 brctl status com.apple.CloudDocs 2>/dev/null || true)"
+    if [[ -z "$status" ]]; then
+        echo "Preflight: no brctl status output; assuming idle."
+        return 0
+    fi
+    if echo "$status" | rg -q "needs-sync|in-sync-down|upload progress|download progress"; then
+        echo "Preflight: iCloud activity detected."
+        return 1
+    fi
+    echo "Preflight: no active sync indicators detected."
+    return 0
+}
+
 icloud_reset_state() {
     local ts
+    local force="false"
+    if [[ "${1:-}" == "--force" ]]; then
+        force="true"
+        shift
+    fi
     ts="$(date +%Y%m%d-%H%M%S)"
     if [[ -z "${PS1:-}" ]]; then
         echo "Refusing to run in non-interactive shell."
@@ -240,6 +264,12 @@ icloud_reset_state() {
     fi
     echo "This will move FileProvider/CloudDocs state to .bak.$ts and restart daemons."
     echo "Any active iCloud sync will be interrupted and require re-sync."
+    if [[ "$force" != "true" ]]; then
+        if ! icloud_preflight; then
+            echo "Preflight failed. Re-run with --force to proceed anyway."
+            return 1
+        fi
+    fi
     read -r "REPLY?Proceed? [y/N] "
     [[ "$REPLY" =~ ^[Yy]$ ]] || { echo "Cancelled"; return 1; }
     if [[ -d "$HOME/Library/Application Support/FileProvider" ]]; then
