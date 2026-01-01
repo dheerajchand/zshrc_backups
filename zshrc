@@ -11,6 +11,15 @@ export EDITOR="zed"
 export VISUAL="$EDITOR"
 export ZSH_CONFIG_DIR="$HOME/.config/zsh"
 
+# Minimal init for non-TTY interactive shells (prevents GUI app timeouts)
+# Set ZSH_FORCE_FULL_INIT=1 to override.
+if [[ -o interactive && ! -t 0 && ! -t 1 && -z "${ZSH_FORCE_FULL_INIT:-}" ]]; then
+    export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    [[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
+    [[ -d "$HOME/bin" ]] && export PATH="$HOME/bin:$PATH"
+    return 0
+fi
+
 # Set base PATH
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 [[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
@@ -156,6 +165,145 @@ fi
 
 # Rehash command table after PATH changes
 rehash
+
+# =================================================================
+# SYSTEM DIAGNOSTICS & REPAIR
+# =================================================================
+
+_run_with_timeout() {
+    local seconds="$1"
+    shift
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$seconds" "$@"
+        return $?
+    fi
+    if command -v gtimeout >/dev/null 2>&1; then
+        gtimeout "$seconds" "$@"
+        return $?
+    fi
+    if command -v perl >/dev/null 2>&1; then
+        perl -e 'alarm shift; exec @ARGV' "$seconds" "$@"
+        return $?
+    fi
+    "$@"
+}
+
+icloud_status() {
+    echo "==== brctl status com.apple.CloudDocs ===="
+    if command -v brctl >/dev/null 2>&1; then
+        _run_with_timeout 8 brctl status com.apple.CloudDocs || true
+    else
+        echo "brctl not found"
+    fi
+    echo ""
+    echo "==== fileproviderctl dump -l ===="
+    if command -v fileproviderctl >/dev/null 2>&1; then
+        _run_with_timeout 8 fileproviderctl dump -l || true
+    else
+        echo "fileproviderctl not found"
+    fi
+}
+
+icloud_logs() {
+    echo "==== CloudDocs/FileProvider logs (last 2m) ===="
+    if [[ -x /usr/bin/log ]]; then
+        /usr/bin/log show --last 2m --style compact \
+            --predicate '(subsystem CONTAINS "com.apple.CloudDocs") || (subsystem CONTAINS "com.apple.FileProvider")' \
+            | tail -n 200
+    else
+        echo "/usr/bin/log not found"
+    fi
+}
+
+icloud_snapshot() {
+    local ts out
+    ts="$(date +%Y%m%d-%H%M%S)"
+    out="${1:-$HOME/Library/Logs/icloud_snapshot_${ts}.txt}"
+    {
+        echo "Snapshot: $ts"
+        icloud_status
+    } > "$out"
+    echo "Wrote $out"
+}
+
+icloud_reset_state() {
+    local ts
+    ts="$(date +%Y%m%d-%H%M%S)"
+    if [[ -z "${PS1:-}" ]]; then
+        echo "Refusing to run in non-interactive shell."
+        return 1
+    fi
+    if [[ ! -d "$HOME/Library/Application Support/FileProvider" ]] && \
+       [[ ! -d "$HOME/Library/Application Support/CloudDocs" ]]; then
+        echo "No FileProvider/CloudDocs state found to move."
+        return 1
+    fi
+    echo "This will move FileProvider/CloudDocs state to .bak.$ts and restart daemons."
+    echo "Any active iCloud sync will be interrupted and require re-sync."
+    read -r "REPLY?Proceed? [y/N] "
+    [[ "$REPLY" =~ ^[Yy]$ ]] || { echo "Cancelled"; return 1; }
+    if [[ -d "$HOME/Library/Application Support/FileProvider" ]]; then
+        mv "$HOME/Library/Application Support/FileProvider" \
+            "$HOME/Library/Application Support/FileProvider.bak.$ts"
+    fi
+    if [[ -d "$HOME/Library/Application Support/CloudDocs" ]]; then
+        mv "$HOME/Library/Application Support/CloudDocs" \
+            "$HOME/Library/Application Support/CloudDocs.bak.$ts"
+    fi
+    killall bird cloudd fileproviderd Finder >/dev/null 2>&1 || true
+    echo "Reset complete. Backups created with suffix .bak.$ts"
+}
+
+dropbox_status() {
+    local db_path
+    db_path="$HOME/Library/CloudStorage/Dropbox"
+    echo "==== Dropbox folder ===="
+    if [[ -d "$db_path" ]]; then
+        ls -ld "$db_path"
+    else
+        echo "Missing: $db_path"
+    fi
+    echo ""
+    echo "==== Dropbox info.json ===="
+    if [[ -f "$HOME/.dropbox/info.json" ]]; then
+        cat "$HOME/.dropbox/info.json"
+    else
+        echo "Missing: $HOME/.dropbox/info.json"
+    fi
+    echo ""
+    echo "==== Dropbox app ===="
+    if [[ -d "/Applications/Dropbox.app" ]]; then
+        ls -ld /Applications/Dropbox.app
+    else
+        echo "Missing: /Applications/Dropbox.app"
+    fi
+}
+
+dropbox_restart() {
+    if [[ ! -d "/Applications/Dropbox.app" ]]; then
+        echo "Dropbox.app not found in /Applications"
+        return 1
+    fi
+    echo "Restarting Dropbox..."
+    pkill -x Dropbox >/dev/null 2>&1 || true
+    open -a Dropbox
+}
+
+dropbox_relink_helper() {
+    local db_path
+    db_path="$HOME/Library/CloudStorage/Dropbox"
+    echo "Dropbox relink helper"
+    echo "Expected path: $db_path"
+    if [[ -d "$db_path" ]]; then
+        echo "Folder exists. Use this path if Dropbox asks."
+        open -a Finder "$db_path"
+    else
+        echo "Folder missing. Dropbox will need to recreate it."
+    fi
+    echo "If you see the 'Dropbox Folder Missing' dialog, click Relink and choose the path above."
+    echo "Launching Dropbox..."
+    open -a Dropbox
+}
 
 # Help
 help() {
