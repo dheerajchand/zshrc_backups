@@ -8,6 +8,7 @@
 
 # Basic environment
 export EDITOR="zed"
+export ZED_ALLOW_ROOT=true
 export VISUAL="$EDITOR"
 export ZSH_CONFIG_DIR="$HOME/.config/zsh"
 
@@ -56,11 +57,11 @@ detect_ide() {
     [[ -n "$INTELLIJ_ENVIRONMENT_READER" ]] && return 0
     [[ -n "$JETBRAINS_IDE" ]] && return 0
     [[ "$TERM_PROGRAM" == "vscode" ]] && return 0
-    
+
     # Check process tree for IDE
     local parent_proc=$(ps -p $PPID -o comm= 2>/dev/null)
     [[ "$parent_proc" =~ (pycharm|idea|webstorm|goland|datagrip|dataspell|code) ]] && return 0
-    
+
     return 1
 }
 
@@ -100,11 +101,11 @@ alias gl='git log --oneline'
 # Load modules based on environment
 if detect_ide; then
     echo "🖥️  IDE detected - using staggered loading for faster startup"
-    
+
     # Tier 1: Essential (load immediately - IDE needs Python right away)
     load_module utils       # Provides is_online, mkcd, extract, path_add
     load_module python      # Python environment (geo31111 auto-activated)
-    
+
     # Tier 2: Credentials & paths (load in background after brief delay)
     {
         sleep 0.1
@@ -112,7 +113,7 @@ if detect_ide; then
         load_module database     # PostgreSQL with credentials
         load_module backup       # Git self-backup
     } &
-    
+
     # Tier 3: Heavy tools (load in background - Spark/Hadoop/Docker)
     {
         sleep 0.5
@@ -121,13 +122,13 @@ if detect_ide; then
         load_module hadoop       # Hadoop/YARN/HDFS
         echo "✅ All modules loaded" >&2
     } &
-    
+
     echo "💡 Python ready now, Spark/Hadoop loading in background"
-    
+
 else
     # Regular terminal - load everything immediately (fast enough)
     echo "🚀 Loading modules..."
-    
+
     load_module utils
     load_module python
     load_module credentials
@@ -237,4 +238,3 @@ echo ""
 
 # Export FEC API key (from old config)
 export FEC_API_KEY="37J9ykQjEo7xjA0I8Zb0vC0H8AwCQhIcsGlWYDZv"
-
