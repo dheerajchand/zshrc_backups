@@ -131,8 +131,29 @@ test_secrets_sync_to_1p_requires_op() {
     rm -rf "$tmp"
 }
 
+test_secrets_init_from_example() {
+    local tmp file example old_file old_example
+    tmp="$(mktemp -d)"
+    file="$tmp/secrets.env"
+    example="$tmp/secrets.env.example"
+    cat > "$example" <<'EOF'
+FOO=bar
+EOF
+    old_file="$ZSH_SECRETS_FILE"
+    old_example="$HOME/.config/zsh/secrets.env.example"
+    export ZSH_SECRETS_FILE="$file"
+    export ZSH_SECRETS_FILE_EXAMPLE="$example"
+    secrets_init
+    assert_true "[[ -f \"$file\" ]]" "secrets_init should create file"
+    assert_contains "$(cat "$file")" "FOO=bar" "secrets_init should copy example"
+    export ZSH_SECRETS_FILE="$old_file"
+    export ZSH_SECRETS_FILE_EXAMPLE="$old_example"
+    rm -rf "$tmp"
+}
+
 register_test "test_secrets_load_file" "test_secrets_load_file"
 register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_machine_profile_default" "test_machine_profile_default"
 register_test "test_secrets_edit_creates_file" "test_secrets_edit_creates_file"
 register_test "test_secrets_sync_to_1p_requires_op" "test_secrets_sync_to_1p_requires_op"
+register_test "test_secrets_init_from_example" "test_secrets_init_from_example"

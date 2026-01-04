@@ -54,6 +54,7 @@ Files:
 Environment variables:
 - `ZSH_SECRETS_MODE=file|op|both|off`
 - `ZSH_SECRETS_FILE=~/.config/zsh/secrets.env`
+- `ZSH_SECRETS_FILE_EXAMPLE=~/.config/zsh/secrets.env.example`
 - `ZSH_SECRETS_MAP=~/.config/zsh/secrets.1p`
 - `OP_VAULT=Private`
 - `ZSH_ENV_PROFILE=dev|staging|prod|laptop` (shown on startup)
@@ -183,6 +184,7 @@ smart_spark_submit job.py
 ```bash
 secrets_status          # Show secrets loader status
 secrets_edit            # Edit local secrets.env (chmod 600)
+secrets_init            # Create secrets.env from example
 secrets_sync_to_1p      # Sync secrets.env into 1Password Secure Note
 ```
 
