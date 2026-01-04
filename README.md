@@ -57,6 +57,7 @@ Environment variables:
 - `ZSH_SECRETS_FILE_EXAMPLE=~/.config/zsh/secrets.env.example`
 - `ZSH_SECRETS_MAP=~/.config/zsh/secrets.1p`
 - `OP_VAULT=Private`
+- `OP_ACCOUNT=work|personal`
 - `ZSH_ENV_PROFILE=dev|staging|prod|laptop` (shown on startup)
 
 Mapping file format (`secrets.1p`):

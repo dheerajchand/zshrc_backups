@@ -12,6 +12,7 @@
 : "${CRED_STORE_BACKENDS:=op keychain}"
 # OP_VAULT is defined by secrets module; default if missing.
 : "${OP_VAULT:=Private}"
+: "${OP_ACCOUNT:=}"
 
 _cred_backends() {
     echo "${=CRED_BACKENDS}"
@@ -35,8 +36,14 @@ _cred_warn_unknown_backend() {
 _cred_get_op() {
     local service="$1" user="$2" field="$3"
     command -v op >/dev/null 2>&1 || return 1
-    op item get "$service-$user" --field="$field" --reveal 2>/dev/null && return 0
-    op item get "$service" --field="$field" --reveal 2>/dev/null && return 0
+    op item get "$service-$user" \
+        ${OP_ACCOUNT:+--account="$OP_ACCOUNT"} \
+        ${OP_VAULT:+--vault="$OP_VAULT"} \
+        --field="$field" --reveal 2>/dev/null && return 0
+    op item get "$service" \
+        ${OP_ACCOUNT:+--account="$OP_ACCOUNT"} \
+        ${OP_VAULT:+--vault="$OP_VAULT"} \
+        --field="$field" --reveal 2>/dev/null && return 0
     return 1
 }
 
@@ -44,7 +51,10 @@ _cred_put_op() {
     local service="$1" user="$2" value="$3"
     command -v op >/dev/null 2>&1 || return 1
     if op item get "$service-$user" >/dev/null 2>&1; then
-        op item edit "$service-$user" "password=$value" >/dev/null 2>&1 && {
+        op item edit "$service-$user" \
+            ${OP_ACCOUNT:+--account="$OP_ACCOUNT"} \
+            ${OP_VAULT:+--vault="$OP_VAULT"} \
+            "password=$value" >/dev/null 2>&1 && {
             echo "✅ Updated in 1Password"
             return 0
         }
@@ -54,6 +64,7 @@ _cred_put_op() {
         --category="Login" \
         --title="$service-$user" \
         --vault="$OP_VAULT" \
+        ${OP_ACCOUNT:+--account="$OP_ACCOUNT"} \
         "username=$user" \
         "password=$value" \
         --tags="zsh-credentials" >/dev/null 2>&1 && {
@@ -66,7 +77,7 @@ _cred_put_op() {
 _cred_status_op() {
     if command -v op >/dev/null 2>&1; then
         if op account list >/dev/null 2>&1; then
-            echo "✅ 1Password: Ready (vault: $OP_VAULT)"
+            echo "✅ 1Password: Ready (account: ${OP_ACCOUNT:-default} vault: $OP_VAULT)"
         else
             echo "⚠️  1Password: Authentication required (run: op signin)"
         fi
