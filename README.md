@@ -58,6 +58,7 @@ Environment variables:
 - `ZSH_SECRETS_MAP=~/.config/zsh/secrets.1p`
 - `OP_VAULT=Private`
 - `OP_ACCOUNT=work|personal`
+- `OP_ACCOUNTS_FILE=~/.config/zsh/op-accounts.env`
 - `ZSH_ENV_PROFILE=dev|staging|prod|laptop` (shown on startup)
 
 Mapping file format (`secrets.1p`):
@@ -187,6 +188,9 @@ secrets_status          # Show secrets loader status
 secrets_edit            # Edit local secrets.env (chmod 600)
 secrets_init            # Create secrets.env from example
 secrets_sync_to_1p      # Sync secrets.env into 1Password Secure Note
+op_accounts_edit        # Edit 1Password account aliases
+op_set_default          # Set default 1Password account/vault
+op_list_accounts_vaults # List accounts and vaults
 ```
 
 ## 📋 System Architecture

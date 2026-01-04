@@ -169,6 +169,20 @@ test_op_list_accounts_vaults_requires_op() {
     rm -rf "$tmp"
 }
 
+test_op_account_alias_lookup() {
+    local tmp file old_file
+    tmp="$(mktemp -d)"
+    file="$tmp/op-accounts.env"
+    cat > "$file" <<'EOF'
+ElectInfo=ABC123
+EOF
+    old_file="$OP_ACCOUNTS_FILE"
+    export OP_ACCOUNTS_FILE="$file"
+    assert_equal "ABC123" "$(_op_account_alias ElectInfo)" "alias should resolve to uuid"
+    export OP_ACCOUNTS_FILE="$old_file"
+    rm -rf "$tmp"
+}
+
 register_test "test_secrets_load_file" "test_secrets_load_file"
 register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_machine_profile_default" "test_machine_profile_default"
@@ -176,3 +190,4 @@ register_test "test_secrets_edit_creates_file" "test_secrets_edit_creates_file"
 register_test "test_secrets_sync_to_1p_requires_op" "test_secrets_sync_to_1p_requires_op"
 register_test "test_secrets_init_from_example" "test_secrets_init_from_example"
 register_test "test_op_list_accounts_vaults_requires_op" "test_op_list_accounts_vaults_requires_op"
+register_test "test_op_account_alias_lookup" "test_op_account_alias_lookup"
