@@ -36,7 +36,7 @@ All three commands should work and point to pyenv shims.
 **Why This Happens:**
 - Zsh loads `~/.zshrc` on startup
 - If this file doesn't exist or doesn't source our config, nothing loads
-- Pyenv initialization in `~/.config/zsh/clean/python.zsh` never runs
+- Pyenv initialization in `~/.config/zsh/modules/python.zsh` never runs
 - Result: `$PATH` missing pyenv shims
 
 ---
@@ -147,19 +147,19 @@ xattr -cr ~/.pyenv/shims  # Clear them
 
 1. **Check module file exists:**
    ```bash
-   ls -la ~/.config/zsh/clean/python.zsh
-   ls -la ~/.config/zsh/clean/spark.zsh
+   ls -la ~/.config/zsh/modules/python.zsh
+   ls -la ~/.config/zsh/modules/spark.zsh
    # etc.
    ```
 
 2. **Check for syntax errors:**
    ```bash
-   zsh -n ~/.config/zsh/clean/python.zsh  # Syntax check
+   zsh -n ~/.config/zsh/modules/python.zsh  # Syntax check
    ```
 
 3. **Load manually to see errors:**
    ```bash
-   source ~/.config/zsh/clean/python.zsh
+   source ~/.config/zsh/modules/python.zsh
    # Watch for error messages
    ```
 
@@ -243,7 +243,7 @@ echo ""
 
 echo "6. Module files..."
 for module in utils python spark hadoop docker database credentials backup; do
-    if [ -f ~/.config/zsh/clean/$module.zsh ]; then
+    if [ -f ~/.config/zsh/modules/$module.zsh ]; then
         echo "   ✅ $module.zsh exists"
     else
         echo "   ❌ $module.zsh missing"
