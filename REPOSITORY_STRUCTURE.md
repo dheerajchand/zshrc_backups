@@ -7,10 +7,10 @@ Clean, organized structure after removing 18 duplicate/cruft files.
 ```
 ~/.config/zsh/
 ├── 📄 Configuration Files
-│   ├── zshrc                      # Main configuration (loads modules from clean/)
+│   ├── zshrc                      # Main configuration (loads modules from modules/)
 │   └── zshrc.bloated             # Reference: original bloated config (kept for comparison)
 │
-├── 📁 clean/                      # Active Module Directory
+├── 📁 modules/                      # Active Module Directory
 │   ├── backup.zsh                # Git self-backup system
 │   ├── credentials.zsh           # Secure credential management (1Password/Keychain)
 │   ├── database.zsh              # PostgreSQL connection management
@@ -18,10 +18,8 @@ Clean, organized structure after removing 18 duplicate/cruft files.
 │   ├── hadoop.zsh                # Hadoop/YARN/HDFS operations
 │   ├── python.zsh                # Python/pyenv environment management
 │   ├── spark.zsh                 # Spark cluster management
-│   ├── utils.zsh                 # Core utilities (zshconfig, zshreboot, etc.)
-│   ├── complete_function_test.zsh # Test suite for all functions
-│   ├── zshrc                     # Alternative standalone config (not used)
-│   └── README.md                 # Documents the clean build philosophy
+│   ├── system_diagnostics.zsh    # iCloud/Dropbox diagnostics + repair
+│   └── utils.zsh                 # Core utilities (zshconfig, zshreboot, etc.)
 │
 ├── 📜 Installation Scripts
 │   ├── install.sh                # ZSH configuration installer
@@ -56,7 +54,7 @@ Clean, organized structure after removing 18 duplicate/cruft files.
 
 **`zshrc`** (Main configuration)
 - Loads Oh-My-Zsh + Powerlevel10k
-- Loads modules from `clean/` directory
+- Loads modules from `modules/` directory
 - Staggered loading (IDE vs terminal)
 - Enhanced welcome screen
 - Help system
@@ -69,7 +67,7 @@ Clean, organized structure after removing 18 duplicate/cruft files.
 
 ---
 
-### Modules (`clean/` directory)
+### Modules (`modules/` directory)
 
 All active module files loaded by `zshrc`:
 
@@ -83,8 +81,9 @@ All active module files loaded by `zshrc`:
 | **docker.zsh** | 4 | Container management |
 | **database.zsh** | 4 | PostgreSQL connection management |
 | **backup.zsh** | 4 | Git self-backup system |
+| **system_diagnostics.zsh** | 6 | iCloud/Dropbox diagnostics and repair |
 
-**Total: 54 functions** across 8 modules
+**Total: 60+ functions** across 9 modules
 
 ---
 
@@ -165,7 +164,7 @@ GitHub wiki with 9 comprehensive guides:
 ## What Was Removed
 
 ### Duplicates (10 files)
-All these existed in both root and `clean/`, but only `clean/` versions are used:
+All these existed in both root and `modules/`, but only `modules/` versions are used:
 - `backup-system.zsh`, `backup.zsh`
 - `credentials.zsh`, `database.zsh`, `docker.zsh`
 - `hadoop.zsh`, `python.zsh`, `spark.zsh`, `utils.zsh`
@@ -180,10 +179,10 @@ All these existed in both root and `clean/`, but only `clean/` versions are used
 - `cache/.zsh-update`
 
 ### Old Documentation (4 files)
-- `clean/COMPLETE_FINAL_STATUS.md` - Status report from cleanup
-- `clean/HDFS_FIXED.md` - Old bug fix documentation
-- `clean/DEPLOYMENT_GUIDE.md` - Superseded by main docs
-- `clean/QUICK_REFERENCE.md` - Replaced by `help` command
+- `modules/COMPLETE_FINAL_STATUS.md` - Status report from cleanup
+- `modules/HDFS_FIXED.md` - Old bug fix documentation
+- `modules/DEPLOYMENT_GUIDE.md` - Superseded by main docs
+- `modules/QUICK_REFERENCE.md` - Replaced by `help` command
 
 **Total removed: 18 files, 3,687 lines**
 
@@ -193,7 +192,7 @@ All these existed in both root and `clean/`, but only `clean/` versions are used
 
 1. Shell starts → sources `~/.zshrc` (symlink to `~/.config/zsh/zshrc`)
 2. `zshrc` initializes Oh-My-Zsh
-3. `zshrc` loads modules from `clean/` directory:
+3. `zshrc` loads modules from `modules/` directory:
    - IDE: Staggered (utils + python immediately, rest in background)
    - Terminal: All modules immediately
 4. Modules define functions and aliases
@@ -211,10 +210,10 @@ exec zsh
 ```
 
 ### Add New Function
-Edit appropriate module in `clean/`:
+Edit appropriate module in `modules/`:
 ```bash
 zshconfig              # Opens ~/.config/zsh in editor
-# Edit clean/utils.zsh (or other module)
+# Edit modules/utils.zsh (or other module)
 zshreboot              # Reload configuration
 ```
 
@@ -283,4 +282,7 @@ backup        # Commit and push changes
 
 
 
-
+├── 🧪 Tests
+│   ├── run-tests.zsh             # Test runner
+│   └── tests/                    # Test suites + framework
+│

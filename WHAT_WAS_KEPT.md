@@ -155,11 +155,11 @@ alias load-docker='load_module docker'
 
 **Test Files:**
 - Removed 90+ hostile test files
-- Kept 1 comprehensive test suite: `complete_function_test.zsh`
+- Replaced with a minimal `tests/` framework and `run-tests.zsh`
 
 **Markdown Files:**
 - Removed 100+ markdown files of security theater documentation
-- Kept essential docs in `clean/` directory
+- Kept essential docs in repo root and `wiki/`
 
 ---
 
@@ -287,7 +287,6 @@ The clean config removes:
 
 **Last Updated**: November 3, 2025  
 **Version**: Clean Config 1.0
-
 
 
 

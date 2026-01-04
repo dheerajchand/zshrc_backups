@@ -240,7 +240,7 @@ verify_installation() {
     local missing_modules=()
     
     for module in "${modules[@]}"; do
-        if [ ! -f "$CONFIG_DIR/clean/$module.zsh" ]; then
+        if [ ! -f "$CONFIG_DIR/modules/$module.zsh" ]; then
             missing_modules+=("$module")
         fi
     done
@@ -321,4 +321,3 @@ main() {
 
 # Run the installer
 main "$@"
-
