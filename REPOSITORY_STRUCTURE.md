@@ -286,3 +286,7 @@ backup        # Commit and push changes
 │   ├── run-tests.zsh             # Test runner
 │   └── tests/                    # Test suites + framework
 │
+├── 🔐 Secrets Templates
+│   ├── secrets.env.example       # Local secrets file example
+│   └── secrets.1p.example        # 1Password map example
+│

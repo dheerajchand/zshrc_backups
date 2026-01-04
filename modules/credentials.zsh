@@ -10,6 +10,7 @@
 : "${CRED_BACKENDS:=op keychain env}"
 # Backends to write into (space-separated). Defaults to safest set.
 : "${CRED_STORE_BACKENDS:=op keychain}"
+# OP_VAULT is defined by secrets module; default if missing.
 : "${OP_VAULT:=Private}"
 
 _cred_backends() {
@@ -358,4 +359,3 @@ alias pg-test='pg_test_connection'
 if [[ -z "${ZSH_TEST_MODE:-}" ]]; then
     echo "✅ credentials loaded"
 fi
-
