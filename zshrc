@@ -112,6 +112,7 @@ if detect_ide; then
     
     # Tier 1: Essential (load immediately - IDE needs Python right away)
     load_module utils       # Provides is_online, mkcd, extract, path_add
+    load_module secrets     # Local + 1Password env vars
     load_module python      # Python environment (geo31111 auto-activated)
     load_module system_diagnostics  # iCloud/Dropbox helpers
     
@@ -139,6 +140,7 @@ else
     echo "🚀 Loading modules..."
     
     load_module utils
+    load_module secrets
     load_module python
     load_module system_diagnostics
     load_module credentials
@@ -243,41 +245,71 @@ modules() {
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
 # Welcome message - show useful context
-if [[ -o interactive ]]; then
+zsh_status_banner() {
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "🚀 ZSH Configuration Loaded"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    
-    # Show Python environment
+
+    # Python environment
+    local pyenv_version="system"
     if command -v pyenv >/dev/null 2>&1; then
-        local pyenv_version=$(pyenv version-name 2>/dev/null || echo 'system')
-        echo "🐍 Python: $pyenv_version"
+        pyenv_version="$(pyenv version-name 2>/dev/null || echo 'system')"
     fi
-    
-    # Show current directory
+    local py_bin="python"
+    command -v python >/dev/null 2>&1 || py_bin="python3"
+    local py_version="not found"
+    if command -v "$py_bin" >/dev/null 2>&1; then
+        py_version="$("$py_bin" --version 2>&1 | head -1)"
+    fi
+    echo "🐍 Python: $pyenv_version (${py_version})"
+
+    # Machine profile (env/role/host)
+    if command -v machine_profile >/dev/null 2>&1; then
+        echo "🧭 Profile: $(machine_profile)"
+    fi
+
+    # Spark / Hadoop / Java (lightweight checks only)
+    local spark_state="missing"
+    local hadoop_state="missing"
+    local scala_state="missing"
+    if command -v spark-submit >/dev/null 2>&1 || [[ -n "${SPARK_HOME:-}" ]]; then
+        spark_state="available"
+    fi
+    if command -v hadoop >/dev/null 2>&1 || [[ -n "${HADOOP_HOME:-}" ]]; then
+        hadoop_state="available"
+    fi
+    if command -v scala >/dev/null 2>&1; then
+        scala_state="available"
+    fi
+    echo "⚡ Spark: $spark_state  🐘 Hadoop: $hadoop_state  🧠 Scala: $scala_state"
+    [[ -n "${JAVA_HOME:-}" ]] && echo "☕ Java: $JAVA_HOME"
+
+    # Current directory
     echo "📁 Location: $(pwd)"
-    
-    # Show key services status
+
+    # Key services status
     if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
         echo "🐳 Docker: running"
     fi
-    
+
     # Quick tips
     echo ""
     echo "💡 Quick Commands:"
     echo "   help          - Show all available commands"
     echo "   modules       - List loaded modules"
     echo "   python_status - Check Python environment"
+    echo "   spark_status  - Check Spark status"
+    echo "   hadoop_status - Check Hadoop status"
     echo "   backup        - Commit and push config to GitHub"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
+}
+
+if [[ -o interactive ]]; then
+    zsh_status_banner
 fi
-
-# Export FEC API key (from old config)
-export FEC_API_KEY="37J9ykQjEo7xjA0I8Zb0vC0H8AwCQhIcsGlWYDZv"
-
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
 export PATH="/Users/dheerajchand/.rd/bin:$PATH"

@@ -43,6 +43,30 @@ bash <(curl -fsSL https://raw.githubusercontent.com/dheerajchand/siege_analytics
 
 ---
 
+## 🔐 Secrets & Environment Profiles
+
+Secrets are loaded from a local file and/or 1Password.
+
+Files:
+- `~/.config/zsh/secrets.env` (local, `chmod 600`)
+- `~/.config/zsh/secrets.1p` (1Password mapping file)
+
+Environment variables:
+- `ZSH_SECRETS_MODE=file|op|both|off`
+- `ZSH_SECRETS_FILE=~/.config/zsh/secrets.env`
+- `ZSH_SECRETS_MAP=~/.config/zsh/secrets.1p`
+- `OP_VAULT=Private`
+- `ZSH_ENV_PROFILE=dev|staging|prod|laptop` (shown on startup)
+
+Mapping file format (`secrets.1p`):
+```
+ENV_VAR SERVICE USER FIELD
+ZSH_ENV_PROFILE profile dev name
+FEC_API_KEY fec-api dheeraj password
+SERVICE_TOKEN service - token
+```
+Use `-` for USER to call `op item get <service>` directly.
+
 ### **Manual Installation**
 
 If you prefer to install manually:
@@ -153,6 +177,13 @@ load-docker             # Manual loading if needed
 spark_status            # Spark cluster status
 start_hadoop            # Hadoop ecosystem
 smart_spark_submit job.py
+```
+
+**🔐 Secrets & Profiles:**
+```bash
+secrets_status          # Show secrets loader status
+secrets_edit            # Edit local secrets.env (chmod 600)
+secrets_sync_to_1p      # Sync secrets.env into 1Password Secure Note
 ```
 
 ## 📋 System Architecture

@@ -8,8 +8,8 @@
 # Default environment to auto-activate
 export DEFAULT_PYENV_VENV="geo31111"
 
-# Initialize pyenv if available
-if command -v pyenv >/dev/null 2>&1; then
+# Initialize pyenv if available (skip in test mode)
+if [[ -z "${ZSH_TEST_MODE:-}" ]] && command -v pyenv >/dev/null 2>&1; then
     export PYENV_ROOT="$HOME/.pyenv"
     export PATH="$PYENV_ROOT/bin:$PATH"
     
@@ -18,8 +18,8 @@ if command -v pyenv >/dev/null 2>&1; then
     eval "$(pyenv init - 2>/dev/null)"
     
     # Initialize virtualenv plugin if available
-    if command -v pyenv-virtualenv-init >/dev/null 2>&1; then
-        eval "$(pyenv virtualenv-init -)"
+    if pyenv commands --bare 2>/dev/null | grep -q "^virtualenv-init$"; then
+        eval "$(pyenv virtualenv-init - 2>/dev/null)"
     fi
     
     # Auto-activate default environment
@@ -70,14 +70,26 @@ get_python_version() {
 
 # Show Python environment status
 python_status() {
+    local manager="system"
+    if command -v pyenv >/dev/null 2>&1; then
+        manager="pyenv"
+    fi
+    local active="system"
+    if command -v pyenv >/dev/null 2>&1; then
+        active="$(pyenv version-name 2>/dev/null || echo 'system')"
+    fi
     echo "🐍 Python Environment"
     echo "===================="
-    echo "Manager: pyenv"
-    echo "Active: $(pyenv version-name 2>/dev/null || echo 'system')"
-    echo "Python: $(python --version 2>&1)"
-    echo "Version: $(get_python_version)"
-    echo "Location: $(which python)"
-    echo "Actual Binary: $(get_python_path)"
+    echo "Manager: $manager"
+    echo "Active: $active"
+    if command -v python >/dev/null 2>&1; then
+        echo "Python: $(python --version 2>&1)"
+        echo "Version: $(get_python_version)"
+        echo "Location: $(which python)"
+        echo "Actual Binary: $(get_python_path)"
+    else
+        echo "Python: not found"
+    fi
     
     if command -v uv >/dev/null 2>&1; then
         echo "UV: $(uv --version 2>&1 | head -1)"
@@ -155,7 +167,7 @@ alias py3='python3'
 alias ipy='ipython'
 alias jn='jupyter notebook'
 
-echo "✅ python loaded ($(pyenv version-name 2>/dev/null || echo 'system'))"
-
-
+if [[ -z "${ZSH_TEST_MODE:-}" ]]; then
+    echo "✅ python loaded ($(pyenv version-name 2>/dev/null || echo 'system'))"
+fi
 

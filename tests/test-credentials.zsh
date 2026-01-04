@@ -4,7 +4,7 @@ ROOT_DIR="$(cd "$(dirname "${0:A}")/.." && pwd)"
 source "$ROOT_DIR/tests/test-framework.zsh"
 source "$ROOT_DIR/modules/credentials.zsh"
 
-_make_stub_op() {
+_make_stub_op_creds() {
     local bin_dir="$1"
     cat > "$bin_dir/op" <<'OP'
 #!/usr/bin/env zsh
@@ -15,12 +15,8 @@ case "$cmd $sub" in
         exit 0
         ;;
     "item get")
-        item="$3"
-        if [[ -z "${OP_STUB_ITEM:-}" || "$item" == "$OP_STUB_ITEM" ]]; then
-            echo "${OP_STUB_VALUE:-op-value}"
-            exit 0
-        fi
-        exit 1
+        echo "${OP_STUB_VALUE:-op-value}"
+        exit 0
         ;;
     "item edit")
         exit 0
@@ -43,7 +39,7 @@ OP
     chmod +x "$bin_dir/op"
 }
 
-_make_stub_security() {
+_make_stub_security_creds() {
     local bin_dir="$1"
     cat > "$bin_dir/security" <<'SEC'
 #!/usr/bin/env zsh
@@ -67,11 +63,11 @@ SEC
     chmod +x "$bin_dir/security"
 }
 
-_make_stub_bin() {
+_make_stub_bin_creds() {
     local bin_dir="$1"
     mkdir -p "$bin_dir"
-    _make_stub_op "$bin_dir"
-    _make_stub_security "$bin_dir"
+    _make_stub_op_creds "$bin_dir"
+    _make_stub_security_creds "$bin_dir"
     cat > "$bin_dir/vault" <<'VAULT'
 #!/usr/bin/env zsh
 exit 0
@@ -90,6 +86,7 @@ test_get_credential_env() {
     tmp="$(mktemp -d)"
     bin="$tmp/bin"
     PATH="$bin:/usr/bin:/bin"
+    hash -r
     export CRED_BACKENDS="env"
     export CRED_STORE_BACKENDS="op keychain"
     export PGPASSWORD="pgpass"
@@ -106,11 +103,14 @@ test_get_credential_op_priority() {
     local tmp bin
     tmp="$(mktemp -d)"
     bin="$tmp/bin"
-    _make_stub_bin "$bin"
+    _make_stub_bin_creds "$bin"
     PATH="$bin:/usr/bin:/bin"
+    unalias op 2>/dev/null || true
+    unfunction op 2>/dev/null || true
+    hash -r
     export CRED_BACKENDS="op keychain"
     export CRED_STORE_BACKENDS="op keychain"
-    export OP_STUB_ITEM="svc-user"
+    unset OP_STUB_ITEM
     export OP_STUB_VALUE="op-pass"
     export SECURITY_STUB_VALUE="kc-pass"
     local out
@@ -126,8 +126,11 @@ test_get_credential_keychain() {
     local tmp bin
     tmp="$(mktemp -d)"
     bin="$tmp/bin"
-    _make_stub_bin "$bin"
+    _make_stub_bin_creds "$bin"
     PATH="$bin:/usr/bin:/bin"
+    unalias security 2>/dev/null || true
+    unfunction security 2>/dev/null || true
+    hash -r
     export CRED_BACKENDS="keychain"
     export CRED_STORE_BACKENDS="op keychain"
     export SECURITY_STUB_VALUE="kc-pass"
@@ -144,12 +147,17 @@ test_store_credential_multiple_backends() {
     local tmp bin
     tmp="$(mktemp -d)"
     bin="$tmp/bin"
-    _make_stub_bin "$bin"
+    _make_stub_bin_creds "$bin"
     PATH="$bin:/usr/bin:/bin"
+    unalias op 2>/dev/null || true
+    unalias security 2>/dev/null || true
+    unfunction op 2>/dev/null || true
+    unfunction security 2>/dev/null || true
+    hash -r
     export CRED_BACKENDS="op keychain"
     export CRED_STORE_BACKENDS="op keychain"
     local out
-    out="$(store_credential svc user secret)"
+    out="$(store_credential svc user secret 2>&1)"
     assert_contains "$out" "Stored in 2 backend(s)" "store should report two backends"
     PATH="$old_path"
     rm -rf "$tmp"
@@ -160,8 +168,13 @@ test_backend_status_output() {
     local tmp bin
     tmp="$(mktemp -d)"
     bin="$tmp/bin"
-    _make_stub_bin "$bin"
+    _make_stub_bin_creds "$bin"
     PATH="$bin:/usr/bin:/bin"
+    unalias op 2>/dev/null || true
+    unalias security 2>/dev/null || true
+    unfunction op 2>/dev/null || true
+    unfunction security 2>/dev/null || true
+    hash -r
     local out
     out="$(credential_backend_status)"
     assert_contains "$out" "1Password: Ready" "status should show 1Password ready"
@@ -178,8 +191,9 @@ test_unknown_backend_warns() {
     local tmp bin err
     tmp="$(mktemp -d)"
     bin="$tmp/bin"
-    _make_stub_bin "$bin"
+    _make_stub_bin_creds "$bin"
     PATH="$bin:/usr/bin:/bin"
+    hash -r
     export CRED_BACKENDS="bogus op"
     err="$tmp/err.log"
     get_credential svc user 2>"$err" >/dev/null || true
