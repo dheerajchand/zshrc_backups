@@ -53,6 +53,7 @@ test_secrets_load_file() {
 FOO=bar
 # comment
 BAZ=qux
+export ZSH_ENV_PROFILE=dev
 EOF
     old_file="$ZSH_SECRETS_FILE"
     old_mode="$ZSH_SECRETS_MODE"
@@ -61,6 +62,7 @@ EOF
     secrets_load_file
     assert_equal "bar" "$FOO" "should load FOO from file"
     assert_equal "qux" "$BAZ" "should load BAZ from file"
+    assert_equal "dev" "$ZSH_ENV_PROFILE" "should support export syntax"
     export ZSH_SECRETS_FILE="$old_file"
     export ZSH_SECRETS_MODE="$old_mode"
     rm -rf "$tmp"
@@ -84,6 +86,8 @@ EOF
     hash -r
     export ZSH_SECRETS_MAP="$map"
     export ZSH_SECRETS_MODE="op"
+    export OP_ACCOUNT="test-account"
+    export OP_VAULT="TestVault"
     unset FEC_API_KEY SERVICE_TOKEN
     secrets_load_op
     assert_equal "op-secret" "${FEC_API_KEY-}" "should load secret from op item get"
@@ -91,6 +95,7 @@ EOF
     PATH="$old_path"
     export ZSH_SECRETS_MAP="$old_map"
     export ZSH_SECRETS_MODE="$old_mode"
+    unset OP_ACCOUNT OP_VAULT
     rm -rf "$tmp"
 }
 
@@ -151,9 +156,23 @@ EOF
     rm -rf "$tmp"
 }
 
+test_op_list_accounts_vaults_requires_op() {
+    local old_path="$PATH"
+    local tmp bin out
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    PATH="$bin:/usr/bin:/bin"
+    out="$(op_list_accounts_vaults 2>&1 || true)"
+    assert_contains "$out" "op not found" "list should require op"
+    PATH="$old_path"
+    rm -rf "$tmp"
+}
+
 register_test "test_secrets_load_file" "test_secrets_load_file"
 register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_machine_profile_default" "test_machine_profile_default"
 register_test "test_secrets_edit_creates_file" "test_secrets_edit_creates_file"
 register_test "test_secrets_sync_to_1p_requires_op" "test_secrets_sync_to_1p_requires_op"
 register_test "test_secrets_init_from_example" "test_secrets_init_from_example"
+register_test "test_op_list_accounts_vaults_requires_op" "test_op_list_accounts_vaults_requires_op"

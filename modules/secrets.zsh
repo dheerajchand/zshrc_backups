@@ -8,6 +8,7 @@
 : "${ZSH_SECRETS_FILE_EXAMPLE:=$HOME/.config/zsh/secrets.env.example}"
 : "${ZSH_SECRETS_MAP:=$HOME/.config/zsh/secrets.1p}"
 : "${OP_VAULT:=Private}"
+: "${OP_ACCOUNT:=}"
 
 _secrets_warn() {
     echo "⚠️  $*" >&2
@@ -22,6 +23,9 @@ _secrets_export_kv() {
     local line="$1"
     [[ -z "$line" ]] && return 0
     [[ "$line" == \#* ]] && return 0
+    if [[ "$line" == export\ * ]]; then
+        line="${line#export }"
+    fi
     if [[ "$line" == *"="* ]]; then
         local key="${line%%=*}"
         local val="${line#*=}"
@@ -39,6 +43,8 @@ secrets_load_file() {
 }
 
 secrets_load_op() {
+    local account_arg="${1:-$OP_ACCOUNT}"
+    local vault_arg="${2:-$OP_VAULT}"
     [[ -f "$ZSH_SECRETS_MAP" ]] || return 1
     if ! command -v op >/dev/null 2>&1; then
         _secrets_warn "op not found; cannot load 1Password secrets"
@@ -56,9 +62,15 @@ secrets_load_op() {
         [[ -z "$service" || -z "$field" ]] && continue
         local value=""
         if [[ "$user" == "-" || -z "$user" ]]; then
-            value="$(op item get "$service" --field="$field" --reveal 2>/dev/null || true)"
+            value="$(op item get "$service" \
+                ${account_arg:+--account="$account_arg"} \
+                ${vault_arg:+--vault="$vault_arg"} \
+                --field="$field" --reveal 2>/dev/null || true)"
         else
-            value="$(op item get "$service-$user" --field="$field" --reveal 2>/dev/null || true)"
+            value="$(op item get "$service-$user" \
+                ${account_arg:+--account="$account_arg"} \
+                ${vault_arg:+--vault="$vault_arg"} \
+                --field="$field" --reveal 2>/dev/null || true)"
         fi
         [[ -n "$value" ]] && export "$envvar=$value"
     done < "$ZSH_SECRETS_MAP"
@@ -87,15 +99,79 @@ secrets_status() {
     echo "Mode: $ZSH_SECRETS_MODE"
     echo "File: $ZSH_SECRETS_FILE"
     echo "1Password map: $ZSH_SECRETS_MAP"
+    echo "1Password account: ${OP_ACCOUNT:-default}"
+    echo "1Password vault: $OP_VAULT"
     if command -v op >/dev/null 2>&1; then
         if op account list >/dev/null 2>&1; then
-            echo "1Password: Ready (vault: $OP_VAULT)"
+            echo "1Password: Ready"
         else
             echo "1Password: Auth required (run: op signin)"
         fi
     else
         echo "1Password: Not installed"
     fi
+}
+
+op_set_default() {
+    local account="${1:-}"
+    local vault="${2:-}"
+    if [[ -n "$account" ]]; then
+        export OP_ACCOUNT="$account"
+    fi
+    if [[ -n "$vault" ]]; then
+        export OP_VAULT="$vault"
+    fi
+    _secrets_info "1Password defaults: account=${OP_ACCOUNT:-default} vault=$OP_VAULT"
+}
+
+op_list_accounts_vaults() {
+    if ! command -v op >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot list accounts/vaults"
+        return 1
+    fi
+    if ! op account list >/dev/null 2>&1; then
+        _secrets_warn "1Password auth required (run: op signin)"
+        return 1
+    fi
+    local accounts_json
+    accounts_json="$(op account list --format=json 2>/dev/null)"
+    if [[ -z "$accounts_json" ]]; then
+        _secrets_warn "No 1Password accounts found"
+        return 1
+    fi
+    echo "🔐 1Password Accounts & Vaults"
+    echo "=============================="
+    local acct_list
+    if command -v jq >/dev/null 2>&1; then
+        acct_list="$(echo "$accounts_json" | jq -r '.[] | "\(.account_uuid)\t\(.email)\t\(.url)"')"
+    else
+        acct_list="$(python - <<'PY'
+import json,sys
+data=json.load(sys.stdin)
+for item in data:
+    print(f"{item.get('account_uuid','')}\t{item.get('email','')}\t{item.get('url','')}")
+PY
+)" <<<"$accounts_json"
+    fi
+    local line account_uuid email url
+    while IFS=$'\t' read -r account_uuid email url; do
+        [[ -z "$account_uuid" ]] && continue
+        echo "Account: $account_uuid ($email @ $url)"
+        if command -v jq >/dev/null 2>&1; then
+            op vault list --account="$account_uuid" --format=json 2>/dev/null | \
+                jq -r '.[]?.name' | awk '{print "  - " $0}'
+        else
+            op vault list --account="$account_uuid" --format=json 2>/dev/null | \
+                python - <<'PY'
+import json,sys
+data=json.load(sys.stdin)
+for item in data:
+    name=item.get("name")
+    if name:
+        print(f"  - {name}")
+PY
+        fi
+    done <<<"$acct_list"
 }
 
 secrets_edit() {
