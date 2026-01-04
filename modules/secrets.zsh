@@ -5,6 +5,7 @@
 
 : "${ZSH_SECRETS_MODE:=file}" # file|op|both|off
 : "${ZSH_SECRETS_FILE:=$HOME/.config/zsh/secrets.env}"
+: "${ZSH_SECRETS_FILE_EXAMPLE:=$HOME/.config/zsh/secrets.env.example}"
 : "${ZSH_SECRETS_MAP:=$HOME/.config/zsh/secrets.1p}"
 : "${OP_VAULT:=Private}"
 
@@ -104,6 +105,23 @@ secrets_edit() {
         touch "$ZSH_SECRETS_FILE"
     fi
     "$editor" "$ZSH_SECRETS_FILE"
+}
+
+secrets_init() {
+    local src="$ZSH_SECRETS_FILE_EXAMPLE"
+    if [[ -f "$ZSH_SECRETS_FILE" ]]; then
+        _secrets_warn "secrets file already exists: $ZSH_SECRETS_FILE"
+        return 1
+    fi
+    if [[ -f "$src" ]]; then
+        umask 077
+        cp "$src" "$ZSH_SECRETS_FILE"
+        _secrets_info "Created secrets file from example"
+        return 0
+    fi
+    umask 077
+    touch "$ZSH_SECRETS_FILE"
+    _secrets_info "Created empty secrets file"
 }
 
 secrets_sync_to_1p() {
