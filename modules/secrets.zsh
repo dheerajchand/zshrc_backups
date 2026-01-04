@@ -7,6 +7,8 @@
 : "${ZSH_SECRETS_FILE:=$HOME/.config/zsh/secrets.env}"
 : "${ZSH_SECRETS_FILE_EXAMPLE:=$HOME/.config/zsh/secrets.env.example}"
 : "${ZSH_SECRETS_MAP:=$HOME/.config/zsh/secrets.1p}"
+: "${OP_ACCOUNTS_FILE:=$HOME/.config/zsh/op-accounts.env}"
+: "${OP_ACCOUNTS_FILE_EXAMPLE:=$HOME/.config/zsh/op-accounts.env.example}"
 : "${OP_VAULT:=Private}"
 : "${OP_ACCOUNT:=}"
 
@@ -32,6 +34,39 @@ _secrets_export_kv() {
         key="${key## }"; key="${key%% }"
         export "$key=$val"
     fi
+}
+
+_op_account_alias() {
+    local alias_name="$1"
+    [[ -f "$OP_ACCOUNTS_FILE" ]] || return 1
+    local line key val
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" ]] && continue
+        [[ "$line" == \#* ]] && continue
+        if [[ "$line" == *"="* ]]; then
+            key="${line%%=*}"
+            val="${line#*=}"
+            key="${key## }"; key="${key%% }"
+            if [[ "$key" == "$alias_name" ]]; then
+                echo "$val"
+                return 0
+            fi
+        fi
+    done < "$OP_ACCOUNTS_FILE"
+    return 1
+}
+
+op_accounts_edit() {
+    local editor="${EDITOR:-vi}"
+    if [[ ! -f "$OP_ACCOUNTS_FILE" ]]; then
+        umask 077
+        if [[ -f "$OP_ACCOUNTS_FILE_EXAMPLE" ]]; then
+            cp "$OP_ACCOUNTS_FILE_EXAMPLE" "$OP_ACCOUNTS_FILE"
+        else
+            touch "$OP_ACCOUNTS_FILE"
+        fi
+    fi
+    "$editor" "$OP_ACCOUNTS_FILE"
 }
 
 secrets_load_file() {
@@ -116,7 +151,9 @@ op_set_default() {
     local account="${1:-}"
     local vault="${2:-}"
     if [[ -n "$account" ]]; then
-        export OP_ACCOUNT="$account"
+        local resolved
+        resolved="$(_op_account_alias "$account" 2>/dev/null || true)"
+        export OP_ACCOUNT="${resolved:-$account}"
     fi
     if [[ -n "$vault" ]]; then
         export OP_VAULT="$vault"
@@ -153,10 +190,18 @@ for item in data:
 PY
 )" <<<"$accounts_json"
     fi
-    local line account_uuid email url
+    local line account_uuid email url alias
     while IFS=$'\t' read -r account_uuid email url; do
         [[ -z "$account_uuid" ]] && continue
-        echo "Account: $account_uuid ($email @ $url)"
+        alias="$(_op_account_alias "$account_uuid" 2>/dev/null || true)"
+        if [[ -z "$alias" ]]; then
+            alias="$(_op_account_alias "$email" 2>/dev/null || true)"
+        fi
+        if [[ -n "$alias" ]]; then
+            echo "Account: $account_uuid ($email @ $url) [$alias]"
+        else
+            echo "Account: $account_uuid ($email @ $url)"
+        fi
         if command -v jq >/dev/null 2>&1; then
             op vault list --account="$account_uuid" --format=json 2>/dev/null | \
                 jq -r '.[]?.name' | awk '{print "  - " $0}'

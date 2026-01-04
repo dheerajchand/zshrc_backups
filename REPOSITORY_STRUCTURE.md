@@ -289,4 +289,5 @@ backup        # Commit and push changes
 ├── 🔐 Secrets Templates
 │   ├── secrets.env.example       # Local secrets file example
 │   └── secrets.1p.example        # 1Password map example
+│   └── op-accounts.env.example   # 1Password account alias example
 │
