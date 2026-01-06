@@ -115,17 +115,10 @@ EOF
 
 4) On each machine, adjust only the profile:
 ```bash
-# laptop
-ZSH_ENV_PROFILE=laptop
-
-# dev
-ZSH_ENV_PROFILE=dev
-
-# staging
-ZSH_ENV_PROFILE=staging
-
-# prod
-ZSH_ENV_PROFILE=prod
+secrets_profile_switch laptop
+secrets_profile_switch dev
+secrets_profile_switch staging
+secrets_profile_switch prod
 ```
 
 5) Verify:
@@ -252,11 +245,12 @@ secrets_status          # Show secrets loader status
 secrets_edit            # Edit local secrets.env (chmod 600)
 secrets_init            # Create secrets.env from example
 secrets_sync_to_1p      # Sync secrets.env into 1Password Secure Note
+secrets_pull_from_1p    # Pull secrets.env from 1Password Secure Note
 op_accounts_edit        # Edit 1Password account aliases
 op_set_default          # Set default 1Password account/vault
 op_list_accounts_vaults # List accounts and vaults
 op_list_items           # List items in account/vault
-secrets_pull_from_1p    # Pull secrets.env from 1Password Secure Note
+secrets_profile_switch  # Set profile and reload secrets
 ```
 
 ## 📋 System Architecture

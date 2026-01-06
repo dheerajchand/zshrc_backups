@@ -280,6 +280,22 @@ OP
     rm -rf "$tmp"
 }
 
+test_secrets_profile_switch_usage() {
+    local out
+    out="$(secrets_profile_switch 2>&1 || true)"
+    assert_contains "$out" "Usage: secrets_profile_switch" "should show usage on missing args"
+}
+
+test_secrets_profile_switch_sets_profile() {
+    local old_profile="${ZSH_ENV_PROFILE-}"
+    ZSH_SECRETS_MODE=off
+    secrets_profile_switch dev >/dev/null 2>&1
+    assert_equal "dev" "$ZSH_ENV_PROFILE" "should set ZSH_ENV_PROFILE"
+    if [[ -n "$old_profile" ]]; then
+        export ZSH_ENV_PROFILE="$old_profile"
+    fi
+}
+
 register_test "test_secrets_load_file" "test_secrets_load_file"
 register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_machine_profile_default" "test_machine_profile_default"
@@ -291,3 +307,5 @@ register_test "test_op_account_alias_lookup" "test_op_account_alias_lookup"
 register_test "test_op_list_accounts_vaults_empty" "test_op_list_accounts_vaults_empty"
 register_test "test_op_list_items_requires_op" "test_op_list_items_requires_op"
 register_test "test_secrets_pull_requires_op" "test_secrets_pull_requires_op"
+register_test "test_secrets_profile_switch_usage" "test_secrets_profile_switch_usage"
+register_test "test_secrets_profile_switch_sets_profile" "test_secrets_profile_switch_sets_profile"
