@@ -70,6 +70,13 @@ SERVICE_TOKEN service - token
 ```
 Use `-` for USER to call `op item get <service>` directly.
 
+Sync and pull:
+```bash
+secrets_sync_to_1p "zsh-secrets-env"
+secrets_pull_from_1p "zsh-secrets-env"
+op_list_items "$OP_ACCOUNT" "$OP_VAULT" "zsh-secrets"
+```
+
 ### **Manual Installation**
 
 If you prefer to install manually:
@@ -191,6 +198,8 @@ secrets_sync_to_1p      # Sync secrets.env into 1Password Secure Note
 op_accounts_edit        # Edit 1Password account aliases
 op_set_default          # Set default 1Password account/vault
 op_list_accounts_vaults # List accounts and vaults
+op_list_items           # List items in account/vault
+secrets_pull_from_1p    # Pull secrets.env from 1Password Secure Note
 ```
 
 ## 📋 System Architecture
