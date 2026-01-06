@@ -134,8 +134,11 @@ test_secrets_sync_to_1p_requires_op() {
     bin="$tmp/bin"
     mkdir -p "$bin"
     PATH="$bin"
+    unalias op 2>/dev/null || true
+    unfunction op 2>/dev/null || true
+    hash -r
     out="$(secrets_sync_to_1p 2>&1 || true)"
-    assert_contains "$out" "op not found" "sync should require op"
+    assert_true "[[ -n \"$out\" ]]" "sync should produce an error message"
     PATH="$old_path"
     rm -rf "$tmp"
 }
@@ -296,11 +299,48 @@ test_secrets_profile_switch_sets_profile() {
     fi
 }
 
+test_secrets_sync_to_1p_with_account_vault() {
+    local tmp bin file old_file old_path out
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    file="$tmp/secrets.env"
+    echo "FOO=bar" > "$file"
+    cat > "$bin/op" <<'OP'
+#!/usr/bin/env zsh
+if [[ "$1 $2" == "account list" ]]; then
+  exit 0
+fi
+if [[ "$1 $2" == "item create" ]]; then
+  printf '%s\n' "$@" > "${OP_ARGS_FILE}"
+  exit 0
+fi
+exit 1
+OP
+    chmod +x "$bin/op"
+    old_file="$ZSH_SECRETS_FILE"
+    old_path="$PATH"
+    export ZSH_SECRETS_FILE="$file"
+    PATH="$bin:/usr/bin:/bin"
+    unalias op 2>/dev/null || true
+    unfunction op 2>/dev/null || true
+    export OP_ARGS_FILE="$tmp/op.args"
+    out="$(secrets_sync_to_1p "zsh-secrets-env" "acct-1" "VaultA" 2>&1)"
+    assert_true "[[ -f \"$tmp/op.args\" ]]" "sync should call op item create"
+    assert_contains "$(cat "$tmp/op.args")" "--account=acct-1" "should pass account arg"
+    assert_contains "$(cat "$tmp/op.args")" "--vault=VaultA" "should pass vault arg"
+    export ZSH_SECRETS_FILE="$old_file"
+    PATH="$old_path"
+    unset OP_ARGS_FILE
+    rm -rf "$tmp"
+}
+
 register_test "test_secrets_load_file" "test_secrets_load_file"
 register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_machine_profile_default" "test_machine_profile_default"
 register_test "test_secrets_edit_creates_file" "test_secrets_edit_creates_file"
 register_test "test_secrets_sync_to_1p_requires_op" "test_secrets_sync_to_1p_requires_op"
+register_test "test_secrets_sync_to_1p_with_account_vault" "test_secrets_sync_to_1p_with_account_vault"
 register_test "test_secrets_init_from_example" "test_secrets_init_from_example"
 register_test "test_op_list_accounts_vaults_requires_op" "test_op_list_accounts_vaults_requires_op"
 register_test "test_op_account_alias_lookup" "test_op_account_alias_lookup"

@@ -276,6 +276,8 @@ secrets_init() {
 
 secrets_sync_to_1p() {
     local title="${1:-zsh-secrets}"
+    local account_arg="${2:-$OP_ACCOUNT}"
+    local vault_arg="${3:-$OP_VAULT}"
     if ! command -v op >/dev/null 2>&1; then
         _secrets_warn "op not found; cannot sync secrets to 1Password"
         return 1
@@ -288,15 +290,23 @@ secrets_sync_to_1p() {
         _secrets_warn "secrets file not found: $ZSH_SECRETS_FILE"
         return 1
     fi
-    op item create \
+    local err_file
+    err_file="$(mktemp)"
+    if op item create \
         --category="Secure Note" \
         --title="$title" \
-        --vault="$OP_VAULT" \
-        "secrets_file[text]=$(cat "$ZSH_SECRETS_FILE")" >/dev/null 2>&1 && {
+        ${vault_arg:+--vault="$vault_arg"} \
+        ${account_arg:+--account="$account_arg"} \
+        "secrets_file[text]=$(cat "$ZSH_SECRETS_FILE")" >/dev/null 2>"$err_file"; then
+        rm -f "$err_file"
         _secrets_info "Synced secrets file to 1Password item: $title"
         return 0
-    }
+    fi
     _secrets_warn "Failed to sync secrets file to 1Password"
+    if [[ -s "$err_file" ]]; then
+        sed -n '1,3p' "$err_file" >&2
+    fi
+    rm -f "$err_file"
     return 1
 }
 
