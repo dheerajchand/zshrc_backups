@@ -220,18 +220,30 @@ PY
             echo "Account: $account_uuid @ $url"
         fi
         if command -v jq >/dev/null 2>&1; then
-            op vault list --account="$account_uuid" --format=json 2>/dev/null | \
-                jq -r '.[]?.name' | awk '{print "  - " $0}'
+            local vaults
+            vaults="$(op vault list --account="$account_uuid" --format=json 2>/dev/null | jq -r '.[]?.name' || true)"
+            if [[ -z "$vaults" ]]; then
+                echo "  - (none found or access denied)"
+            else
+                echo "$vaults" | awk '{print "  - " $0}'
+            fi
         else
-            op vault list --account="$account_uuid" --format=json 2>/dev/null | \
+            local vaults
+            vaults="$(op vault list --account="$account_uuid" --format=json 2>/dev/null | \
                 python - <<'PY'
 import json,sys
 data=json.load(sys.stdin)
 for item in data:
     name=item.get("name")
     if name:
-        print(f"  - {name}")
+        print(f"{name}")
 PY
+)"
+            if [[ -z "$vaults" ]]; then
+                echo "  - (none found or access denied)"
+            else
+                echo "$vaults" | awk '{print "  - " $0}'
+            fi
         fi
     done <<<"$acct_list"
 }
