@@ -326,6 +326,22 @@ secrets_pull_from_1p() {
     _secrets_info "Pulled secrets into $ZSH_SECRETS_FILE"
 }
 
+secrets_profile_switch() {
+    local profile="${1-}"
+    local account="${2:-${OP_ACCOUNT-}}"
+    local vault="${3:-${OP_VAULT-}}"
+    if [[ -z "$profile" ]]; then
+        echo "Usage: secrets_profile_switch <profile> [account] [vault]" >&2
+        return 1
+    fi
+    export ZSH_ENV_PROFILE="$profile"
+    if [[ -n "$account" ]]; then
+        op_set_default "$account" "$vault"
+    fi
+    load_secrets
+    _secrets_info "Switched profile to $profile"
+}
+
 op_list_items() {
     local account_arg="${1:-$OP_ACCOUNT}"
     local vault_arg="${2:-$OP_VAULT}"
