@@ -184,6 +184,43 @@ EOF
     rm -rf "$tmp"
 }
 
+test_op_list_accounts_vaults_empty() {
+    local tmp bin old_path out
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    cat > "$bin/op" <<'OP'
+#!/usr/bin/env zsh
+if [[ "$1 $2" == "account list" ]]; then
+  echo '[{"account_uuid":"UUID1","email":"u@example.com","url":"example.com"}]'
+  exit 0
+fi
+if [[ "$1 $2" == "vault list" ]]; then
+  echo '[]'
+  exit 0
+fi
+exit 0
+OP
+    cat > "$bin/jq" <<'JQ'
+#!/usr/bin/env zsh
+if [[ "$1" == "-r" && "$2" == ".[] | \"\\(.account_uuid)\\t\\(.email)\\t\\(.url)\"" ]]; then
+  echo -e "UUID1\tu@example.com\texample.com"
+  exit 0
+fi
+if [[ "$1" == "-r" && "$2" == ".[]?.name" ]]; then
+  exit 0
+fi
+exit 0
+JQ
+    chmod +x "$bin/op" "$bin/jq"
+    old_path="$PATH"
+    PATH="$bin:/usr/bin:/bin"
+    out="$(op_list_accounts_vaults)"
+    assert_contains "$out" "(none found or access denied)" "empty vault list should show placeholder"
+    PATH="$old_path"
+    rm -rf "$tmp"
+}
+
 register_test "test_secrets_load_file" "test_secrets_load_file"
 register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_machine_profile_default" "test_machine_profile_default"
@@ -192,3 +229,4 @@ register_test "test_secrets_sync_to_1p_requires_op" "test_secrets_sync_to_1p_req
 register_test "test_secrets_init_from_example" "test_secrets_init_from_example"
 register_test "test_op_list_accounts_vaults_requires_op" "test_op_list_accounts_vaults_requires_op"
 register_test "test_op_account_alias_lookup" "test_op_account_alias_lookup"
+register_test "test_op_list_accounts_vaults_empty" "test_op_list_accounts_vaults_empty"
