@@ -77,6 +77,63 @@ secrets_pull_from_1p "zsh-secrets-env"
 op_list_items "$OP_ACCOUNT" "$OP_VAULT" "zsh-secrets"
 ```
 
+## 🌎 Multi-Environment Workflow (Laptop/Dev/Staging/Prod)
+
+Recommended approach: keep a small local `secrets.env` with the profile and defaults,
+and store environment-specific secrets in 1Password vaults.
+
+1) Set account aliases (once):
+```bash
+op_accounts_edit
+# Example:
+# ElectInfo=NAGE4CCNQVBWPJEI5CLZ7NCVFM
+# Siege_Analytics=TLTQ3ANAABGCNEK7KIAOTDNK2Q
+# Masai_Interactive=NRPF34RS6VH2THRPJDBTZWQOKU
+# Dheeraj_Chand_Family=I3C75JBKZJGSLMVQDGRKCVNHIM
+```
+
+2) Create local profile file:
+```bash
+secrets_init
+secrets_edit
+# Example:
+# ZSH_ENV_PROFILE=dev
+# OP_ACCOUNT=Siege_Analytics
+# OP_VAULT=Private
+# ZSH_SECRETS_MODE=both
+```
+
+3) Map per-environment secrets in 1Password:
+```bash
+cat > ~/.config/zsh/secrets.1p <<'EOF'
+ZSH_ENV_PROFILE profile dev name
+DB_PASSWORD db-dev dheeraj password
+AWS_ACCESS_KEY_ID aws-dev - access_key_id
+AWS_SECRET_ACCESS_KEY aws-dev - secret_access_key
+EOF
+```
+
+4) On each machine, adjust only the profile:
+```bash
+# laptop
+ZSH_ENV_PROFILE=laptop
+
+# dev
+ZSH_ENV_PROFILE=dev
+
+# staging
+ZSH_ENV_PROFILE=staging
+
+# prod
+ZSH_ENV_PROFILE=prod
+```
+
+5) Verify:
+```bash
+secrets_status
+op_list_items "$OP_ACCOUNT" "$OP_VAULT"
+```
+
 ### **Manual Installation**
 
 If you prefer to install manually:
