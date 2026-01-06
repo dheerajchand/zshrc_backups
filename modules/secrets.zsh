@@ -56,6 +56,26 @@ _op_account_alias() {
     return 1
 }
 
+_op_account_alias_for_uuid() {
+    local uuid="$1"
+    [[ -f "$OP_ACCOUNTS_FILE" ]] || return 1
+    local line key val
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" ]] && continue
+        [[ "$line" == \#* ]] && continue
+        if [[ "$line" == *"="* ]]; then
+            key="${line%%=*}"
+            val="${line#*=}"
+            key="${key## }"; key="${key%% }"
+            if [[ "$val" == "$uuid" ]]; then
+                echo "$key"
+                return 0
+            fi
+        fi
+    done < "$OP_ACCOUNTS_FILE"
+    return 1
+}
+
 op_accounts_edit() {
     local editor="${EDITOR:-vi}"
     if [[ ! -f "$OP_ACCOUNTS_FILE" ]]; then
@@ -193,14 +213,11 @@ PY
     local line account_uuid email url alias
     while IFS=$'\t' read -r account_uuid email url; do
         [[ -z "$account_uuid" ]] && continue
-        alias="$(_op_account_alias "$account_uuid" 2>/dev/null || true)"
-        if [[ -z "$alias" ]]; then
-            alias="$(_op_account_alias "$email" 2>/dev/null || true)"
-        fi
+        alias="$(_op_account_alias_for_uuid "$account_uuid" 2>/dev/null || true)"
         if [[ -n "$alias" ]]; then
-            echo "Account: $account_uuid ($email @ $url) [$alias]"
+            echo "Account: $alias ($account_uuid) @ $url"
         else
-            echo "Account: $account_uuid ($email @ $url)"
+            echo "Account: $account_uuid @ $url"
         fi
         if command -v jq >/dev/null 2>&1; then
             op vault list --account="$account_uuid" --format=json 2>/dev/null | \

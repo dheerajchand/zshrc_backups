@@ -179,6 +179,7 @@ EOF
     old_file="$OP_ACCOUNTS_FILE"
     export OP_ACCOUNTS_FILE="$file"
     assert_equal "ABC123" "$(_op_account_alias ElectInfo)" "alias should resolve to uuid"
+    assert_equal "ElectInfo" "$(_op_account_alias_for_uuid ABC123)" "uuid should resolve to alias"
     export OP_ACCOUNTS_FILE="$old_file"
     rm -rf "$tmp"
 }
