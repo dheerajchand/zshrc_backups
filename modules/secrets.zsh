@@ -300,6 +300,92 @@ secrets_sync_to_1p() {
     return 1
 }
 
+secrets_pull_from_1p() {
+    local title="${1:-zsh-secrets}"
+    local account_arg="${2:-$OP_ACCOUNT}"
+    local vault_arg="${3:-$OP_VAULT}"
+    if ! command -v op >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot pull secrets from 1Password"
+        return 1
+    fi
+    if ! op account list >/dev/null 2>&1; then
+        _secrets_warn "1Password auth required (run: op signin)"
+        return 1
+    fi
+    local value
+    value="$(op item get "$title" \
+        ${account_arg:+--account="$account_arg"} \
+        ${vault_arg:+--vault="$vault_arg"} \
+        --field="secrets_file" --reveal 2>/dev/null || true)"
+    if [[ -z "$value" ]]; then
+        _secrets_warn "No secrets_file field found for item: $title"
+        return 1
+    fi
+    umask 077
+    printf '%s\n' "$value" > "$ZSH_SECRETS_FILE"
+    _secrets_info "Pulled secrets into $ZSH_SECRETS_FILE"
+}
+
+op_list_items() {
+    local account_arg="${1:-$OP_ACCOUNT}"
+    local vault_arg="${2:-$OP_VAULT}"
+    local filter="${3:-}"
+    if ! command -v op >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot list items"
+        return 1
+    fi
+    if ! op account list >/dev/null 2>&1; then
+        _secrets_warn "1Password auth required (run: op signin)"
+        return 1
+    fi
+    local items_json
+    items_json="$(op item list \
+        ${account_arg:+--account="$account_arg"} \
+        ${vault_arg:+--vault="$vault_arg"} \
+        --format=json 2>/dev/null || true)"
+    if [[ -z "$items_json" ]]; then
+        _secrets_warn "No items found"
+        return 1
+    fi
+    if command -v jq >/dev/null 2>&1; then
+        local titles
+        if [[ -n "$filter" ]]; then
+            titles="$(echo "$items_json" | jq -r --arg f "$filter" '.[] | select(.title | test($f;"i")) | .title')"
+        else
+            titles="$(echo "$items_json" | jq -r '.[].title')"
+        fi
+        if [[ -z "$titles" ]]; then
+            _secrets_warn "No items found"
+            return 1
+        fi
+        echo "$titles"
+    else
+        local titles
+        titles="$(python - <<'PY' "$filter"
+import json,sys,re
+flt=sys.argv[1] if len(sys.argv)>1 else ""
+data=json.load(sys.stdin)
+out=[]
+for item in data:
+    title=item.get("title","")
+    if not title:
+        continue
+    if flt:
+        if re.search(flt, title, re.I):
+            out.append(title)
+    else:
+        out.append(title)
+print("\n".join(out))
+PY
+)"
+        if [[ -z "$titles" ]]; then
+            _secrets_warn "No items found"
+            return 1
+        fi
+        echo "$titles"
+    fi
+}
+
 machine_profile() {
     if [[ -n "${ZSH_ENV_PROFILE:-}" ]]; then
         echo "$ZSH_ENV_PROFILE"

@@ -83,6 +83,9 @@ EOF
     old_map="$ZSH_SECRETS_MAP"
     old_mode="$ZSH_SECRETS_MODE"
     PATH="$bin:/usr/bin:/bin"
+    unalias op 2>/dev/null || true
+    unfunction op 2>/dev/null || true
+    op() { "$bin/op" "$@"; }
     hash -r
     export ZSH_SECRETS_MAP="$map"
     export ZSH_SECRETS_MODE="op"
@@ -96,6 +99,7 @@ EOF
     export ZSH_SECRETS_MAP="$old_map"
     export ZSH_SECRETS_MODE="$old_mode"
     unset OP_ACCOUNT OP_VAULT
+    unset -f op 2>/dev/null || true
     rm -rf "$tmp"
 }
 
@@ -129,7 +133,7 @@ test_secrets_sync_to_1p_requires_op() {
     tmp="$(mktemp -d)"
     bin="$tmp/bin"
     mkdir -p "$bin"
-    PATH="$bin:/usr/bin:/bin"
+    PATH="$bin"
     out="$(secrets_sync_to_1p 2>&1 || true)"
     assert_contains "$out" "op not found" "sync should require op"
     PATH="$old_path"
@@ -162,7 +166,7 @@ test_op_list_accounts_vaults_requires_op() {
     tmp="$(mktemp -d)"
     bin="$tmp/bin"
     mkdir -p "$bin"
-    PATH="$bin:/usr/bin:/bin"
+    PATH="$bin"
     out="$(op_list_accounts_vaults 2>&1 || true)"
     assert_contains "$out" "op not found" "list should require op"
     PATH="$old_path"
@@ -221,6 +225,61 @@ JQ
     rm -rf "$tmp"
 }
 
+test_op_list_items_requires_op() {
+    local tmp bin out rc
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    cat > "$bin/op" <<'OP'
+#!/usr/bin/env zsh
+case "$1 $2" in
+  "account list")
+    exit 0
+    ;;
+  "item list")
+    echo '[]'
+    exit 0
+    ;;
+  *)
+    exit 1
+    ;;
+esac
+OP
+    chmod +x "$bin/op"
+    out="$(BIN="$bin" zsh -lc 'export ZSH_TEST_MODE=1; source /Users/dheerajchand/.config/zsh/modules/secrets.zsh; PATH="$BIN:/usr/bin:/bin"; unalias op 2>/dev/null || true; unfunction op 2>/dev/null || true; op(){ "$BIN/op" "$@"; }; op_list_items' 2>&1)"
+    rc=$?
+    assert_not_equal "0" "$rc" "op_list_items should fail on empty list"
+    assert_contains "$out" "No items found" "op_list_items should warn on empty list"
+    rm -rf "$tmp"
+}
+
+test_secrets_pull_requires_op() {
+    local tmp bin out rc
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    cat > "$bin/op" <<'OP'
+#!/usr/bin/env zsh
+case "$1 $2" in
+  "account list")
+    exit 0
+    ;;
+  "item get")
+    exit 0
+    ;;
+  *)
+    exit 1
+    ;;
+esac
+OP
+    chmod +x "$bin/op"
+    out="$(BIN="$bin" zsh -lc 'export ZSH_TEST_MODE=1; source /Users/dheerajchand/.config/zsh/modules/secrets.zsh; PATH="$BIN:/usr/bin:/bin"; unalias op 2>/dev/null || true; unfunction op 2>/dev/null || true; op(){ "$BIN/op" "$@"; }; secrets_pull_from_1p' 2>&1)"
+    rc=$?
+    assert_not_equal "0" "$rc" "secrets_pull_from_1p should fail on empty field"
+    assert_contains "$out" "No secrets_file field" "secrets_pull_from_1p should warn on empty field"
+    rm -rf "$tmp"
+}
+
 register_test "test_secrets_load_file" "test_secrets_load_file"
 register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_machine_profile_default" "test_machine_profile_default"
@@ -230,3 +289,5 @@ register_test "test_secrets_init_from_example" "test_secrets_init_from_example"
 register_test "test_op_list_accounts_vaults_requires_op" "test_op_list_accounts_vaults_requires_op"
 register_test "test_op_account_alias_lookup" "test_op_account_alias_lookup"
 register_test "test_op_list_accounts_vaults_empty" "test_op_list_accounts_vaults_empty"
+register_test "test_op_list_items_requires_op" "test_op_list_items_requires_op"
+register_test "test_secrets_pull_requires_op" "test_secrets_pull_requires_op"
