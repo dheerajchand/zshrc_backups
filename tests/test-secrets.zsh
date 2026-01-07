@@ -325,6 +325,39 @@ test_secrets_profile_switch_persists() {
     rm -rf "$tmp"
 }
 
+test_secrets_validate_setup_success() {
+    local tmp map old_mode old_map old_path old_test_mode
+    tmp="$(mktemp -d)"
+    map="$tmp/secrets.1p"
+    echo "ENV VAR user field" > "$map"
+    old_mode="$ZSH_SECRETS_MODE"
+    old_map="$ZSH_SECRETS_MAP"
+    old_path="$PATH"
+    old_test_mode="${ZSH_TEST_MODE-}"
+    unset ZSH_TEST_MODE
+    export ZSH_SECRETS_MODE="op"
+    export ZSH_SECRETS_MAP="$map"
+    PATH="$tmp/bin:/usr/bin:/bin"
+    mkdir -p "$tmp/bin"
+    cat > "$tmp/bin/op" <<'OP'
+#!/usr/bin/env zsh
+if [[ "$1 $2" == "account list" ]]; then
+  exit 0
+fi
+exit 0
+OP
+    chmod +x "$tmp/bin/op"
+    out="$(secrets_validate_setup 2>&1)"
+    assert_contains "$out" "Secrets setup looks good" "should print success message"
+    export ZSH_SECRETS_MODE="$old_mode"
+    export ZSH_SECRETS_MAP="$old_map"
+    PATH="$old_path"
+    if [[ -n "${old_test_mode-}" ]]; then
+        export ZSH_TEST_MODE="$old_test_mode"
+    fi
+    rm -rf "$tmp"
+}
+
 test_secrets_sync_to_1p_with_account_vault() {
     local tmp bin file old_file old_path out
     tmp="$(mktemp -d)"
@@ -388,4 +421,5 @@ register_test "test_secrets_pull_requires_op" "test_secrets_pull_requires_op"
 register_test "test_secrets_profile_switch_usage" "test_secrets_profile_switch_usage"
 register_test "test_secrets_profile_switch_sets_profile" "test_secrets_profile_switch_sets_profile"
 register_test "test_secrets_profile_switch_persists" "test_secrets_profile_switch_persists"
+register_test "test_secrets_validate_setup_success" "test_secrets_validate_setup_success"
 register_test "test_vault_without_account_warns" "test_vault_without_account_warns"
