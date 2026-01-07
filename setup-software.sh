@@ -518,12 +518,38 @@ format_namenode() {
     
     source "$HOME/.sdkman/bin/sdkman-init.sh"
     local hadoop_home="$HOME/.sdkman/candidates/hadoop/current"
+    local namenode_dir="$HOME/hadoop-data/namenode"
     
     if [[ ! -d "$hadoop_home" ]]; then
         print_error "Hadoop not installed"
         return 1
     fi
-    
+
+    if jps | grep -q NameNode; then
+        printf "NameNode is running. Stop and reformat? [y/N]: "
+        read -r stop_fmt
+        if [[ "$stop_fmt" != [Yy]* ]]; then
+            print_info "Skipping NameNode format"
+            return 0
+        fi
+        "$hadoop_home/bin/hdfs" --daemon stop datanode 2>/dev/null || true
+        "$hadoop_home/bin/hdfs" --daemon stop namenode 2>/dev/null || true
+        if command -v yarn >/dev/null 2>&1; then
+            yarn --daemon stop nodemanager 2>/dev/null || true
+            yarn --daemon stop resourcemanager 2>/dev/null || true
+        fi
+        sleep 2
+    fi
+
+    if [[ -d "$namenode_dir/current" ]]; then
+        printf "NameNode already formatted. Reformat? [y/N]: "
+        read -r fmt_again
+        if [[ "$fmt_again" != [Yy]* ]]; then
+            print_info "Skipping NameNode format"
+            return 0
+        fi
+    fi
+
     print_step "Formatting NameNode..."
     "$hadoop_home/bin/hdfs" namenode -format -force
     print_success "NameNode formatted"
