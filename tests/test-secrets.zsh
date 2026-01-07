@@ -191,6 +191,17 @@ EOF
     rm -rf "$tmp"
 }
 
+test_op_set_default_clears_vault() {
+    local old_account="${OP_ACCOUNT-}"
+    local old_vault="${OP_VAULT-}"
+    export OP_ACCOUNT="old-account"
+    export OP_VAULT="OldVault"
+    op_set_default "acct-alias"
+    assert_equal "" "${OP_VAULT-}" "should clear vault when not provided"
+    export OP_ACCOUNT="$old_account"
+    export OP_VAULT="$old_vault"
+}
+
 test_op_list_accounts_vaults_empty() {
     local tmp bin old_path out
     tmp="$(mktemp -d)"
@@ -355,6 +366,7 @@ register_test "test_secrets_sync_to_1p_with_account_vault" "test_secrets_sync_to
 register_test "test_secrets_init_from_example" "test_secrets_init_from_example"
 register_test "test_op_list_accounts_vaults_requires_op" "test_op_list_accounts_vaults_requires_op"
 register_test "test_op_account_alias_lookup" "test_op_account_alias_lookup"
+register_test "test_op_set_default_clears_vault" "test_op_set_default_clears_vault"
 register_test "test_op_list_accounts_vaults_empty" "test_op_list_accounts_vaults_empty"
 register_test "test_op_list_items_requires_op" "test_op_list_items_requires_op"
 register_test "test_secrets_pull_requires_op" "test_secrets_pull_requires_op"
