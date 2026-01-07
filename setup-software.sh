@@ -309,7 +309,8 @@ install_pyenv() {
     
     if [[ -d "$HOME/.pyenv" ]] && ! command -v pyenv >/dev/null 2>&1; then
         print_warning "Found existing ~/.pyenv but pyenv is not on PATH"
-        read -r "pyenv_action?Remove existing ~/.pyenv and reinstall? [y/N]: "
+        printf "Remove existing ~/.pyenv and reinstall? [y/N]: "
+        read -r pyenv_action
         if [[ "$pyenv_action" == [Yy]* ]]; then
             rm -rf "$HOME/.pyenv"
             print_info "Removed ~/.pyenv"
@@ -642,4 +643,3 @@ main() {
 
 # Run the installer
 main "$@"
-
