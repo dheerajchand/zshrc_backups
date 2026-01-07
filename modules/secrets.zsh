@@ -182,6 +182,9 @@ op_set_default() {
         local resolved
         resolved="$(_op_account_alias "$account" 2>/dev/null || true)"
         export OP_ACCOUNT="${resolved:-$account}"
+        if [[ -z "$vault" ]]; then
+            unset OP_VAULT
+        fi
     fi
     if [[ -n "$vault" ]]; then
         export OP_VAULT="$vault"
