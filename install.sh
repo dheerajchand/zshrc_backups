@@ -230,7 +230,7 @@ install_dependencies() {
         echo ""
         echo "Then install Python:"
         echo "  pyenv install 3.11.11"
-        echo "  pyenv virtualenv 3.11.11 geo31111"
+        echo "  pyenv virtualenv 3.11.11 default_31111"
         echo ""
     else
         print_success "pyenv found: $(which pyenv)"
@@ -318,7 +318,7 @@ print_next_steps() {
         printf "   %b\n" "${BLUE}curl https://pyenv.run | bash${NC}"
     fi
     printf "   %b\n" "${BLUE}pyenv install 3.11.11${NC}"
-    printf "   %b\n" "${BLUE}pyenv virtualenv 3.11.11 geo31111${NC}"
+    printf "   %b\n" "${BLUE}pyenv virtualenv 3.11.11 default_31111${NC}"
     echo ""
     echo "4. Check your setup:"
     printf "   %b\n" "${BLUE}help${NC}          - Show all commands"

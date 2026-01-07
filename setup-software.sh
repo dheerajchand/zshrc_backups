@@ -22,7 +22,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 PYTHON_VERSION="3.11.11"
-DEFAULT_VENV="geo31111"
+DEFAULT_VENV="default_${PYTHON_VERSION//./}"
 HADOOP_VERSION="3.3.6"
 SPARK_VERSION="3.5.0"
 JAVA_VERSION="11.0.20-tem"  # Temurin (Eclipse Adoptium)

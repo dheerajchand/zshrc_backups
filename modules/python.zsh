@@ -6,7 +6,7 @@
 # =================================================================
 
 # Default environment to auto-activate
-export DEFAULT_PYENV_VENV="geo31111"
+export DEFAULT_PYENV_VENV="default_31111"
 
 # Initialize pyenv if available (skip in test mode)
 if [[ -z "${ZSH_TEST_MODE:-}" ]] && command -v pyenv >/dev/null 2>&1; then
@@ -170,4 +170,3 @@ alias jn='jupyter notebook'
 if [[ -z "${ZSH_TEST_MODE:-}" ]]; then
     echo "✅ python loaded ($(pyenv version-name 2>/dev/null || echo 'system'))"
 fi
-
