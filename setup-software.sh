@@ -307,6 +307,18 @@ EOF
 install_pyenv() {
     print_header "Installing pyenv (Python Version Manager)"
     
+    if [[ -d "$HOME/.pyenv" ]] && ! command -v pyenv >/dev/null 2>&1; then
+        print_warning "Found existing ~/.pyenv but pyenv is not on PATH"
+        read -r "pyenv_action?Remove existing ~/.pyenv and reinstall? [y/N]: "
+        if [[ "$pyenv_action" == [Yy]* ]]; then
+            rm -rf "$HOME/.pyenv"
+            print_info "Removed ~/.pyenv"
+        else
+            print_info "Skipping pyenv install. Ensure PATH is set for ~/.pyenv/bin"
+            return 0
+        fi
+    fi
+
     if command -v pyenv >/dev/null 2>&1; then
         print_success "pyenv already installed: $(pyenv --version)"
         return
@@ -630,5 +642,4 @@ main() {
 
 # Run the installer
 main "$@"
-
 
