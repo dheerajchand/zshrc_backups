@@ -7,7 +7,17 @@
 # =================================================================
 
 # Spark environment setup
-export SPARK_HOME="${SPARK_HOME:-/opt/homebrew/opt/apache-spark/libexec}"
+if [[ -z "$SPARK_HOME" ]]; then
+    if [[ -d "$HOME/.sdkman/candidates/spark/current" ]]; then
+        export SPARK_HOME="$HOME/.sdkman/candidates/spark/current"
+    elif [[ -d "/opt/homebrew/opt/apache-spark/libexec" ]]; then
+        export SPARK_HOME="/opt/homebrew/opt/apache-spark/libexec"
+    elif [[ -d "/usr/lib/spark" ]]; then
+        export SPARK_HOME="/usr/lib/spark"
+    elif [[ -d "/usr/local/spark" ]]; then
+        export SPARK_HOME="/usr/local/spark"
+    fi
+fi
 export SPARK_MASTER_HOST="${SPARK_MASTER_HOST:-localhost}"
 export SPARK_MASTER_PORT="${SPARK_MASTER_PORT:-7077}"
 export SPARK_MASTER_URL="spark://${SPARK_MASTER_HOST}:${SPARK_MASTER_PORT}"
@@ -24,7 +34,7 @@ fi
 spark_start() {
     if [[ ! -d "$SPARK_HOME" ]]; then
         echo "❌ SPARK_HOME not found: $SPARK_HOME"
-        echo "Install: brew install apache-spark"
+        echo "Install via SDKMAN or set SPARK_HOME"
         return 1
     fi
     
@@ -266,4 +276,3 @@ alias ss='spark_status'
 alias pyspark='pyspark_shell'
 
 echo "✅ spark loaded"
-

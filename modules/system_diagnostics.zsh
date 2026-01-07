@@ -21,7 +21,15 @@ _run_with_timeout() {
     "$@"
 }
 
+_is_macos() {
+    [[ "$OSTYPE" == "darwin"* ]]
+}
+
 icloud_status() {
+    if ! _is_macos; then
+        echo "iCloud diagnostics are macOS-only."
+        return 1
+    fi
     echo "==== brctl status com.apple.CloudDocs ===="
     if command -v brctl >/dev/null 2>&1; then
         _run_with_timeout 8 brctl status com.apple.CloudDocs || true
@@ -38,6 +46,10 @@ icloud_status() {
 }
 
 icloud_logs() {
+    if ! _is_macos; then
+        echo "iCloud diagnostics are macOS-only."
+        return 1
+    fi
     echo "==== CloudDocs/FileProvider logs (last 2m) ===="
     if [[ -x /usr/bin/log ]]; then
         /usr/bin/log show --last 2m --style compact \
@@ -49,6 +61,10 @@ icloud_logs() {
 }
 
 icloud_snapshot() {
+    if ! _is_macos; then
+        echo "iCloud diagnostics are macOS-only."
+        return 1
+    fi
     local ts out
     ts="$(date +%Y%m%d-%H%M%S)"
     out="${1:-$HOME/Library/Logs/icloud_snapshot_${ts}.txt}"
@@ -60,6 +76,10 @@ icloud_snapshot() {
 }
 
 icloud_preflight() {
+    if ! _is_macos; then
+        echo "iCloud diagnostics are macOS-only."
+        return 1
+    fi
     local status
     if ! command -v brctl >/dev/null 2>&1; then
         echo "Preflight: brctl not found; cannot detect active iCloud sync."
@@ -86,6 +106,10 @@ icloud_preflight() {
 }
 
 icloud_reset_state() {
+    if ! _is_macos; then
+        echo "iCloud diagnostics are macOS-only."
+        return 1
+    fi
     local ts
     local force="false"
     if [[ "${1:-}" == "--force" ]]; then
@@ -125,6 +149,10 @@ icloud_reset_state() {
 }
 
 dropbox_status() {
+    if ! _is_macos; then
+        echo "Dropbox diagnostics are macOS-only."
+        return 1
+    fi
     local db_path
     db_path="$HOME/Library/CloudStorage/Dropbox"
     echo "==== Dropbox folder ===="
@@ -150,6 +178,10 @@ dropbox_status() {
 }
 
 dropbox_restart() {
+    if ! _is_macos; then
+        echo "Dropbox diagnostics are macOS-only."
+        return 1
+    fi
     if [[ -n "${ZSH_TEST_MODE:-}" ]]; then
         echo "Test mode: would restart Dropbox."
         return 0
@@ -164,6 +196,10 @@ dropbox_restart() {
 }
 
 dropbox_relink_helper() {
+    if ! _is_macos; then
+        echo "Dropbox diagnostics are macOS-only."
+        return 1
+    fi
     local db_path
     db_path="$HOME/Library/CloudStorage/Dropbox"
     echo "Dropbox relink helper"
@@ -177,6 +213,32 @@ dropbox_relink_helper() {
     echo "If you see the 'Dropbox Folder Missing' dialog, click Relink and choose the path above."
     echo "Launching Dropbox..."
     [[ -n "${ZSH_TEST_MODE:-}" ]] || open -a Dropbox
+}
+
+linux_system_status() {
+    if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+        echo "Linux diagnostics are Linux-only."
+        return 1
+    fi
+    echo "==== System Information ===="
+    uname -a
+    echo ""
+    echo "==== Disk Usage ===="
+    df -h
+    echo ""
+    echo "==== Memory Usage ===="
+    if command -v free >/dev/null 2>&1; then
+        free -h
+    else
+        vmstat -s 2>/dev/null || true
+    fi
+    echo ""
+    echo "==== Running Services ===="
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl list-units --type=service --state=running | head -n 20
+    else
+        ps -eo pid,comm,etime | head -n 20
+    fi
 }
 
 if [[ -z "${ZSH_TEST_MODE:-}" ]]; then

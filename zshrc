@@ -225,6 +225,13 @@ help() {
     echo "  op_list_accounts_vaults - List accounts and vaults"
     echo "  op_list_items           - List items in account/vault"
     echo ""
+    echo "🩺 Diagnostics:"
+    echo "  icloud_status           - macOS-only iCloud status"
+    echo "  icloud_preflight        - macOS-only iCloud preflight"
+    echo "  dropbox_status          - macOS-only Dropbox status"
+    echo "  dropbox_restart         - macOS-only Dropbox restart"
+    echo "  linux_system_status     - Linux-only system overview"
+    echo ""
     echo "📦 Backup:"
     echo "  backup ['message']     - Commit and push to GitHub"
     echo "  pushmain               - Quick push"
@@ -254,6 +261,7 @@ modules() {
     echo "✅ database    - PostgreSQL connections"
     echo "✅ credentials - Secure credential storage"
     echo "✅ secrets     - Local + 1Password secrets"
+    echo "✅ system_diagnostics - iCloud/Dropbox/Linux diagnostics"
     echo "✅ backup      - Git self-backup system"
 }
 

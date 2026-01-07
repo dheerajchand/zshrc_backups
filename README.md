@@ -43,6 +43,17 @@ bash <(curl -fsSL https://raw.githubusercontent.com/dheerajchand/siege_analytics
 
 ---
 
+## 🐧 Ubuntu / Linux Notes
+
+This repo supports macOS and Ubuntu/Debian. For Linux:
+
+- `setup-software.sh` uses `apt-get` for system dependencies and will prompt for `sudo`.
+- Hadoop data paths are created under `~/hadoop-data` (no `/Users/...` paths).
+- If you install Spark/Hadoop outside SDKMAN, set `SPARK_HOME` and `HADOOP_HOME`.
+- Use `linux_system_status` for basic Linux diagnostics (macOS-only iCloud/Dropbox helpers won’t apply).
+
+---
+
 ## 🔐 Secrets & Environment Profiles
 
 Secrets are loaded from a local file and/or 1Password.
@@ -266,6 +277,15 @@ op_set_default          # Set default 1Password account/vault
 op_list_accounts_vaults # List accounts and vaults
 op_list_items           # List items in account/vault
 secrets_profile_switch  # Set profile (persists to secrets.env) and reload secrets
+```
+
+**🩺 Diagnostics:**
+```bash
+icloud_status           # macOS-only iCloud status
+icloud_preflight        # macOS-only iCloud preflight
+dropbox_status          # macOS-only Dropbox status
+dropbox_restart         # macOS-only Dropbox restart
+linux_system_status     # Linux-only system overview
 ```
 
 ## 📋 System Architecture
