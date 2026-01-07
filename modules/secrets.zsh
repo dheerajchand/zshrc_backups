@@ -9,7 +9,7 @@
 : "${ZSH_SECRETS_MAP:=$HOME/.config/zsh/secrets.1p}"
 : "${OP_ACCOUNTS_FILE:=$HOME/.config/zsh/op-accounts.env}"
 : "${OP_ACCOUNTS_FILE_EXAMPLE:=$HOME/.config/zsh/op-accounts.env.example}"
-: "${OP_VAULT:=Private}"
+: "${OP_VAULT:=}"
 : "${OP_ACCOUNT:=}"
 
 _secrets_warn() {
@@ -98,8 +98,12 @@ secrets_load_file() {
 }
 
 secrets_load_op() {
-    local account_arg="${1:-$OP_ACCOUNT}"
-    local vault_arg="${2:-$OP_VAULT}"
+    local account_arg="${1:-${OP_ACCOUNT-}}"
+    local vault_arg="${2:-${OP_VAULT-}}"
+    if [[ -n "$vault_arg" && -z "$account_arg" ]]; then
+        _secrets_warn "Vault specified without account; refusing to load"
+        return 1
+    fi
     [[ -f "$ZSH_SECRETS_MAP" ]] || return 1
     if ! command -v op >/dev/null 2>&1; then
         _secrets_warn "op not found; cannot load 1Password secrets"
@@ -119,12 +123,12 @@ secrets_load_op() {
         if [[ "$user" == "-" || -z "$user" ]]; then
             value="$(op item get "$service" \
                 ${account_arg:+--account="$account_arg"} \
-                ${vault_arg:+--vault="$vault_arg"} \
+                ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
                 --field="$field" --reveal 2>/dev/null || true)"
         else
             value="$(op item get "$service-$user" \
                 ${account_arg:+--account="$account_arg"} \
-                ${vault_arg:+--vault="$vault_arg"} \
+                ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
                 --field="$field" --reveal 2>/dev/null || true)"
         fi
         [[ -n "$value" ]] && export "$envvar=$value"
@@ -155,7 +159,7 @@ secrets_status() {
     echo "File: $ZSH_SECRETS_FILE"
     echo "1Password map: $ZSH_SECRETS_MAP"
     echo "1Password account: ${OP_ACCOUNT:-default}"
-    echo "1Password vault: $OP_VAULT"
+    echo "1Password vault: ${OP_VAULT:-default}"
     if command -v op >/dev/null 2>&1; then
         if op account list >/dev/null 2>&1; then
             echo "1Password: Ready"
@@ -170,6 +174,10 @@ secrets_status() {
 op_set_default() {
     local account="${1:-}"
     local vault="${2:-}"
+    if [[ -n "$vault" && -z "$account" ]]; then
+        _secrets_warn "Vault specified without account; refusing to set vault"
+        return 1
+    fi
     if [[ -n "$account" ]]; then
         local resolved
         resolved="$(_op_account_alias "$account" 2>/dev/null || true)"
@@ -178,7 +186,7 @@ op_set_default() {
     if [[ -n "$vault" ]]; then
         export OP_VAULT="$vault"
     fi
-    _secrets_info "1Password defaults: account=${OP_ACCOUNT:-default} vault=$OP_VAULT"
+    _secrets_info "1Password defaults: account=${OP_ACCOUNT:-default} vault=${OP_VAULT:-default}"
 }
 
 op_list_accounts_vaults() {
@@ -276,8 +284,12 @@ secrets_init() {
 
 secrets_sync_to_1p() {
     local title="${1:-zsh-secrets}"
-    local account_arg="${2:-$OP_ACCOUNT}"
-    local vault_arg="${3:-$OP_VAULT}"
+    local account_arg="${2:-${OP_ACCOUNT-}}"
+    local vault_arg="${3:-${OP_VAULT-}}"
+    if [[ -n "$vault_arg" && -z "$account_arg" ]]; then
+        _secrets_warn "Vault specified without account; refusing to sync"
+        return 1
+    fi
     if ! command -v op >/dev/null 2>&1; then
         _secrets_warn "op not found; cannot sync secrets to 1Password"
         return 1
@@ -295,8 +307,8 @@ secrets_sync_to_1p() {
     if op item create \
         --category="Secure Note" \
         --title="$title" \
-        ${vault_arg:+--vault="$vault_arg"} \
         ${account_arg:+--account="$account_arg"} \
+        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
         "secrets_file[text]=$(cat "$ZSH_SECRETS_FILE")" >/dev/null 2>"$err_file"; then
         rm -f "$err_file"
         _secrets_info "Synced secrets file to 1Password item: $title"
@@ -312,8 +324,12 @@ secrets_sync_to_1p() {
 
 secrets_pull_from_1p() {
     local title="${1:-zsh-secrets}"
-    local account_arg="${2:-$OP_ACCOUNT}"
-    local vault_arg="${3:-$OP_VAULT}"
+    local account_arg="${2:-${OP_ACCOUNT-}}"
+    local vault_arg="${3:-${OP_VAULT-}}"
+    if [[ -n "$vault_arg" && -z "$account_arg" ]]; then
+        _secrets_warn "Vault specified without account; refusing to pull"
+        return 1
+    fi
     if ! command -v op >/dev/null 2>&1; then
         _secrets_warn "op not found; cannot pull secrets from 1Password"
         return 1
@@ -325,7 +341,7 @@ secrets_pull_from_1p() {
     local value
     value="$(op item get "$title" \
         ${account_arg:+--account="$account_arg"} \
-        ${vault_arg:+--vault="$vault_arg"} \
+        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
         --field="secrets_file" --reveal 2>/dev/null || true)"
     if [[ -z "$value" ]]; then
         _secrets_warn "No secrets_file field found for item: $title"
@@ -345,17 +361,23 @@ secrets_profile_switch() {
         return 1
     fi
     export ZSH_ENV_PROFILE="$profile"
-    if [[ -n "$account" ]]; then
-        op_set_default "$account" "$vault"
+    if [[ -n "$account" || -n "$vault" ]]; then
+        if ! op_set_default "$account" "$vault"; then
+            return 1
+        fi
     fi
     load_secrets
     _secrets_info "Switched profile to $profile"
 }
 
 op_list_items() {
-    local account_arg="${1:-$OP_ACCOUNT}"
-    local vault_arg="${2:-$OP_VAULT}"
+    local account_arg="${1:-${OP_ACCOUNT-}}"
+    local vault_arg="${2:-${OP_VAULT-}}"
     local filter="${3:-}"
+    if [[ -n "$vault_arg" && -z "$account_arg" ]]; then
+        _secrets_warn "Vault specified without account; refusing to list items"
+        return 1
+    fi
     if ! command -v op >/dev/null 2>&1; then
         _secrets_warn "op not found; cannot list items"
         return 1
@@ -367,7 +389,7 @@ op_list_items() {
     local items_json
     items_json="$(op item list \
         ${account_arg:+--account="$account_arg"} \
-        ${vault_arg:+--vault="$vault_arg"} \
+        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
         --format=json 2>/dev/null || true)"
     if [[ -z "$items_json" ]]; then
         _secrets_warn "No items found"

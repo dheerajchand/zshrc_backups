@@ -249,7 +249,7 @@ case "$1 $2" in
 esac
 OP
     chmod +x "$bin/op"
-    out="$(BIN="$bin" zsh -lc 'export ZSH_TEST_MODE=1; source /Users/dheerajchand/.config/zsh/modules/secrets.zsh; PATH="$BIN:/usr/bin:/bin"; unalias op 2>/dev/null || true; unfunction op 2>/dev/null || true; op(){ "$BIN/op" "$@"; }; op_list_items' 2>&1)"
+    out="$(BIN="$bin" zsh -lc 'export ZSH_TEST_MODE=1; export OP_ACCOUNT=acct-1; export OP_VAULT=; source /Users/dheerajchand/.config/zsh/modules/secrets.zsh; PATH="$BIN:/usr/bin:/bin"; unalias op 2>/dev/null || true; unfunction op 2>/dev/null || true; op(){ "$BIN/op" "$@"; }; op_list_items' 2>&1)"
     rc=$?
     assert_not_equal "0" "$rc" "op_list_items should fail on empty list"
     assert_contains "$out" "No items found" "op_list_items should warn on empty list"
@@ -276,7 +276,7 @@ case "$1 $2" in
 esac
 OP
     chmod +x "$bin/op"
-    out="$(BIN="$bin" zsh -lc 'export ZSH_TEST_MODE=1; source /Users/dheerajchand/.config/zsh/modules/secrets.zsh; PATH="$BIN:/usr/bin:/bin"; unalias op 2>/dev/null || true; unfunction op 2>/dev/null || true; op(){ "$BIN/op" "$@"; }; secrets_pull_from_1p' 2>&1)"
+    out="$(BIN="$bin" zsh -lc 'export ZSH_TEST_MODE=1; export OP_ACCOUNT=acct-1; export OP_VAULT=; source /Users/dheerajchand/.config/zsh/modules/secrets.zsh; PATH="$BIN:/usr/bin:/bin"; unalias op 2>/dev/null || true; unfunction op 2>/dev/null || true; op(){ "$BIN/op" "$@"; }; secrets_pull_from_1p' 2>&1)"
     rc=$?
     assert_not_equal "0" "$rc" "secrets_pull_from_1p should fail on empty field"
     assert_contains "$out" "No secrets_file field" "secrets_pull_from_1p should warn on empty field"
@@ -335,6 +335,17 @@ OP
     rm -rf "$tmp"
 }
 
+test_vault_without_account_warns() {
+    local out old_account
+    old_account="${OP_ACCOUNT-}"
+    unset OP_ACCOUNT
+    out="$(secrets_sync_to_1p "zsh-secrets-env" "" "VaultA" 2>&1 || true)"
+    assert_contains "$out" "Vault specified without account; refusing to sync" "should reject vault without account"
+    if [[ -n "${old_account-}" ]]; then
+        export OP_ACCOUNT="$old_account"
+    fi
+}
+
 register_test "test_secrets_load_file" "test_secrets_load_file"
 register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_machine_profile_default" "test_machine_profile_default"
@@ -349,3 +360,4 @@ register_test "test_op_list_items_requires_op" "test_op_list_items_requires_op"
 register_test "test_secrets_pull_requires_op" "test_secrets_pull_requires_op"
 register_test "test_secrets_profile_switch_usage" "test_secrets_profile_switch_usage"
 register_test "test_secrets_profile_switch_sets_profile" "test_secrets_profile_switch_sets_profile"
+register_test "test_vault_without_account_warns" "test_vault_without_account_warns"
