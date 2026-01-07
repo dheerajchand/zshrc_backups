@@ -306,25 +306,29 @@ print_next_steps() {
     echo "Next steps:"
     echo ""
     echo "1. Restart your terminal or run:"
-    echo "   ${GREEN}exec zsh${NC}"
+    printf "   %b\n" "${GREEN}exec zsh${NC}"
     echo ""
     echo "2. Configure Powerlevel10k theme (if prompted):"
     echo "   Follow the interactive configuration wizard"
     echo ""
     echo "3. Install Python environment (if needed):"
-    echo "   ${BLUE}brew install pyenv pyenv-virtualenv${NC}"
-    echo "   ${BLUE}pyenv install 3.11.11${NC}"
-    echo "   ${BLUE}pyenv virtualenv 3.11.11 geo31111${NC}"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        printf "   %b\n" "${BLUE}brew install pyenv pyenv-virtualenv${NC}"
+    else
+        printf "   %b\n" "${BLUE}curl https://pyenv.run | bash${NC}"
+    fi
+    printf "   %b\n" "${BLUE}pyenv install 3.11.11${NC}"
+    printf "   %b\n" "${BLUE}pyenv virtualenv 3.11.11 geo31111${NC}"
     echo ""
     echo "4. Check your setup:"
-    echo "   ${BLUE}help${NC}          - Show all commands"
-    echo "   ${BLUE}modules${NC}       - List loaded modules"
-    echo "   ${BLUE}python_status${NC} - Check Python environment"
+    printf "   %b\n" "${BLUE}help${NC}          - Show all commands"
+    printf "   %b\n" "${BLUE}modules${NC}       - List loaded modules"
+    printf "   %b\n" "${BLUE}python_status${NC} - Check Python environment"
     echo ""
     
     if [ -d "$BACKUP_DIR" ]; then
         echo "Your old configuration was backed up to:"
-        echo "   ${YELLOW}$BACKUP_DIR${NC}"
+        printf "   %b\n" "${YELLOW}$BACKUP_DIR${NC}"
         echo ""
     fi
     
