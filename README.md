@@ -78,6 +78,17 @@ secrets_pull_from_1p "zsh-secrets-env"
 op_list_items "$OP_ACCOUNT" "$OP_VAULT" "zsh-secrets"
 ```
 
+New machine onboarding:
+```bash
+secrets_init_profile
+```
+This creates `secrets.env` with a profile and secrets mode, and can scaffold `secrets.1p`.
+
+Validation (optional, non-blocking):
+```bash
+secrets_validate_setup
+```
+
 ## 🌎 Multi-Environment Workflow (Laptop/Dev/Staging/Prod)
 
 Recommended approach: keep a small local `secrets.env` with the profile and defaults,
@@ -121,6 +132,7 @@ secrets_profile_switch dev
 secrets_profile_switch staging
 secrets_profile_switch prod
 ```
+Profile switches persist to `secrets.env` so they survive shell restarts.
 
 5) Verify:
 ```bash
@@ -245,13 +257,15 @@ smart_spark_submit job.py
 secrets_status          # Show secrets loader status
 secrets_edit            # Edit local secrets.env (chmod 600)
 secrets_init            # Create secrets.env from example
+secrets_init_profile    # Interactive profile setup for new machines
+secrets_validate_setup  # Validate 1Password setup (non-blocking)
 secrets_sync_to_1p      # Sync secrets.env into 1Password Secure Note
 secrets_pull_from_1p    # Pull secrets.env from 1Password Secure Note
 op_accounts_edit        # Edit 1Password account aliases
 op_set_default          # Set default 1Password account/vault
 op_list_accounts_vaults # List accounts and vaults
 op_list_items           # List items in account/vault
-secrets_profile_switch  # Set profile and reload secrets
+secrets_profile_switch  # Set profile (persists to secrets.env) and reload secrets
 ```
 
 ## 📋 System Architecture

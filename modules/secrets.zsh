@@ -21,6 +21,40 @@ _secrets_info() {
     echo "🔐 $*"
 }
 
+_secrets_update_env_file() {
+    local key="$1"
+    local value="$2"
+    local file="$ZSH_SECRETS_FILE"
+    local tmp
+    umask 077
+    if [[ ! -f "$file" ]]; then
+        printf '%s=%s\n' "$key" "$value" > "$file"
+        return 0
+    fi
+    tmp="$(mktemp)"
+    python - "$file" "$tmp" "$key" "$value" <<'PY'
+import sys
+src, dst, key, val = sys.argv[1:5]
+found = False
+with open(src, "r") as fh:
+    lines = fh.read().splitlines()
+out = []
+for line in lines:
+    if line.startswith(f"{key}="):
+        out.append(f"{key}={val}")
+        found = True
+    else:
+        out.append(line)
+if not found:
+    out.append(f"{key}={val}")
+with open(dst, "w") as fh:
+    fh.write("\n".join(out))
+    fh.write("\n")
+PY
+    mv "$tmp" "$file"
+    chmod 600 "$file" 2>/dev/null || true
+}
+
 _secrets_export_kv() {
     local line="$1"
     [[ -z "$line" ]] && return 0
@@ -152,6 +186,108 @@ load_secrets() {
     esac
 }
 
+_secrets_check_profile() {
+    if [[ -n "${ZSH_ENV_PROFILE:-}" ]]; then
+        return 0
+    fi
+    if [[ -n "${_SECRETS_PROFILE_WARNED:-}" ]]; then
+        return 0
+    fi
+    if [[ -n "${ZSH_TEST_MODE:-}" ]]; then
+        return 0
+    fi
+    if [[ ! -o interactive ]]; then
+        return 0
+    fi
+    _SECRETS_PROFILE_WARNED=1
+    _secrets_warn "ZSH_ENV_PROFILE not set. Run: secrets_init_profile"
+    _secrets_info "Available profiles: dev, staging, prod, laptop"
+}
+
+secrets_validate_setup() {
+    local errors=0
+    if [[ "$ZSH_SECRETS_MODE" == "op" || "$ZSH_SECRETS_MODE" == "both" ]]; then
+        if ! command -v op >/dev/null 2>&1; then
+            _secrets_warn "op CLI not found. Install: brew install --cask 1password-cli"
+            ((errors++))
+        elif ! op account list >/dev/null 2>&1; then
+            _secrets_warn "1Password not authenticated. Run: op signin"
+            ((errors++))
+        fi
+        if [[ ! -f "$ZSH_SECRETS_MAP" ]]; then
+            _secrets_warn "1Password mapping file not found: $ZSH_SECRETS_MAP"
+            _secrets_info "Create from example: cp $ZSH_SECRETS_MAP.example $ZSH_SECRETS_MAP"
+            ((errors++))
+        fi
+    fi
+    return "$errors"
+}
+
+secrets_init_profile() {
+    if [[ -f "$ZSH_SECRETS_FILE" ]]; then
+        _secrets_warn "secrets file already exists: $ZSH_SECRETS_FILE"
+        return 1
+    fi
+    echo "🔐 ZSH Secrets Profile Setup"
+    echo "============================"
+    echo ""
+    echo "Select environment profile:"
+    echo "  1) dev      - Development environment"
+    echo "  2) staging  - Staging environment"
+    echo "  3) prod     - Production environment"
+    echo "  4) laptop   - Personal laptop"
+    echo ""
+    local choice profile
+    read -r "choice?Profile [1-4]: "
+    case "$choice" in
+        1) profile="dev" ;;
+        2) profile="staging" ;;
+        3) profile="prod" ;;
+        4) profile="laptop" ;;
+        *) _secrets_warn "Invalid choice"; return 1 ;;
+    esac
+
+    local mode="file"
+    if command -v op >/dev/null 2>&1 && op account list >/dev/null 2>&1; then
+        local use_op
+        read -r "use_op?Use 1Password for secrets? [y/N]: "
+        if [[ "$use_op" == [Yy]* ]]; then
+            mode="both"
+        fi
+    else
+        if command -v op >/dev/null 2>&1; then
+            _secrets_warn "1Password not authenticated. Using file-only mode."
+        else
+            _secrets_warn "1Password CLI not installed. Using file-only mode."
+        fi
+    fi
+
+    umask 077
+    cat > "$ZSH_SECRETS_FILE" <<EOF
+# ZSH Environment Profile
+ZSH_ENV_PROFILE=$profile
+
+# Secrets Mode: file, op, both, off
+ZSH_SECRETS_MODE=$mode
+
+# 1Password Configuration (optional)
+# OP_ACCOUNT=your-account-alias
+# OP_VAULT=Private
+EOF
+
+    if [[ "$mode" == "op" || "$mode" == "both" ]]; then
+        if [[ ! -f "$ZSH_SECRETS_MAP" && -f "$ZSH_SECRETS_MAP.example" ]]; then
+            cp "$ZSH_SECRETS_MAP.example" "$ZSH_SECRETS_MAP"
+            _secrets_info "Created $ZSH_SECRETS_MAP from example"
+        fi
+    fi
+
+    export ZSH_ENV_PROFILE="$profile"
+    export ZSH_SECRETS_MODE="$mode"
+    load_secrets
+    _secrets_info "Profile setup complete: $profile"
+}
+
 secrets_status() {
     echo "🔐 Secrets"
     echo "=========="
@@ -264,6 +400,13 @@ secrets_edit() {
     if [[ ! -f "$ZSH_SECRETS_FILE" ]]; then
         umask 077
         touch "$ZSH_SECRETS_FILE"
+    else
+        local perms=""
+        perms="$(stat -f "%OLp" "$ZSH_SECRETS_FILE" 2>/dev/null || stat -c "%a" "$ZSH_SECRETS_FILE" 2>/dev/null || true)"
+        if [[ -n "$perms" && "$perms" != "600" && "$perms" != "400" ]]; then
+            _secrets_warn "secrets file has insecure permissions ($perms). Fixing..."
+            chmod 600 "$ZSH_SECRETS_FILE" 2>/dev/null || true
+        fi
     fi
     "$editor" "$ZSH_SECRETS_FILE"
 }
@@ -363,6 +506,7 @@ secrets_profile_switch() {
         echo "Usage: secrets_profile_switch <profile> [account] [vault]" >&2
         return 1
     fi
+    _secrets_update_env_file "ZSH_ENV_PROFILE" "$profile"
     export ZSH_ENV_PROFILE="$profile"
     if [[ -n "$account" || -n "$vault" ]]; then
         if ! op_set_default "$account" "$vault"; then
@@ -452,6 +596,7 @@ machine_profile() {
 # Auto-load secrets unless disabled or in test mode
 if [[ -z "${ZSH_TEST_MODE:-}" ]]; then
     load_secrets
+    _secrets_check_profile
 fi
 
 if [[ -z "${ZSH_TEST_MODE:-}" ]]; then
