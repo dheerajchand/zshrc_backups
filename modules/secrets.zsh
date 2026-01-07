@@ -220,6 +220,9 @@ secrets_validate_setup() {
             ((errors++))
         fi
     fi
+    if [[ "$errors" -eq 0 ]]; then
+        _secrets_info "Secrets setup looks good"
+    fi
     return "$errors"
 }
 
