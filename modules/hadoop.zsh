@@ -26,7 +26,13 @@ if [[ -z "$HADOOP_HOME" ]]; then
         fi
     fi
 fi
-export HADOOP_CONF_DIR="${HADOOP_CONF_DIR:-$HADOOP_HOME/etc/hadoop}"
+if [[ -n "${HADOOP_CONF_DIR:-}" ]]; then
+    if [[ ! -f "$HADOOP_CONF_DIR/core-site.xml" ]]; then
+        export HADOOP_CONF_DIR="$HADOOP_HOME/etc/hadoop"
+    fi
+else
+    export HADOOP_CONF_DIR="$HADOOP_HOME/etc/hadoop"
+fi
 export YARN_CONF_DIR="${YARN_CONF_DIR:-$HADOOP_CONF_DIR}"
 export HDFS_NAMENODE_USER="${HDFS_NAMENODE_USER:-$USER}"
 export HDFS_DATANODE_USER="${HDFS_DATANODE_USER:-$USER}"
