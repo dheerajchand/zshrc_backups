@@ -174,6 +174,74 @@ hadoop_status() {
     fi
 }
 
+yarn_health() {
+    local ok=0
+    echo "🎛️  YARN Health"
+    echo "============="
+    if [[ -z "${HADOOP_HOME:-}" && -z "$(command -v yarn 2>/dev/null)" ]]; then
+        echo "❌ YARN not found (set HADOOP_HOME or install Hadoop)"
+        return 1
+    fi
+    if pgrep -f "ResourceManager" >/dev/null; then
+        echo "✅ ResourceManager: running"
+    else
+        echo "⚠️  ResourceManager: not running"
+        ok=1
+    fi
+    if pgrep -f "NodeManager" >/dev/null; then
+        echo "✅ NodeManager: running"
+    else
+        echo "⚠️  NodeManager: not running"
+        ok=1
+    fi
+    if [[ -n "${ZSH_TEST_MODE:-}" ]]; then
+        return "$ok"
+    fi
+    if command -v yarn >/dev/null 2>&1; then
+        local apps
+        apps="$(yarn application -list 2>/dev/null | head -n 5)"
+        [[ -n "$apps" ]] && echo "$apps"
+    fi
+    return "$ok"
+}
+
+hadoop_health() {
+    local ok=0
+    echo "🐘 Hadoop Health"
+    echo "=============="
+    if [[ -z "${HADOOP_HOME:-}" && -z "$(command -v hadoop 2>/dev/null)" ]]; then
+        echo "❌ Hadoop not found (set HADOOP_HOME or install Hadoop)"
+        return 1
+    fi
+    if [[ -n "${HADOOP_HOME:-}" && ! -d "$HADOOP_HOME" ]]; then
+        echo "❌ HADOOP_HOME not found: $HADOOP_HOME"
+        ok=1
+    fi
+    if pgrep -f "NameNode" >/dev/null; then
+        echo "✅ NameNode: running"
+    else
+        echo "⚠️  NameNode: not running"
+        ok=1
+    fi
+    if pgrep -f "DataNode" >/dev/null; then
+        echo "✅ DataNode: running"
+    else
+        echo "⚠️  DataNode: not running"
+        ok=1
+    fi
+    if [[ -n "${ZSH_TEST_MODE:-}" ]]; then
+        yarn_health || ok=1
+        return "$ok"
+    fi
+    if command -v hadoop >/dev/null 2>&1; then
+        local version
+        version="$(hadoop version 2>/dev/null | head -n 1)"
+        [[ -n "$version" ]] && echo "📦 $version"
+    fi
+    yarn_health || ok=1
+    return "$ok"
+}
+
 # List YARN applications
 yarn_application_list() {
     if ! command -v yarn >/dev/null 2>&1; then

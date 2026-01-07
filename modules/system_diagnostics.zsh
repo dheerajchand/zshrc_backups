@@ -25,6 +25,39 @@ _is_macos() {
     [[ "$OSTYPE" == "darwin"* ]]
 }
 
+data_platform_health() {
+    local rc=0
+    local ran=0
+    echo "🧪 Data Platform Health"
+    echo "======================"
+    if typeset -f spark_health >/dev/null 2>&1; then
+        ran=1
+        spark_health || rc=1
+        echo ""
+    else
+        echo "⚠️  spark_health not available (spark module not loaded)"
+        rc=1
+    fi
+    if typeset -f hadoop_health >/dev/null 2>&1; then
+        ran=1
+        hadoop_health || rc=1
+        echo ""
+    else
+        echo "⚠️  hadoop_health not available (hadoop module not loaded)"
+        rc=1
+    fi
+    if typeset -f yarn_health >/dev/null 2>&1; then
+        ran=1
+        yarn_health || rc=1
+        echo ""
+    fi
+    if [[ "$ran" -eq 0 ]]; then
+        echo "⚠️  No health checks available"
+        return 1
+    fi
+    return "$rc"
+}
+
 icloud_status() {
     if ! _is_macos; then
         echo "iCloud diagnostics are macOS-only."
