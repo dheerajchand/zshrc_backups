@@ -69,8 +69,16 @@ check_os() {
         print_error "Unsupported OS: $OSTYPE"
         exit 1
     fi
+
+    if [[ "$OS" == "linux" && -f /etc/os-release ]]; then
+        # shellcheck disable=SC1091
+        source /etc/os-release
+        DISTRO="${ID:-unknown}"
+        print_info "Linux distro: $DISTRO"
+    fi
     
     export OS
+    export DISTRO
 }
 
 install_homebrew() {
@@ -90,6 +98,43 @@ install_homebrew() {
     fi
     
     print_success "Homebrew installed"
+}
+
+install_system_packages() {
+    print_header "Installing System Packages (Linux)"
+
+    if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+        print_error "Don't run as root. Use sudo for individual commands."
+        return 1
+    fi
+    if ! command -v apt-get >/dev/null 2>&1; then
+        print_error "apt-get not found. This step supports Ubuntu/Debian."
+        return 1
+    fi
+
+    print_step "Updating package lists..."
+    sudo apt-get update
+
+    print_step "Installing build essentials and dependencies..."
+    sudo apt-get install -y \
+        build-essential \
+        curl \
+        git \
+        wget \
+        unzip \
+        libssl-dev \
+        libbz2-dev \
+        libreadline-dev \
+        libsqlite3-dev \
+        libncurses5-dev \
+        libncursesw5-dev \
+        xz-utils \
+        tk-dev \
+        libffi-dev \
+        liblzma-dev \
+        python3-openssl
+
+    print_success "System packages installed"
 }
 
 install_sdkman() {
@@ -141,11 +186,13 @@ install_hadoop() {
         print_success "Hadoop installed"
     fi
     
+    local hadoop_data_dir="$HOME/hadoop-data"
+
     # Create Hadoop data directories
     print_step "Creating Hadoop data directories..."
-    mkdir -p ~/hadoop-data/namenode
-    mkdir -p ~/hadoop-data/datanode
-    mkdir -p ~/hadoop-data/tmp
+    mkdir -p "$hadoop_data_dir/namenode"
+    mkdir -p "$hadoop_data_dir/datanode"
+    mkdir -p "$hadoop_data_dir/tmp"
     print_success "Hadoop directories created"
     
     # Configure Hadoop
@@ -158,7 +205,7 @@ install_hadoop() {
             cp "$hadoop_home/etc/hadoop/core-site.xml" "$hadoop_home/etc/hadoop/core-site.xml.bak"
         
         # Create core-site.xml
-        cat > "$hadoop_home/etc/hadoop/core-site.xml" << 'EOF'
+        cat > "$hadoop_home/etc/hadoop/core-site.xml" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <configuration>
@@ -168,14 +215,13 @@ install_hadoop() {
     </property>
     <property>
         <name>hadoop.tmp.dir</name>
-        <value>file:///Users/REPLACE_USER/hadoop-data/tmp</value>
+        <value>file://${hadoop_data_dir}/tmp</value>
     </property>
 </configuration>
 EOF
-        sed -i '' "s/REPLACE_USER/$USER/g" "$hadoop_home/etc/hadoop/core-site.xml"
         
         # Create hdfs-site.xml
-        cat > "$hadoop_home/etc/hadoop/hdfs-site.xml" << 'EOF'
+        cat > "$hadoop_home/etc/hadoop/hdfs-site.xml" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <configuration>
@@ -185,15 +231,14 @@ EOF
     </property>
     <property>
         <name>dfs.namenode.name.dir</name>
-        <value>file:///Users/REPLACE_USER/hadoop-data/namenode</value>
+        <value>file://${hadoop_data_dir}/namenode</value>
     </property>
     <property>
         <name>dfs.datanode.data.dir</name>
-        <value>file:///Users/REPLACE_USER/hadoop-data/datanode</value>
+        <value>file://${hadoop_data_dir}/datanode</value>
     </property>
 </configuration>
 EOF
-        sed -i '' "s/REPLACE_USER/$USER/g" "$hadoop_home/etc/hadoop/hdfs-site.xml"
         
         # Create yarn-site.xml
         cat > "$hadoop_home/etc/hadoop/yarn-site.xml" << 'EOF'
@@ -273,6 +318,15 @@ install_pyenv() {
     else
         print_step "Installing pyenv via git..."
         curl https://pyenv.run | bash
+        if [[ -f "$HOME/.bashrc" ]] && ! grep -q "pyenv init" "$HOME/.bashrc" 2>/dev/null; then
+            cat >> "$HOME/.bashrc" << 'PYENV_INIT'
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init --path)"
+eval "$(pyenv init -)"
+PYENV_INIT
+            print_info "Added pyenv initialization to ~/.bashrc"
+        fi
     fi
     
     # Add to current session
@@ -376,13 +430,20 @@ check_postgresql() {
     else
         print_warning "PostgreSQL not installed"
         echo ""
-        if [[ "$OS" == "macos" ]]; then
-            echo "To install PostgreSQL:"
-            echo "  brew install postgresql@15"
-            echo "  brew services start postgresql@15"
+        read -r "install_pg?Install PostgreSQL now? [y/N]: "
+        if [[ "$install_pg" == [Yy]* ]]; then
+            if [[ "$OS" == "macos" ]]; then
+                brew install postgresql@15
+                brew services start postgresql@15
+            elif command -v apt-get >/dev/null 2>&1; then
+                sudo apt-get install -y postgresql postgresql-contrib
+                sudo systemctl start postgresql
+                sudo systemctl enable postgresql
+            else
+                print_warning "Unsupported package manager for PostgreSQL install"
+            fi
         else
-            echo "To install PostgreSQL:"
-            echo "  sudo apt-get install postgresql postgresql-contrib"
+            print_info "Skipping PostgreSQL installation"
         fi
     fi
 }
@@ -538,6 +599,8 @@ main() {
     
     if [[ "$OS" == "macos" ]]; then
         install_homebrew
+    else
+        install_system_packages
     fi
     
     install_sdkman
@@ -567,7 +630,5 @@ main() {
 
 # Run the installer
 main "$@"
-
-
 
 

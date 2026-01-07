@@ -12,8 +12,18 @@ if [[ -z "$HADOOP_HOME" ]]; then
         export HADOOP_HOME="$HOME/.sdkman/candidates/hadoop/current"
     elif [[ -d "/opt/homebrew/opt/hadoop/libexec" ]]; then
         export HADOOP_HOME="/opt/homebrew/opt/hadoop/libexec"
+    elif [[ -d "/usr/lib/hadoop" ]]; then
+        export HADOOP_HOME="/usr/lib/hadoop"
+    elif [[ -d "/usr/local/hadoop" ]]; then
+        export HADOOP_HOME="/usr/local/hadoop"
+    elif [[ -d "/opt/hadoop" ]]; then
+        export HADOOP_HOME="/opt/hadoop"
     else
-        export HADOOP_HOME="/opt/homebrew/opt/hadoop/libexec"  # Default fallback
+        local hadoop_bin
+        hadoop_bin="$(command -v hadoop 2>/dev/null || true)"
+        if [[ -n "$hadoop_bin" ]]; then
+            export HADOOP_HOME="$(dirname "$(dirname "$hadoop_bin")")"
+        fi
     fi
 fi
 export HADOOP_CONF_DIR="${HADOOP_CONF_DIR:-$HADOOP_HOME/etc/hadoop}"
@@ -34,7 +44,7 @@ fi
 start_hadoop() {
     if [[ ! -d "$HADOOP_HOME" ]]; then
         echo "❌ HADOOP_HOME not found: $HADOOP_HOME"
-        echo "Install: brew install hadoop"
+        echo "Install via SDKMAN or set HADOOP_HOME"
         return 1
     fi
     

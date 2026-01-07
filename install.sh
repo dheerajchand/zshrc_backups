@@ -46,25 +46,61 @@ print_info() {
 
 check_prerequisites() {
     print_header "Checking Prerequisites"
-    
+
+    local os="unknown"
+    local pkg_mgr="unknown"
+
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        os="macos"
+        pkg_mgr="brew"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        os="linux"
+        if [[ -f /etc/os-release ]]; then
+            # shellcheck disable=SC1091
+            source /etc/os-release
+            case "$ID" in
+                ubuntu|debian) pkg_mgr="apt" ;;
+                rhel|centos|fedora) pkg_mgr="yum" ;;
+                *) pkg_mgr="unknown" ;;
+            esac
+        fi
+    fi
+
+    if [[ "$os" == "linux" ]]; then
+        if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+            export PATH="$HOME/.local/bin:$PATH"
+            print_info "Added ~/.local/bin to PATH for this session"
+        fi
+    fi
+
     # Check for zsh
     if ! command -v zsh >/dev/null 2>&1; then
         print_error "zsh is not installed"
-        echo "Install with: brew install zsh"
+        case "$pkg_mgr" in
+            brew) echo "Install with: brew install zsh" ;;
+            apt) echo "Install with: sudo apt-get install zsh" ;;
+            yum) echo "Install with: sudo yum install zsh" ;;
+            *) echo "Install zsh using your system's package manager" ;;
+        esac
         exit 1
     fi
     print_success "zsh found: $(which zsh)"
-    
+
     # Check for git
     if ! command -v git >/dev/null 2>&1; then
         print_error "git is not installed"
-        echo "Install with: brew install git"
+        case "$pkg_mgr" in
+            brew) echo "Install with: brew install git" ;;
+            apt) echo "Install with: sudo apt-get install git" ;;
+            yum) echo "Install with: sudo yum install git" ;;
+            *) echo "Install git using your system's package manager" ;;
+        esac
         exit 1
     fi
     print_success "git found: $(which git)"
-    
+
     # Check for homebrew (macOS)
-    if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [[ "$os" == "macos" ]]; then
         if ! command -v brew >/dev/null 2>&1; then
             print_warning "Homebrew not found - some features may not work"
         else
@@ -186,7 +222,11 @@ install_dependencies() {
         print_warning "pyenv not found"
         echo ""
         echo "To install pyenv:"
-        echo "  brew install pyenv pyenv-virtualenv"
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            echo "  brew install pyenv pyenv-virtualenv"
+        else
+            echo "  curl https://pyenv.run | bash"
+        fi
         echo ""
         echo "Then install Python:"
         echo "  pyenv install 3.11.11"

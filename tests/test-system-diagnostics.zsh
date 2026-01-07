@@ -52,7 +52,14 @@ test_dropbox_restart_test_mode() {
     unset ZSH_TEST_MODE
 }
 
+test_linux_system_status_non_linux() {
+    local out
+    out="$(linux_system_status 2>/dev/null || true)"
+    assert_contains "$out" "Linux diagnostics are Linux-only." "should warn on non-linux"
+}
+
 register_test "test_icloud_status_missing_tools" "test_icloud_status_missing_tools"
 register_test "test_icloud_preflight_no_brctl" "test_icloud_preflight_no_brctl"
 register_test "test_icloud_reset_state_non_interactive" "test_icloud_reset_state_non_interactive"
 register_test "test_dropbox_restart_test_mode" "test_dropbox_restart_test_mode"
+register_test "test_linux_system_status_non_linux" "test_linux_system_status_non_linux"
