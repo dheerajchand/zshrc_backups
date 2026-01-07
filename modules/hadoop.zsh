@@ -96,7 +96,12 @@ start_hadoop() {
     
     # Start YARN
     echo "Starting YARN..."
-    "$HADOOP_HOME/sbin/start-yarn.sh"
+    if command -v yarn >/dev/null 2>&1; then
+        yarn --daemon start resourcemanager
+        yarn --daemon start nodemanager
+    else
+        "$HADOOP_HOME/sbin/start-yarn.sh"
+    fi
     sleep 3
     
     echo ""
@@ -117,7 +122,12 @@ stop_hadoop() {
     # Stop using daemon mode (consistent with start)
     hdfs --daemon stop datanode 2>/dev/null
     hdfs --daemon stop namenode 2>/dev/null
-    "$HADOOP_HOME/sbin/stop-yarn.sh" 2>/dev/null
+    if command -v yarn >/dev/null 2>&1; then
+        yarn --daemon stop nodemanager 2>/dev/null
+        yarn --daemon stop resourcemanager 2>/dev/null
+    else
+        "$HADOOP_HOME/sbin/stop-yarn.sh" 2>/dev/null
+    fi
     
     echo "✅ Hadoop stopped"
 }

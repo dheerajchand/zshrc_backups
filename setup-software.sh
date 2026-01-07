@@ -170,6 +170,58 @@ install_java() {
     sdk default java "$JAVA_VERSION"
     
     print_success "Java installed: $(java -version 2>&1 | head -1)"
+
+    if command -v java >/dev/null 2>&1; then
+        local java_home
+        java_home="$(dirname "$(dirname "$(readlink -f "$(which java)")")")"
+        echo "JAVA_HOME=$java_home"
+    fi
+}
+
+ensure_java_home_in_zshenv() {
+    if ! command -v java >/dev/null 2>&1; then
+        print_warning "java not found; skipping JAVA_HOME setup"
+        return 1
+    fi
+    local java_home line
+    java_home="$(dirname "$(dirname "$(readlink -f "$(which java)")")")"
+    line="export JAVA_HOME=\"$java_home\""
+    if [[ -f "$HOME/.zshenv" ]]; then
+        if grep -q "^export JAVA_HOME=" "$HOME/.zshenv"; then
+            if command -v sed >/dev/null 2>&1; then
+                sed -i.bak "s|^export JAVA_HOME=.*|$line|" "$HOME/.zshenv"
+                rm -f "$HOME/.zshenv.bak" 2>/dev/null || true
+            else
+                print_warning "sed not found; skipping JAVA_HOME update"
+            fi
+        else
+            echo "" >> "$HOME/.zshenv"
+            echo "$line" >> "$HOME/.zshenv"
+        fi
+    else
+        echo "$line" >> "$HOME/.zshenv"
+    fi
+    print_success "JAVA_HOME set in ~/.zshenv"
+}
+
+ensure_localhost_ssh_known_host() {
+    if ! command -v ssh-keygen >/dev/null 2>&1; then
+        print_warning "ssh-keygen not found; skipping localhost host key check"
+        return 1
+    fi
+    local kh="$HOME/.ssh/known_hosts"
+    if [[ -f "$kh" ]] && grep -q "localhost" "$kh"; then
+        printf "Reset localhost SSH host key? [y/N]: "
+        read -r fix_host
+        if [[ "$fix_host" == [Yy]* ]]; then
+            ssh-keygen -f "$kh" -R localhost >/dev/null 2>&1 || true
+            ssh-keygen -f "$kh" -R 127.0.0.1 >/dev/null 2>&1 || true
+            print_info "Removed localhost host keys from known_hosts"
+        else
+            print_info "Skipping localhost host key reset"
+        fi
+    fi
+    return 0
 }
 
 install_hadoop() {
@@ -618,6 +670,8 @@ main() {
     
     install_sdkman
     install_java
+    ensure_localhost_ssh_known_host
+    ensure_java_home_in_zshenv
     install_hadoop
     install_spark
     install_pyenv
