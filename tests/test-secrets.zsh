@@ -310,6 +310,21 @@ test_secrets_profile_switch_sets_profile() {
     fi
 }
 
+test_secrets_profile_switch_persists() {
+    local tmp file old_file old_mode
+    tmp="$(mktemp -d)"
+    file="$tmp/secrets.env"
+    old_file="$ZSH_SECRETS_FILE"
+    old_mode="$ZSH_SECRETS_MODE"
+    export ZSH_SECRETS_FILE="$file"
+    export ZSH_SECRETS_MODE="off"
+    secrets_profile_switch staging >/dev/null 2>&1
+    assert_contains "$(cat "$file")" "ZSH_ENV_PROFILE=staging" "should persist profile to secrets file"
+    export ZSH_SECRETS_FILE="$old_file"
+    export ZSH_SECRETS_MODE="$old_mode"
+    rm -rf "$tmp"
+}
+
 test_secrets_sync_to_1p_with_account_vault() {
     local tmp bin file old_file old_path out
     tmp="$(mktemp -d)"
@@ -372,4 +387,5 @@ register_test "test_op_list_items_requires_op" "test_op_list_items_requires_op"
 register_test "test_secrets_pull_requires_op" "test_secrets_pull_requires_op"
 register_test "test_secrets_profile_switch_usage" "test_secrets_profile_switch_usage"
 register_test "test_secrets_profile_switch_sets_profile" "test_secrets_profile_switch_sets_profile"
+register_test "test_secrets_profile_switch_persists" "test_secrets_profile_switch_persists"
 register_test "test_vault_without_account_warns" "test_vault_without_account_warns"
