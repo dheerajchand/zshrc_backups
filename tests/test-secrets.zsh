@@ -300,6 +300,12 @@ test_secrets_profile_switch_usage() {
     assert_contains "$out" "Usage: secrets_profile_switch" "should show usage on missing args"
 }
 
+test_secrets_profile_switch_invalid_profile() {
+    local out
+    out="$(secrets_profile_switch nonsense 2>&1 || true)"
+    assert_contains "$out" "Invalid profile: nonsense" "should reject invalid profile"
+}
+
 test_secrets_profile_switch_sets_profile() {
     local old_profile="${ZSH_ENV_PROFILE-}"
     ZSH_SECRETS_MODE=off
@@ -421,5 +427,6 @@ register_test "test_secrets_pull_requires_op" "test_secrets_pull_requires_op"
 register_test "test_secrets_profile_switch_usage" "test_secrets_profile_switch_usage"
 register_test "test_secrets_profile_switch_sets_profile" "test_secrets_profile_switch_sets_profile"
 register_test "test_secrets_profile_switch_persists" "test_secrets_profile_switch_persists"
+register_test "test_secrets_profile_switch_invalid_profile" "test_secrets_profile_switch_invalid_profile"
 register_test "test_secrets_validate_setup_success" "test_secrets_validate_setup_success"
 register_test "test_vault_without_account_warns" "test_vault_without_account_warns"

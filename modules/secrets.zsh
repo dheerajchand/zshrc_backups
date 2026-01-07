@@ -202,6 +202,15 @@ _secrets_check_profile() {
     _SECRETS_PROFILE_WARNED=1
     _secrets_warn "ZSH_ENV_PROFILE not set. Run: secrets_init_profile"
     _secrets_info "Available profiles: dev, staging, prod, laptop"
+    _secrets_info "Run 'secrets_init_profile' for setup wizard"
+}
+
+_secrets_validate_profile() {
+    local profile="${1:-}"
+    case "$profile" in
+        dev|staging|prod|laptop) return 0 ;;
+        *) _secrets_warn "Invalid profile: $profile"; return 1 ;;
+    esac
 }
 
 secrets_validate_setup() {
@@ -507,6 +516,9 @@ secrets_profile_switch() {
     local vault="${3:-${OP_VAULT-}}"
     if [[ -z "$profile" ]]; then
         echo "Usage: secrets_profile_switch <profile> [account] [vault]" >&2
+        return 1
+    fi
+    if ! _secrets_validate_profile "$profile"; then
         return 1
     fi
     _secrets_update_env_file "ZSH_ENV_PROFILE" "$profile"
