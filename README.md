@@ -56,7 +56,7 @@ Environment variables:
 - `ZSH_SECRETS_FILE=~/.config/zsh/secrets.env`
 - `ZSH_SECRETS_FILE_EXAMPLE=~/.config/zsh/secrets.env.example`
 - `ZSH_SECRETS_MAP=~/.config/zsh/secrets.1p`
-- `OP_VAULT=Private`
+- `OP_VAULT=Private` (optional; omit to use account default)
 - `OP_ACCOUNT=work|personal`
 - `OP_ACCOUNTS_FILE=~/.config/zsh/op-accounts.env`
 - `ZSH_ENV_PROFILE=dev|staging|prod|laptop` (shown on startup)
@@ -71,6 +71,7 @@ SERVICE_TOKEN service - token
 Use `-` for USER to call `op item get <service>` directly.
 
 Sync and pull:
+Vaults are optional and only used when an account is set.
 ```bash
 secrets_sync_to_1p "zsh-secrets-env"
 secrets_pull_from_1p "zsh-secrets-env"
@@ -99,7 +100,7 @@ secrets_edit
 # Example:
 # ZSH_ENV_PROFILE=dev
 # OP_ACCOUNT=Siege_Analytics
-# OP_VAULT=Private
+# OP_VAULT=Private  # optional
 # ZSH_SECRETS_MODE=both
 ```
 
