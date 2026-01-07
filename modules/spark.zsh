@@ -134,6 +134,41 @@ spark_status() {
     fi
 }
 
+spark_health() {
+    local ok=0
+    echo "⚡ Spark Health"
+    echo "============="
+    if [[ -z "${SPARK_HOME:-}" && -z "$(command -v spark-submit 2>/dev/null)" ]]; then
+        echo "❌ Spark not found (set SPARK_HOME or install Spark)"
+        return 1
+    fi
+    if [[ -n "${SPARK_HOME:-}" && ! -d "$SPARK_HOME" ]]; then
+        echo "❌ SPARK_HOME not found: $SPARK_HOME"
+        ok=1
+    fi
+    if pgrep -f "spark.deploy.master.Master" >/dev/null; then
+        echo "✅ Master: running"
+    else
+        echo "⚠️  Master: not running"
+        ok=1
+    fi
+    if pgrep -f "spark.deploy.worker.Worker" >/dev/null; then
+        echo "✅ Worker: running"
+    else
+        echo "⚠️  Worker: not running"
+        ok=1
+    fi
+    if [[ -n "${ZSH_TEST_MODE:-}" ]]; then
+        return "$ok"
+    fi
+    if command -v spark-submit >/dev/null 2>&1; then
+        local version
+        version="$(spark-submit --version 2>&1 | head -n 1)"
+        [[ -n "$version" ]] && echo "📦 $version"
+    fi
+    return "$ok"
+}
+
 # Get Spark dependencies based on connectivity
 # CRITICAL: Uses is_online() to decide local JARs vs Maven
 get_spark_dependencies() {

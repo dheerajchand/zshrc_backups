@@ -58,8 +58,18 @@ test_linux_system_status_non_linux() {
     assert_contains "$out" "Linux diagnostics are Linux-only." "should warn on non-linux"
 }
 
+test_data_platform_health_without_modules() {
+    local out rc
+    out="$(ZSH_TEST_MODE=1 zsh -fc "source $ROOT_DIR/modules/system_diagnostics.zsh; data_platform_health" 2>/dev/null)"
+    rc=$?
+    assert_not_equal "0" "$rc" "health suite should fail without modules"
+    assert_contains "$out" "spark_health not available" "should warn for missing spark module"
+    assert_contains "$out" "hadoop_health not available" "should warn for missing hadoop module"
+}
+
 register_test "test_icloud_status_missing_tools" "test_icloud_status_missing_tools"
 register_test "test_icloud_preflight_no_brctl" "test_icloud_preflight_no_brctl"
 register_test "test_icloud_reset_state_non_interactive" "test_icloud_reset_state_non_interactive"
 register_test "test_dropbox_restart_test_mode" "test_dropbox_restart_test_mode"
 register_test "test_linux_system_status_non_linux" "test_linux_system_status_non_linux"
+register_test "test_data_platform_health_without_modules" "test_data_platform_health_without_modules"

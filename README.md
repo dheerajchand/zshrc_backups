@@ -286,6 +286,10 @@ icloud_preflight        # macOS-only iCloud preflight
 dropbox_status          # macOS-only Dropbox status
 dropbox_restart         # macOS-only Dropbox restart
 linux_system_status     # Linux-only system overview
+data_platform_health    # Spark/Hadoop/YARN health suite
+spark_health            # Spark master/worker health
+hadoop_health           # HDFS/YARN health overview
+yarn_health             # YARN health overview
 ```
 
 ## 📋 System Architecture
