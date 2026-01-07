@@ -35,7 +35,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/dheerajchand/siege_analytics
 - ✅ **Hadoop 3.3.6** - Configured and ready
 - ✅ **Spark 3.5.0** - Configured and ready
 - ✅ **pyenv** - Python version manager
-- ✅ **Python 3.11.11** - With virtual environment `geo31111`
+- ✅ **Python 3.11.11** - With virtual environment `default_31111`
 - ✅ **Python packages** - pandas, numpy, jupyter, pyspark, etc.
 - ✅ Checks Docker and PostgreSQL (optional)
 
