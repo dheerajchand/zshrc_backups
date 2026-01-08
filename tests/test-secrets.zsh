@@ -364,6 +364,21 @@ OP
     rm -rf "$tmp"
 }
 
+test_op_signin_account_usage() {
+    local out
+    out="$(op_signin_account 2>&1 || true)"
+    assert_contains "$out" "Usage: op_signin_account" "should show usage"
+}
+
+test_op_signin_all_missing_accounts_file() {
+    local old_file
+    old_file="$OP_ACCOUNTS_FILE"
+    export OP_ACCOUNTS_FILE="/tmp/does-not-exist"
+    out="$(op_signin_all 2>&1 || true)"
+    assert_contains "$out" "No account aliases file" "should warn on missing aliases file"
+    export OP_ACCOUNTS_FILE="$old_file"
+}
+
 test_secrets_sync_to_1p_with_account_vault() {
     local tmp bin file old_file old_path out
     tmp="$(mktemp -d)"
@@ -430,3 +445,5 @@ register_test "test_secrets_profile_switch_persists" "test_secrets_profile_switc
 register_test "test_secrets_profile_switch_invalid_profile" "test_secrets_profile_switch_invalid_profile"
 register_test "test_secrets_validate_setup_success" "test_secrets_validate_setup_success"
 register_test "test_vault_without_account_warns" "test_vault_without_account_warns"
+register_test "test_op_signin_account_usage" "test_op_signin_account_usage"
+register_test "test_op_signin_all_missing_accounts_file" "test_op_signin_all_missing_accounts_file"

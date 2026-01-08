@@ -224,6 +224,8 @@ help() {
     echo "  op_set_default          - Set default 1Password account/vault"
     echo "  op_list_accounts_vaults - List accounts and vaults"
     echo "  op_list_items           - List items in account/vault"
+    echo "  op_signin_account       - Sign in to an account alias"
+    echo "  op_signin_all           - Sign in to all account aliases"
     echo ""
     echo "🩺 Diagnostics:"
     echo "  icloud_status           - macOS-only iCloud status"

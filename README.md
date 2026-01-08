@@ -106,6 +106,12 @@ secrets_validate_setup
 eval "$(op signin)"
 ```
 
+Multi-account sign-in helpers (uses `op-accounts.env` aliases):
+```bash
+op_signin_account Siege_Analytics
+op_signin_all
+```
+
 ## 🌎 Multi-Environment Workflow (Laptop/Dev/Staging/Prod)
 
 Recommended approach: keep a small local `secrets.env` with the profile and defaults,
