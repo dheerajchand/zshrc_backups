@@ -112,6 +112,19 @@ op_signin_account Siege_Analytics
 op_signin_all
 ```
 
+Storing `op-accounts.env` in 1Password (for remote machines):
+```bash
+op_accounts_edit
+# add aliases in ~/.config/zsh/op-accounts.env, then:
+ZSH_SECRETS_FILE="$HOME/.config/zsh/op-accounts.env" \
+  secrets_sync_to_1p "op-accounts-env" "$OP_ACCOUNT" "$OP_VAULT"
+```
+To retrieve on another machine:
+```bash
+ZSH_SECRETS_FILE="$HOME/.config/zsh/op-accounts.env" \
+  secrets_pull_from_1p "op-accounts-env" "$OP_ACCOUNT" "$OP_VAULT"
+```
+
 ## 🌎 Multi-Environment Workflow (Laptop/Dev/Staging/Prod)
 
 Recommended approach: keep a small local `secrets.env` with the profile and defaults,
