@@ -101,6 +101,11 @@ Validation (optional, non-blocking):
 secrets_validate_setup
 ```
 
+1Password CLI sign-in (v2):
+```bash
+eval "$(op signin)"
+```
+
 ## 🌎 Multi-Environment Workflow (Laptop/Dev/Staging/Prod)
 
 Recommended approach: keep a small local `secrets.env` with the profile and defaults,
