@@ -729,7 +729,7 @@ main() {
     echo "  • pyenv (Python version manager)"
     echo "  • Python $PYTHON_VERSION"
     echo "  • Python virtual environment: $DEFAULT_VENV"
-    echo "  • 1Password CLI"
+    echo "  • 1Password CLI (v2)"
     echo "  • Essential Python packages (pandas, numpy, jupyter, pyspark, etc.)"
     echo ""
     echo "Installation time: ~15-30 minutes"
