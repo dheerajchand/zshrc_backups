@@ -282,6 +282,7 @@ _profile_palette() {
         staging) echo "33;1 33" ;;  # yellow
         dev)     echo "32;1 32" ;;  # green
         laptop)  echo "36;1 36" ;;  # cyan
+        cyberpower) echo "32;2 32" ;;  # dark green
         *)       echo "35;1 35" ;;  # magenta (default)
     esac
 }
