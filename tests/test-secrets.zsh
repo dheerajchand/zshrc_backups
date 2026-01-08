@@ -320,6 +320,7 @@ test_secrets_profile_switch_invalid_profile() {
     local out
     out="$(secrets_profile_switch nonsense 2>&1 || true)"
     assert_contains "$out" "Invalid profile: nonsense" "should reject invalid profile"
+    assert_contains "$out" "Available profiles:" "should list available profiles"
 }
 
 test_secrets_profile_switch_sets_profile() {

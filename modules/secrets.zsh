@@ -213,6 +213,10 @@ _secrets_validate_profile() {
     esac
 }
 
+_secrets_profile_list() {
+    echo "dev staging prod laptop cyberpower"
+}
+
 secrets_validate_setup() {
     local errors=0
     if [[ "$ZSH_SECRETS_MODE" == "op" || "$ZSH_SECRETS_MODE" == "both" ]]; then
@@ -536,6 +540,7 @@ secrets_profile_switch() {
         return 1
     fi
     if ! _secrets_validate_profile "$profile"; then
+        echo "Available profiles: $(_secrets_profile_list)" >&2
         return 1
     fi
     _secrets_update_env_file "ZSH_ENV_PROFILE" "$profile"
