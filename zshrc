@@ -215,6 +215,7 @@ help() {
     echo "  secrets_status          - Show secrets loader status"
     echo "  secrets_edit            - Edit secrets.env (chmod 600)"
     echo "  secrets_init            - Create secrets.env from example"
+    echo "  secrets_init_map        - Create secrets.1p from example"
     echo "  secrets_init_profile    - Interactive profile setup"
     echo "  secrets_profile_switch  - Set profile (persists) and reload"
     echo "  secrets_validate_setup  - Validate 1Password setup"

@@ -293,6 +293,7 @@ smart_spark_submit job.py
 secrets_status          # Show secrets loader status
 secrets_edit            # Edit local secrets.env (chmod 600)
 secrets_init            # Create secrets.env from example
+secrets_init_map        # Create secrets.1p from example
 secrets_init_profile    # Interactive profile setup for new machines
 secrets_validate_setup  # Validate 1Password setup (non-blocking)
 secrets_sync_to_1p      # Sync secrets.env into 1Password Secure Note

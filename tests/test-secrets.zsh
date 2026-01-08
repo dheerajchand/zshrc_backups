@@ -163,6 +163,22 @@ EOF
     rm -rf "$tmp"
 }
 
+test_secrets_init_map_from_example() {
+    local tmp map old_map
+    tmp="$(mktemp -d)"
+    map="$tmp/secrets.1p"
+    cat > "$tmp/secrets.1p.example" <<'EOF'
+FOO bar - baz
+EOF
+    old_map="$ZSH_SECRETS_MAP"
+    export ZSH_SECRETS_MAP="$map"
+    secrets_init_map
+    assert_true "[[ -f \"$map\" ]]" "should create secrets.1p"
+    assert_contains "$(cat "$map")" "FOO bar - baz" "should copy example"
+    export ZSH_SECRETS_MAP="$old_map"
+    rm -rf "$tmp"
+}
+
 test_op_list_accounts_vaults_requires_op() {
     local old_path="$PATH"
     local tmp bin out
@@ -433,6 +449,7 @@ register_test "test_secrets_edit_creates_file" "test_secrets_edit_creates_file"
 register_test "test_secrets_sync_to_1p_requires_op" "test_secrets_sync_to_1p_requires_op"
 register_test "test_secrets_sync_to_1p_with_account_vault" "test_secrets_sync_to_1p_with_account_vault"
 register_test "test_secrets_init_from_example" "test_secrets_init_from_example"
+register_test "test_secrets_init_map_from_example" "test_secrets_init_map_from_example"
 register_test "test_op_list_accounts_vaults_requires_op" "test_op_list_accounts_vaults_requires_op"
 register_test "test_op_account_alias_lookup" "test_op_account_alias_lookup"
 register_test "test_op_set_default_clears_vault" "test_op_set_default_clears_vault"

@@ -440,6 +440,23 @@ secrets_init() {
     _secrets_info "Created empty secrets file"
 }
 
+secrets_init_map() {
+    local src="$ZSH_SECRETS_MAP.example"
+    if [[ -f "$ZSH_SECRETS_MAP" ]]; then
+        _secrets_warn "secrets map already exists: $ZSH_SECRETS_MAP"
+        return 1
+    fi
+    if [[ -f "$src" ]]; then
+        umask 077
+        cp "$src" "$ZSH_SECRETS_MAP"
+        _secrets_info "Created secrets map from example"
+        return 0
+    fi
+    umask 077
+    touch "$ZSH_SECRETS_MAP"
+    _secrets_info "Created empty secrets map"
+}
+
 secrets_sync_to_1p() {
     local title="${1:-zsh-secrets}"
     local account_arg="${2:-${OP_ACCOUNT-}}"
