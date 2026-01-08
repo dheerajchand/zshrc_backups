@@ -275,12 +275,42 @@ modules() {
 # Powerlevel10k configuration
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
+# Profile-aware palette (banner + prompt accents)
+_profile_palette() {
+    case "${ZSH_ENV_PROFILE:-}" in
+        prod)    echo "31;1 31" ;;  # red
+        staging) echo "33;1 33" ;;  # yellow
+        dev)     echo "32;1 32" ;;  # green
+        laptop)  echo "36;1 36" ;;  # cyan
+        *)       echo "35;1 35" ;;  # magenta (default)
+    esac
+}
+
+apply_profile_theme() {
+    local palette header accent
+    palette="$(_profile_palette)"
+    header="${palette%% *}"
+    accent="${palette##* }"
+    export ZSH_PROFILE_HEADER_COLOR="$header"
+    export ZSH_PROFILE_ACCENT_COLOR="$accent"
+
+    if command -v p10k >/dev/null 2>&1; then
+        typeset -g POWERLEVEL9K_CONTEXT_FOREGROUND="$accent"
+        typeset -g POWERLEVEL9K_DIR_FOREGROUND="$accent"
+        typeset -g POWERLEVEL9K_PROMPT_CHAR_OK_VIINS_FOREGROUND="$accent"
+        p10k reload >/dev/null 2>&1 || true
+    fi
+}
+
 # Welcome message - show useful context
 zsh_status_banner() {
+    local header_color="${ZSH_PROFILE_HEADER_COLOR:-34}"
+    local accent_color="${ZSH_PROFILE_ACCENT_COLOR:-36}"
+    local reset_color="0"
     echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "🚀 ZSH Configuration Loaded"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    printf "\033[%sm%s\033[%sm\n" "$header_color" "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "$reset_color"
+    printf "\033[%sm%s\033[%sm\n" "$header_color" "🚀 ZSH Configuration Loaded" "$reset_color"
+    printf "\033[%sm%s\033[%sm\n" "$header_color" "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "$reset_color"
 
     # Python environment
     local pyenv_version="system"
@@ -293,11 +323,11 @@ zsh_status_banner() {
     if command -v "$py_bin" >/dev/null 2>&1; then
         py_version="$("$py_bin" --version 2>&1 | head -1)"
     fi
-    echo "🐍 Python: $pyenv_version (${py_version})"
+    printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🐍 Python:" "$reset_color" "$pyenv_version (${py_version})"
 
     # Machine profile (env/role/host)
     if command -v machine_profile >/dev/null 2>&1; then
-        echo "🧭 Profile: $(machine_profile)"
+        printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🧭 Profile:" "$reset_color" "$(machine_profile)"
     fi
 
     # Spark / Hadoop / Java (lightweight checks only)
@@ -313,20 +343,20 @@ zsh_status_banner() {
     if command -v scala >/dev/null 2>&1; then
         scala_state="available"
     fi
-    echo "⚡ Spark: $spark_state  🐘 Hadoop: $hadoop_state  🧠 Scala: $scala_state"
-    [[ -n "${JAVA_HOME:-}" ]] && echo "☕ Java: $JAVA_HOME"
+    printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "⚡ Spark:" "$reset_color" "$spark_state  🐘 Hadoop: $hadoop_state  🧠 Scala: $scala_state"
+    [[ -n "${JAVA_HOME:-}" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "☕ Java:" "$reset_color" "$JAVA_HOME"
 
     # Current directory
-    echo "📁 Location: $(pwd)"
+    printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "📁 Location:" "$reset_color" "$(pwd)"
 
     # Key services status
     if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-        echo "🐳 Docker: running"
+        printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🐳 Docker:" "$reset_color" "running"
     fi
 
     # Quick tips
     echo ""
-    echo "💡 Quick Commands:"
+    printf "\033[%sm%s\033[%sm\n" "$accent_color" "💡 Quick Commands:" "$reset_color"
     echo "   help          - Show all available commands"
     echo "   modules       - List loaded modules"
     echo "   python_status - Check Python environment"
@@ -335,11 +365,12 @@ zsh_status_banner() {
     echo "   data_platform_health - Spark/Hadoop/YARN health"
     echo "   backup        - Commit and push config to GitHub"
     echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    printf "\033[%sm%s\033[%sm\n" "$header_color" "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "$reset_color"
     echo ""
 }
 
 if [[ -o interactive ]]; then
+    apply_profile_theme
     zsh_status_banner
 fi
 
