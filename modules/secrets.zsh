@@ -596,6 +596,49 @@ PY
     fi
 }
 
+op_signin_account() {
+    local account_alias="${1:-}"
+    if [[ -z "$account_alias" ]]; then
+        echo "Usage: op_signin_account <account-alias>" >&2
+        return 1
+    fi
+    if ! command -v op >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot sign in"
+        return 1
+    fi
+    local resolved
+    resolved="$(_op_account_alias "$account_alias" 2>/dev/null || true)"
+    if [[ -z "$resolved" ]]; then
+        _secrets_warn "Account alias not found: $account_alias"
+        _secrets_info "Edit: op_accounts_edit"
+        return 1
+    fi
+    eval "$(op signin --account "$resolved")"
+}
+
+op_signin_all() {
+    if ! command -v op >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot sign in"
+        return 1
+    fi
+    if [[ ! -f "$OP_ACCOUNTS_FILE" ]]; then
+        _secrets_warn "No account aliases file: $OP_ACCOUNTS_FILE"
+        _secrets_info "Create: op_accounts_edit"
+        return 1
+    fi
+    local line alias_name
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        if [[ "$line" == *"="* ]]; then
+            alias_name="${line%%=*}"
+            alias_name="${alias_name## }"; alias_name="${alias_name%% }"
+            [[ -z "$alias_name" ]] && continue
+            echo "🔐 Signing in: $alias_name"
+            op_signin_account "$alias_name" || return 1
+        fi
+    done < "$OP_ACCOUNTS_FILE"
+}
+
 machine_profile() {
     if [[ -n "${ZSH_ENV_PROFILE:-}" ]]; then
         echo "$ZSH_ENV_PROFILE"
