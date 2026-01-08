@@ -323,6 +323,22 @@ test_secrets_profile_switch_invalid_profile() {
     assert_contains "$out" "Available profiles:" "should list available profiles"
 }
 
+test_secrets_profile_list_from_config() {
+    local old_list
+    old_list="${ZSH_PROFILE_LIST-}"
+    unset ZSH_PROFILE_LIST
+    typeset -A ZSH_PROFILE_CONFIGS
+    ZSH_PROFILE_CONFIGS=(dev "Dev config" prod "Prod config")
+    local out
+    out="$(_secrets_profile_list)"
+    assert_contains "$out" "dev" "should include dev from config"
+    assert_contains "$out" "prod" "should include prod from config"
+    unset ZSH_PROFILE_CONFIGS
+    if [[ -n "${old_list-}" ]]; then
+        export ZSH_PROFILE_LIST="$old_list"
+    fi
+}
+
 test_secrets_profile_switch_sets_profile() {
     local old_profile="${ZSH_ENV_PROFILE-}"
     ZSH_SECRETS_MODE=off
@@ -461,6 +477,7 @@ register_test "test_secrets_profile_switch_usage" "test_secrets_profile_switch_u
 register_test "test_secrets_profile_switch_sets_profile" "test_secrets_profile_switch_sets_profile"
 register_test "test_secrets_profile_switch_persists" "test_secrets_profile_switch_persists"
 register_test "test_secrets_profile_switch_invalid_profile" "test_secrets_profile_switch_invalid_profile"
+register_test "test_secrets_profile_list_from_config" "test_secrets_profile_list_from_config"
 register_test "test_secrets_validate_setup_success" "test_secrets_validate_setup_success"
 register_test "test_vault_without_account_warns" "test_vault_without_account_warns"
 register_test "test_op_signin_account_usage" "test_op_signin_account_usage"
