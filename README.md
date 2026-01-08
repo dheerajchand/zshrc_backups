@@ -31,6 +31,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/dheerajchand/siege_analytics
 
 *Step 2 (Software Stack):*
 - ✅ **SDKMAN** - Java, Hadoop, Spark manager
+- ✅ **1Password CLI** - Secrets and credentials
 - ✅ **Java 11** (Temurin/Eclipse Adoptium)
 - ✅ **Hadoop 3.3.6** - Configured and ready
 - ✅ **Spark 3.5.0** - Configured and ready

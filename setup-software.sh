@@ -137,6 +137,40 @@ install_system_packages() {
     print_success "System packages installed"
 }
 
+install_1password_cli() {
+    print_header "Installing 1Password CLI"
+
+    if command -v op >/dev/null 2>&1; then
+        print_success "1Password CLI already installed: $(op --version 2>/dev/null | head -1)"
+        return
+    fi
+
+    if [[ "$OS" == "macos" ]]; then
+        if command -v brew >/dev/null 2>&1; then
+            print_step "Installing 1Password CLI via Homebrew..."
+            brew install 1password-cli
+            print_success "1Password CLI installed: $(op --version 2>/dev/null | head -1)"
+        else
+            print_warning "Homebrew not found; install 1Password CLI from https://developer.1password.com/docs/cli/"
+        fi
+        return
+    fi
+
+    if command -v apt-get >/dev/null 2>&1; then
+        print_step "Installing 1Password CLI via apt..."
+        if sudo apt-get install -y 1password-cli; then
+            print_success "1Password CLI installed: $(op --version 2>/dev/null | head -1)"
+            return
+        fi
+        print_warning "apt install failed; add the 1Password repo and retry"
+        echo "Docs: https://developer.1password.com/docs/cli/get-started/#install"
+        return
+    fi
+
+    print_warning "Unsupported package manager for 1Password CLI"
+    echo "Install manually: https://developer.1password.com/docs/cli/get-started/#install"
+}
+
 install_sdkman() {
     print_header "Installing SDKMAN (Java, Hadoop, Spark Manager)"
     
@@ -679,6 +713,7 @@ main() {
     echo "  • pyenv (Python version manager)"
     echo "  • Python $PYTHON_VERSION"
     echo "  • Python virtual environment: $DEFAULT_VENV"
+    echo "  • 1Password CLI"
     echo "  • Essential Python packages (pandas, numpy, jupyter, pyspark, etc.)"
     echo ""
     echo "Installation time: ~15-30 minutes"
@@ -694,6 +729,7 @@ main() {
         install_system_packages
     fi
     
+    install_1password_cli
     install_sdkman
     install_java
     ensure_localhost_ssh_known_host
