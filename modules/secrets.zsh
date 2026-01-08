@@ -207,13 +207,26 @@ _secrets_check_profile() {
 
 _secrets_validate_profile() {
     local profile="${1:-}"
-    case "$profile" in
-        dev|staging|prod|laptop) return 0 ;;
-        *) _secrets_warn "Invalid profile: $profile"; return 1 ;;
-    esac
+    local list
+    list="$(_secrets_profile_list)"
+    if [[ " $list " == *" $profile "* ]]; then
+        return 0
+    fi
+    _secrets_warn "Invalid profile: $profile"
+    return 1
 }
 
 _secrets_profile_list() {
+    if typeset -p ZSH_PROFILE_CONFIGS >/dev/null 2>&1; then
+        local -a keys
+        keys=("${(@k)ZSH_PROFILE_CONFIGS}")
+        echo "${keys[*]}"
+        return 0
+    fi
+    if [[ -n "${ZSH_PROFILE_LIST:-}" ]]; then
+        echo "$ZSH_PROFILE_LIST"
+        return 0
+    fi
     echo "dev staging prod laptop cyberpower"
 }
 
