@@ -141,14 +141,20 @@ install_1password_cli() {
     print_header "Installing 1Password CLI"
 
     if command -v op >/dev/null 2>&1; then
-        print_success "1Password CLI already installed: $(op --version 2>/dev/null | head -1)"
-        return
+        local op_version
+        op_version="$(op --version 2>/dev/null | head -1)"
+        if echo "$op_version" | grep -qE "1Password CLI 1\\.|^1\\.\\d+\\."; then
+            print_warning "Detected legacy 1Password CLI: $op_version"
+        else
+            print_success "1Password CLI already installed: $op_version"
+            return
+        fi
     fi
 
     if [[ "$OS" == "macos" ]]; then
         if command -v brew >/dev/null 2>&1; then
             print_step "Installing 1Password CLI via Homebrew..."
-            brew install 1password-cli
+            brew install 1password-cli || brew upgrade 1password-cli
             print_success "1Password CLI installed: $(op --version 2>/dev/null | head -1)"
         else
             print_warning "Homebrew not found; install 1Password CLI from https://developer.1password.com/docs/cli/"
@@ -157,13 +163,23 @@ install_1password_cli() {
     fi
 
     if command -v apt-get >/dev/null 2>&1; then
-        print_step "Installing 1Password CLI via apt..."
-        if sudo apt-get install -y 1password-cli; then
-            print_success "1Password CLI installed: $(op --version 2>/dev/null | head -1)"
+        printf "Install/upgrade 1Password CLI via apt (adds 1Password repo if needed)? [y/N]: "
+        read -r op_install
+        if [[ "$op_install" != [Yy]* ]]; then
+            print_info "Skipping 1Password CLI install"
             return
         fi
-        print_warning "apt install failed; add the 1Password repo and retry"
-        echo "Docs: https://developer.1password.com/docs/cli/get-started/#install"
+        if [[ ! -f /etc/apt/sources.list.d/1password.list ]]; then
+            print_step "Adding 1Password apt repository..."
+            curl -sS https://downloads.1password.com/linux/keys/1password.asc \
+                | gpg --dearmor --yes --output /usr/share/keyrings/1password-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$(dpkg --print-architecture) stable main" \
+                | sudo tee /etc/apt/sources.list.d/1password.list >/dev/null
+            sudo apt-get update
+        fi
+        print_step "Installing 1Password CLI via apt..."
+        sudo apt-get install -y 1password-cli
+        print_success "1Password CLI installed: $(op --version 2>/dev/null | head -1)"
         return
     fi
 
