@@ -72,6 +72,7 @@ Environment variables:
 - `OP_ACCOUNT=work|personal`
 - `OP_ACCOUNTS_FILE=~/.config/zsh/op-accounts.env`
 - `ZSH_ENV_PROFILE=dev|staging|prod|laptop` (shown on startup)
+- `ZSH_ENV_PROFILE` also drives the prompt/banner color palette for quick visual cues.
 
 Mapping file format (`secrets.1p`):
 ```
