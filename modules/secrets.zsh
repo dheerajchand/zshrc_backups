@@ -694,13 +694,15 @@ op_signin_all() {
 
 secrets_profiles() {
     local list
+    local -a profiles
     list="$(_secrets_profile_list)"
     if [[ -z "$list" ]]; then
         echo "No profiles configured." >&2
         return 1
     fi
+    profiles=("${(@s: :)list}")
     local profile desc colors
-    for profile in $list; do
+    for profile in "${profiles[@]}"; do
         desc=""
         colors=""
         if typeset -p ZSH_PROFILE_CONFIGS >/dev/null 2>&1; then
