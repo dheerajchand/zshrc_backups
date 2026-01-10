@@ -32,6 +32,16 @@ defaults read -g ApplePressAndHoldEnabled
 zsh_help
 ```
 
+### **Profiles & PT Host Mapping**
+```bash
+# Show available profiles and color palettes
+secrets_profiles
+
+# Example secrets.env entries:
+# ZSH_ENV_PROFILE=dev
+# PT_ENV_HOSTNAME=cyberpower
+```
+
 ### **3. Enable Auto-Setup (Optional)**
 ```bash
 # Enable automatic environment setup
