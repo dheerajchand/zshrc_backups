@@ -81,6 +81,7 @@ zsh_help                    # Display comprehensive help
 zshconfig                   # Edit configuration directory
 zshreboot                   # Reload configuration
 backup_zsh_config          # Create configuration backup
+secrets_profiles           # List profiles and colors
 
 # macOS management
 toggle_hidden_files         # Toggle Finder hidden files

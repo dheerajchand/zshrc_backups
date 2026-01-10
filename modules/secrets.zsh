@@ -217,6 +217,20 @@ _secrets_validate_profile() {
 }
 
 _secrets_profile_list() {
+    if typeset -p ZSH_PROFILE_ORDER >/dev/null 2>&1; then
+        local -a ordered
+        ordered=("${ZSH_PROFILE_ORDER[@]}")
+        if typeset -p ZSH_PROFILE_CONFIGS >/dev/null 2>&1; then
+            local -a filtered
+            local name
+            for name in "${ordered[@]}"; do
+                [[ -n "${ZSH_PROFILE_CONFIGS[$name]-}" ]] && filtered+=("$name")
+            done
+            [[ "${#filtered[@]}" -gt 0 ]] && echo "${filtered[*]}" && return 0
+        fi
+        echo "${ordered[*]}"
+        return 0
+    fi
     if typeset -p ZSH_PROFILE_CONFIGS >/dev/null 2>&1; then
         local -a keys
         keys=("${(@k)ZSH_PROFILE_CONFIGS}")
@@ -676,6 +690,35 @@ op_signin_all() {
             op_signin_account "$alias_name" || return 1
         fi
     done < "$OP_ACCOUNTS_FILE"
+}
+
+secrets_profiles() {
+    local list
+    list="$(_secrets_profile_list)"
+    if [[ -z "$list" ]]; then
+        echo "No profiles configured." >&2
+        return 1
+    fi
+    local profile desc colors
+    for profile in $list; do
+        desc=""
+        colors=""
+        if typeset -p ZSH_PROFILE_CONFIGS >/dev/null 2>&1; then
+            desc="${ZSH_PROFILE_CONFIGS[$profile]-}"
+        fi
+        if typeset -p ZSH_PROFILE_COLORS >/dev/null 2>&1; then
+            colors="${ZSH_PROFILE_COLORS[$profile]-}"
+        fi
+        if [[ -n "$colors" && -n "$desc" ]]; then
+            echo "$profile - $desc (colors: $colors)"
+        elif [[ -n "$desc" ]]; then
+            echo "$profile - $desc"
+        elif [[ -n "$colors" ]]; then
+            echo "$profile (colors: $colors)"
+        else
+            echo "$profile"
+        fi
+    done
 }
 
 machine_profile() {

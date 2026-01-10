@@ -49,6 +49,7 @@ zsh_help                    # Display comprehensive help
 zshconfig                   # Edit configuration directory
 zshreboot                   # Reload configuration
 backup_zsh_config          # Create configuration backup
+secrets_profiles           # List available profiles and colors
 ```
 
 ### **macOS Management**
