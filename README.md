@@ -119,6 +119,11 @@ List available profiles (with descriptions/colors):
 secrets_profiles
 ```
 
+Bootstrap from 1Password (pull all secrets files):
+```bash
+secrets_bootstrap_from_1p
+```
+
 Storing `op-accounts.env` in 1Password (for remote machines):
 ```bash
 op_accounts_edit

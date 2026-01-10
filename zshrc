@@ -220,6 +220,7 @@ help() {
     echo "  secrets_profile_switch  - Set profile (persists) and reload"
     echo "  secrets_validate_setup  - Validate 1Password setup"
     echo "  secrets_profiles        - List profiles and colors"
+    echo "  secrets_bootstrap_from_1p - Pull secrets files from 1Password"
     echo "  secrets_sync_to_1p      - Sync secrets.env to 1Password"
     echo "  secrets_pull_from_1p    - Pull secrets.env from 1Password"
     echo "  op_accounts_edit        - Edit 1Password account aliases"

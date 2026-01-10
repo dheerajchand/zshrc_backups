@@ -754,6 +754,55 @@ secrets_profiles() {
     done
 }
 
+secrets_bootstrap_from_1p() {
+    local account_arg="${1:-${OP_ACCOUNT-}}"
+    local vault_arg="${2:-${OP_VAULT-}}"
+    if ! command -v op >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot bootstrap secrets"
+        return 1
+    fi
+    if ! op account list >/dev/null 2>&1; then
+        _secrets_warn "1Password auth required (run: eval \"\$(op signin)\")"
+        return 1
+    fi
+    if [[ -z "$account_arg" ]]; then
+        local shorthand
+        shorthand="$(op account list --format=json 2>/dev/null | \
+            python - <<'PY'
+import json,sys
+data=json.load(sys.stdin)
+print(data[0].get("shorthand","") if data else "")
+PY
+)"
+        if [[ -n "$shorthand" ]]; then
+            account_arg="$shorthand"
+        fi
+    fi
+    if [[ -n "$account_arg" ]]; then
+        op_set_default "$account_arg" "$vault_arg" >/dev/null 2>&1 || true
+    fi
+    local old_file
+    old_file="$ZSH_SECRETS_FILE"
+
+    ZSH_SECRETS_FILE="$OP_ACCOUNTS_FILE" \
+        secrets_pull_from_1p "op-accounts-env" "$OP_ACCOUNT" "$OP_VAULT" || true
+    if [[ -f "$OP_ACCOUNTS_FILE" ]]; then
+        _secrets_info "Pulled op-accounts.env"
+    else
+        _secrets_warn "op-accounts.env not found in 1Password"
+    fi
+
+    ZSH_SECRETS_FILE="$old_file" \
+        secrets_pull_from_1p "zsh-secrets-env" "$OP_ACCOUNT" "$OP_VAULT" || true
+
+    ZSH_SECRETS_FILE="$ZSH_SECRETS_MAP" \
+        secrets_pull_from_1p "zsh-secrets-map" "$OP_ACCOUNT" "$OP_VAULT" || true
+
+    export ZSH_SECRETS_FILE="$old_file"
+    load_secrets
+    _secrets_info "Bootstrap complete"
+}
+
 machine_profile() {
     if [[ -n "${ZSH_ENV_PROFILE:-}" ]]; then
         echo "$ZSH_ENV_PROFILE"
