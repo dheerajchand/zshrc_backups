@@ -82,6 +82,7 @@ zshconfig                   # Edit configuration directory
 zshreboot                   # Reload configuration
 backup_zsh_config          # Create configuration backup
 secrets_profiles           # List profiles and colors
+secrets_bootstrap_from_1p   # Pull secrets files from 1Password
 
 # Profiles & PT host mapping
 # ZSH_ENV_PROFILE=dev

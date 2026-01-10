@@ -42,6 +42,11 @@ secrets_profiles
 # PT_ENV_HOSTNAME=cyberpower
 ```
 
+### **Bootstrap from 1Password**
+```bash
+secrets_bootstrap_from_1p
+```
+
 ### **3. Enable Auto-Setup (Optional)**
 ```bash
 # Enable automatic environment setup

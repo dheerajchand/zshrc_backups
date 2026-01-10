@@ -358,6 +358,19 @@ test_secrets_profiles_output() {
     unset ZSH_PROFILE_CONFIGS ZSH_PROFILE_COLORS ZSH_PROFILE_ORDER
 }
 
+test_secrets_bootstrap_requires_op() {
+    local old_path out rc
+    old_path="$PATH"
+    PATH="/usr/bin:/bin"
+    unalias op 2>/dev/null || true
+    unfunction op 2>/dev/null || true
+    out="$(secrets_bootstrap_from_1p 2>&1)"
+    rc=$?
+    assert_not_equal "0" "$rc" "bootstrap should fail without op"
+    assert_contains "$out" "op not found" "should warn without op"
+    PATH="$old_path"
+}
+
 test_secrets_profile_switch_sets_profile() {
     local old_profile="${ZSH_ENV_PROFILE-}"
     ZSH_SECRETS_MODE=off
@@ -524,6 +537,7 @@ register_test "test_secrets_profile_switch_invalid_profile" "test_secrets_profil
 register_test "test_secrets_profile_switch_ignores_vault_without_account" "test_secrets_profile_switch_ignores_vault_without_account"
 register_test "test_secrets_profile_list_from_config" "test_secrets_profile_list_from_config"
 register_test "test_secrets_profiles_output" "test_secrets_profiles_output"
+register_test "test_secrets_bootstrap_requires_op" "test_secrets_bootstrap_requires_op"
 register_test "test_secrets_update_env_file_error_handling" "test_secrets_update_env_file_error_handling"
 register_test "test_secrets_validate_setup_success" "test_secrets_validate_setup_success"
 register_test "test_vault_without_account_warns" "test_vault_without_account_warns"
