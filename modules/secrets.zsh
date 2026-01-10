@@ -546,7 +546,8 @@ secrets_sync_to_1p() {
         --title="$title" \
         ${account_arg:+--account="$account_arg"} \
         ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
-        "secrets_file[text]=$(cat "$ZSH_SECRETS_FILE")" >/dev/null 2>"$err_file"; then
+        "secrets_file[text]=$(cat "$ZSH_SECRETS_FILE")" \
+        "notesPlain=$(cat "$ZSH_SECRETS_FILE")" >/dev/null 2>"$err_file"; then
         rm -f "$err_file"
         _secrets_info "Synced secrets file to 1Password item: $title"
         return 0
@@ -580,6 +581,34 @@ secrets_pull_from_1p() {
         ${account_arg:+--account="$account_arg"} \
         ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
         --field="secrets_file" --reveal 2>/dev/null || true)"
+    if [[ -z "$value" ]]; then
+        local item_json
+        item_json="$(op item get "$title" \
+            ${account_arg:+--account="$account_arg"} \
+            ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+            --format=json 2>/dev/null || true)"
+        if [[ -n "$item_json" ]]; then
+            if command -v jq >/dev/null 2>&1; then
+                value="$(echo "$item_json" | jq -r '
+                    (.fields[]? | select((.id=="secrets_file") or (.label=="secrets_file") or (.title=="secrets_file") or (.name=="secrets_file")) | .value) // .notesPlain // empty
+                ')"
+            else
+                value="$(python - <<'PY' "$item_json"
+import json,sys
+data=json.loads(sys.argv[1])
+value=""
+for field in data.get("fields", []) or []:
+    if field.get("id") == "secrets_file" or field.get("label") == "secrets_file" or field.get("title") == "secrets_file" or field.get("name") == "secrets_file":
+        value = field.get("value","")
+        break
+if not value:
+    value = data.get("notesPlain","") or ""
+print(value)
+PY
+)"
+            fi
+        fi
+    fi
     if [[ -z "$value" ]]; then
         _secrets_warn "No secrets_file field found for item: $title"
         return 1
