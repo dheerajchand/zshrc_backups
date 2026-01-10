@@ -563,7 +563,9 @@ secrets_profile_switch() {
             return 1
         fi
     elif [[ -n "$vault" ]]; then
-        _secrets_warn "Vault specified without account; ignoring vault"
+        _secrets_warn "Vault specified without account; clearing vault"
+        OP_VAULT=""
+        unset OP_VAULT
     fi
     load_secrets
     _secrets_info "Switched profile to $profile"

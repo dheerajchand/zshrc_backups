@@ -365,13 +365,17 @@ test_secrets_profile_switch_persists() {
 }
 
 test_secrets_profile_switch_ignores_vault_without_account() {
-    local old_account old_vault out
+    local old_account old_vault out tmp
     old_account="${OP_ACCOUNT-}"
     old_vault="${OP_VAULT-}"
     unset OP_ACCOUNT
     export OP_VAULT="VaultOnly"
-    out="$(secrets_profile_switch dev 2>&1 || true)"
-    assert_contains "$out" "ignoring vault" "should ignore vault without account"
+    tmp="$(mktemp)"
+    secrets_profile_switch dev >"$tmp" 2>&1 || true
+    out="$(cat "$tmp")"
+    assert_contains "$out" "clearing vault" "should clear vault without account"
+    assert_equal "" "${OP_VAULT-}" "should unset OP_VAULT"
+    rm -f "$tmp"
     export OP_ACCOUNT="$old_account"
     export OP_VAULT="$old_vault"
 }
