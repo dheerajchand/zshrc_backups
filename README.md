@@ -113,6 +113,11 @@ op_signin_account Siege_Analytics
 op_signin_all
 ```
 
+List available profiles (with descriptions/colors):
+```bash
+secrets_profiles
+```
+
 Storing `op-accounts.env` in 1Password (for remote machines):
 ```bash
 op_accounts_edit

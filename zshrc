@@ -219,6 +219,7 @@ help() {
     echo "  secrets_init_profile    - Interactive profile setup"
     echo "  secrets_profile_switch  - Set profile (persists) and reload"
     echo "  secrets_validate_setup  - Validate 1Password setup"
+    echo "  secrets_profiles        - List profiles and colors"
     echo "  secrets_sync_to_1p      - Sync secrets.env to 1Password"
     echo "  secrets_pull_from_1p    - Pull secrets.env from 1Password"
     echo "  op_accounts_edit        - Edit 1Password account aliases"
@@ -276,15 +277,39 @@ modules() {
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
 # Profile-aware palette (banner + prompt accents)
+typeset -gA ZSH_PROFILE_CONFIGS
+ZSH_PROFILE_CONFIGS=(
+    dev "Development workstation (green)"
+    staging "Staging environment (yellow)"
+    prod "Production environment (red)"
+    laptop "Personal laptop (cyan)"
+    cyberpower "Cyberpower host (dark green)"
+)
+typeset -gA ZSH_PROFILE_COLORS
+ZSH_PROFILE_COLORS=(
+    dev "32;1 32"
+    staging "33;1 33"
+    prod "31;1 31"
+    laptop "36;1 36"
+    cyberpower "32;2 32"
+    default "35;1 35"
+)
+typeset -ga ZSH_PROFILE_ORDER
+ZSH_PROFILE_ORDER=(dev staging prod laptop cyberpower)
+
 _profile_palette() {
-    case "${ZSH_ENV_PROFILE:-}" in
-        prod)    echo "31;1 31" ;;  # red
-        staging) echo "33;1 33" ;;  # yellow
-        dev)     echo "32;1 32" ;;  # green
-        laptop)  echo "36;1 36" ;;  # cyan
-        cyberpower) echo "32;2 32" ;;  # dark green
-        *)       echo "35;1 35" ;;  # magenta (default)
-    esac
+    local profile="${ZSH_ENV_PROFILE:-}"
+    if typeset -p ZSH_PROFILE_COLORS >/dev/null 2>&1; then
+        if [[ -n "$profile" && -n "${ZSH_PROFILE_COLORS[$profile]-}" ]]; then
+            echo "${ZSH_PROFILE_COLORS[$profile]}"
+            return 0
+        fi
+        if [[ -n "${ZSH_PROFILE_COLORS[default]-}" ]]; then
+            echo "${ZSH_PROFILE_COLORS[default]}"
+            return 0
+        fi
+    fi
+    echo "35;1 35"
 }
 
 apply_profile_theme() {
