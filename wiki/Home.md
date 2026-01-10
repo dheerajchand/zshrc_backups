@@ -83,6 +83,10 @@ zshreboot                   # Reload configuration
 backup_zsh_config          # Create configuration backup
 secrets_profiles           # List profiles and colors
 
+# Profiles & PT host mapping
+# ZSH_ENV_PROFILE=dev
+# PT_ENV_HOSTNAME=cyberpower
+
 # macOS management
 toggle_hidden_files         # Toggle Finder hidden files
 toggle_key_repeat          # Toggle key repeat behavior
