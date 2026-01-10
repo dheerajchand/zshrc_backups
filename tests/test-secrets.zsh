@@ -310,6 +310,37 @@ OP
     rm -rf "$tmp"
 }
 
+test_secrets_pull_fallback_notes_plain() {
+    local tmp bin out rc old_file
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    cat > "$bin/op" <<'OP'
+#!/usr/bin/env zsh
+case "$1 $2" in
+  "account list")
+    exit 0
+    ;;
+  "item get")
+    echo '{"notesPlain":"HELLO=world"}'
+    exit 0
+    ;;
+  *)
+    exit 1
+    ;;
+esac
+OP
+    chmod +x "$bin/op"
+    old_file="$ZSH_SECRETS_FILE"
+    export ZSH_SECRETS_FILE="$tmp/secrets.env"
+    out="$(BIN="$bin" zsh -lc 'export ZSH_TEST_MODE=1; source /Users/dheerajchand/.config/zsh/modules/secrets.zsh; PATH="$BIN:/usr/bin:/bin"; unalias op 2>/dev/null || true; unfunction op 2>/dev/null || true; op(){ "$BIN/op" "$@"; }; secrets_pull_from_1p' 2>&1)"
+    rc=$?
+    assert_equal "0" "$rc" "should pull from notesPlain"
+    assert_contains "$(cat "$tmp/secrets.env")" "HELLO=world" "should write notesPlain content"
+    export ZSH_SECRETS_FILE="$old_file"
+    rm -rf "$tmp"
+}
+
 test_secrets_profile_switch_usage() {
     local out
     out="$(secrets_profile_switch 2>&1 || true)"
@@ -530,6 +561,7 @@ register_test "test_op_set_default_clears_vault" "test_op_set_default_clears_vau
 register_test "test_op_list_accounts_vaults_empty" "test_op_list_accounts_vaults_empty"
 register_test "test_op_list_items_requires_op" "test_op_list_items_requires_op"
 register_test "test_secrets_pull_requires_op" "test_secrets_pull_requires_op"
+register_test "test_secrets_pull_fallback_notes_plain" "test_secrets_pull_fallback_notes_plain"
 register_test "test_secrets_profile_switch_usage" "test_secrets_profile_switch_usage"
 register_test "test_secrets_profile_switch_sets_profile" "test_secrets_profile_switch_sets_profile"
 register_test "test_secrets_profile_switch_persists" "test_secrets_profile_switch_persists"
