@@ -558,10 +558,12 @@ secrets_profile_switch() {
     fi
     _secrets_update_env_file "ZSH_ENV_PROFILE" "$profile"
     export ZSH_ENV_PROFILE="$profile"
-    if [[ -n "$account" || -n "$vault" ]]; then
+    if [[ -n "$account" ]]; then
         if ! op_set_default "$account" "$vault"; then
             return 1
         fi
+    elif [[ -n "$vault" ]]; then
+        _secrets_warn "Vault specified without account; ignoring vault"
     fi
     load_secrets
     _secrets_info "Switched profile to $profile"

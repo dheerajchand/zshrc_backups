@@ -364,6 +364,18 @@ test_secrets_profile_switch_persists() {
     rm -rf "$tmp"
 }
 
+test_secrets_profile_switch_ignores_vault_without_account() {
+    local old_account old_vault out
+    old_account="${OP_ACCOUNT-}"
+    old_vault="${OP_VAULT-}"
+    unset OP_ACCOUNT
+    export OP_VAULT="VaultOnly"
+    out="$(secrets_profile_switch dev 2>&1 || true)"
+    assert_contains "$out" "ignoring vault" "should ignore vault without account"
+    export OP_ACCOUNT="$old_account"
+    export OP_VAULT="$old_vault"
+}
+
 test_secrets_validate_setup_success() {
     local tmp map old_mode old_map old_path old_test_mode
     tmp="$(mktemp -d)"
@@ -477,6 +489,7 @@ register_test "test_secrets_profile_switch_usage" "test_secrets_profile_switch_u
 register_test "test_secrets_profile_switch_sets_profile" "test_secrets_profile_switch_sets_profile"
 register_test "test_secrets_profile_switch_persists" "test_secrets_profile_switch_persists"
 register_test "test_secrets_profile_switch_invalid_profile" "test_secrets_profile_switch_invalid_profile"
+register_test "test_secrets_profile_switch_ignores_vault_without_account" "test_secrets_profile_switch_ignores_vault_without_account"
 register_test "test_secrets_profile_list_from_config" "test_secrets_profile_list_from_config"
 register_test "test_secrets_validate_setup_success" "test_secrets_validate_setup_success"
 register_test "test_vault_without_account_warns" "test_vault_without_account_warns"
