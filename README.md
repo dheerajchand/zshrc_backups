@@ -71,8 +71,9 @@ Environment variables:
 - `OP_VAULT=Private` (optional; omit to use account default)
 - `OP_ACCOUNT=work|personal`
 - `OP_ACCOUNTS_FILE=~/.config/zsh/op-accounts.env`
-- `ZSH_ENV_PROFILE=dev|staging|prod|laptop` (shown on startup)
+- `ZSH_ENV_PROFILE=dev|staging|prod|laptop|cyberpower` (shown on startup)
 - `ZSH_ENV_PROFILE` also drives the prompt/banner color palette for quick visual cues.
+- `PT_ENV_HOSTNAME` (optional) maps your profile to a host name for PT workflows
 
 Mapping file format (`secrets.1p`):
 ```
@@ -155,6 +156,7 @@ secrets_edit
 # OP_ACCOUNT=Siege_Analytics
 # OP_VAULT=Private  # optional
 # ZSH_SECRETS_MODE=both
+# PT_ENV_HOSTNAME=cyberpower  # optional: map profile to PT host
 ```
 
 3) Map per-environment secrets in 1Password:

@@ -320,6 +320,7 @@ test_secrets_profile_switch_invalid_profile() {
     local out
     out="$(secrets_profile_switch nonsense 2>&1 || true)"
     assert_contains "$out" "Invalid profile: nonsense" "should reject invalid profile"
+    assert_contains "$out" "expected one of:" "should show expected profiles"
     assert_contains "$out" "Available profiles:" "should list available profiles"
 }
 
@@ -380,6 +381,15 @@ test_secrets_profile_switch_persists() {
     export ZSH_SECRETS_FILE="$old_file"
     export ZSH_SECRETS_MODE="$old_mode"
     rm -rf "$tmp"
+}
+
+test_secrets_update_env_file_error_handling() {
+    local old_file
+    old_file="$ZSH_SECRETS_FILE"
+    export ZSH_SECRETS_FILE="/root/forbidden_secrets.env"
+    out="$(_secrets_update_env_file FOO bar 2>&1 || true)"
+    assert_contains "$out" "Failed to create secrets file" "should warn on write failure"
+    export ZSH_SECRETS_FILE="$old_file"
 }
 
 test_secrets_profile_switch_ignores_vault_without_account() {
@@ -514,6 +524,7 @@ register_test "test_secrets_profile_switch_invalid_profile" "test_secrets_profil
 register_test "test_secrets_profile_switch_ignores_vault_without_account" "test_secrets_profile_switch_ignores_vault_without_account"
 register_test "test_secrets_profile_list_from_config" "test_secrets_profile_list_from_config"
 register_test "test_secrets_profiles_output" "test_secrets_profiles_output"
+register_test "test_secrets_update_env_file_error_handling" "test_secrets_update_env_file_error_handling"
 register_test "test_secrets_validate_setup_success" "test_secrets_validate_setup_success"
 register_test "test_vault_without_account_warns" "test_vault_without_account_warns"
 register_test "test_op_signin_account_usage" "test_op_signin_account_usage"

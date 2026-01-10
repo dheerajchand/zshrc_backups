@@ -28,11 +28,19 @@ _secrets_update_env_file() {
     local tmp
     umask 077
     if [[ ! -f "$file" ]]; then
-        printf '%s=%s\n' "$key" "$value" > "$file"
+        if ! printf '%s=%s\n' "$key" "$value" > "$file" 2>/dev/null; then
+            _secrets_warn "Failed to create secrets file: $file"
+            return 1
+        fi
+        chmod 600 "$file" 2>/dev/null || true
         return 0
     fi
-    tmp="$(mktemp)"
-    python - "$file" "$tmp" "$key" "$value" <<'PY'
+    tmp="$(mktemp 2>/dev/null || mktemp -t zsh-secrets 2>/dev/null)"
+    if [[ -z "$tmp" || ! -f "$tmp" ]]; then
+        _secrets_warn "Failed to create temp file for secrets update"
+        return 1
+    fi
+    if ! python - "$file" "$tmp" "$key" "$value" <<'PY'
 import sys
 src, dst, key, val = sys.argv[1:5]
 found = False
@@ -51,7 +59,16 @@ with open(dst, "w") as fh:
     fh.write("\n".join(out))
     fh.write("\n")
 PY
-    mv "$tmp" "$file"
+    then
+        _secrets_warn "Failed to update secrets file"
+        rm -f "$tmp"
+        return 1
+    fi
+    if ! mv "$tmp" "$file" 2>/dev/null; then
+        _secrets_warn "Failed to update secrets file"
+        rm -f "$tmp"
+        return 1
+    fi
     chmod 600 "$file" 2>/dev/null || true
 }
 
@@ -212,7 +229,7 @@ _secrets_validate_profile() {
     if [[ " $list " == *" $profile "* ]]; then
         return 0
     fi
-    _secrets_warn "Invalid profile: $profile"
+    _secrets_warn "Invalid profile: $profile (expected one of: $(_secrets_default_profiles))"
     return 1
 }
 
@@ -241,6 +258,10 @@ _secrets_profile_list() {
         echo "$ZSH_PROFILE_LIST"
         return 0
     fi
+    _secrets_default_profiles
+}
+
+_secrets_default_profiles() {
     echo "dev staging prod laptop cyberpower"
 }
 
@@ -317,6 +338,16 @@ ZSH_SECRETS_MODE=$mode
 # OP_ACCOUNT=your-account-alias
 # OP_VAULT=Private
 EOF
+    if [[ ! -f "$ZSH_SECRETS_FILE" ]]; then
+        _secrets_warn "Failed to create secrets file"
+        return 1
+    fi
+    chmod 600 "$ZSH_SECRETS_FILE" 2>/dev/null || true
+    local perms
+    perms="$(stat -f "%OLp" "$ZSH_SECRETS_FILE" 2>/dev/null || stat -c "%a" "$ZSH_SECRETS_FILE" 2>/dev/null || true)"
+    if [[ -n "$perms" && "$perms" != "600" && "$perms" != "400" ]]; then
+        _secrets_warn "Secrets file has insecure permissions: $perms"
+    fi
 
     if [[ "$mode" == "op" || "$mode" == "both" ]]; then
         if [[ ! -f "$ZSH_SECRETS_MAP" && -f "$ZSH_SECRETS_MAP.example" ]]; then
@@ -739,8 +770,7 @@ machine_profile() {
 if [[ -z "${ZSH_TEST_MODE:-}" ]]; then
     load_secrets
     _secrets_check_profile
+    [[ "${ZSH_SECRETS_VERBOSE:-}" == "1" ]] && echo "✅ secrets loaded"
 fi
 
-if [[ -z "${ZSH_TEST_MODE:-}" ]]; then
-    echo "✅ secrets loaded"
-fi
+ 
