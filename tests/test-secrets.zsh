@@ -294,6 +294,10 @@ case "$1 $2" in
   "account list")
     exit 0
     ;;
+  "item list")
+    echo '[{"id":"item-1","title":"zsh-secrets"}]'
+    exit 0
+    ;;
   "item get")
     exit 0
     ;;
@@ -321,7 +325,15 @@ case "$1 $2" in
   "account list")
     exit 0
     ;;
+  "item list")
+    echo '[{"id":"old","title":"zsh-secrets"},{"id":"new","title":"zsh-secrets","updatedAt":"2026-01-01T00:00:00Z"}]'
+    exit 0
+    ;;
   "item get")
+    if [[ "$3" == "new" ]]; then
+      echo '{"notesPlain":"HELLO=world"}'
+      exit 0
+    fi
     echo '{"notesPlain":"HELLO=world"}'
     exit 0
     ;;

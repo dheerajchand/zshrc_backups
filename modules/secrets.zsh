@@ -265,6 +265,35 @@ _secrets_default_profiles() {
     echo "dev staging prod laptop cyberpower"
 }
 
+_op_latest_item_id_by_title() {
+    local title="$1"
+    local account_arg="${2:-${OP_ACCOUNT-}}"
+    local vault_arg="${3:-${OP_VAULT-}}"
+    local items_json
+    items_json="$(op item list \
+        ${account_arg:+--account="$account_arg"} \
+        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+        --format=json 2>/dev/null || true)"
+    [[ -z "$items_json" ]] && return 1
+    if command -v jq >/dev/null 2>&1; then
+        echo "$items_json" | jq -r --arg t "$title" '
+            [ .[] | select(.title == $t) ] | sort_by(.updatedAt // .updated_at // .createdAt // .created_at) | last | .id // empty
+        '
+        return 0
+    fi
+    python - <<'PY' "$items_json" "$title"
+import json,sys
+data=json.loads(sys.argv[1])
+title=sys.argv[2]
+matches=[i for i in data if i.get("title")==title]
+def ts(i):
+    return i.get("updatedAt") or i.get("updated_at") or i.get("createdAt") or i.get("created_at") or ""
+matches.sort(key=ts)
+if matches:
+    print(matches[-1].get("id",""))
+PY
+}
+
 secrets_validate_setup() {
     local errors=0
     if [[ "$ZSH_SECRETS_MODE" == "op" || "$ZSH_SECRETS_MODE" == "both" ]]; then
@@ -576,14 +605,20 @@ secrets_pull_from_1p() {
         _secrets_warn "1Password auth required (run: op signin)"
         return 1
     fi
+    local item_id
+    item_id="$(_op_latest_item_id_by_title "$title" "$account_arg" "$vault_arg")"
+    if [[ -z "$item_id" ]]; then
+        _secrets_warn "Item not found: $title"
+        return 1
+    fi
     local value
-    value="$(op item get "$title" \
+    value="$(op item get "$item_id" \
         ${account_arg:+--account="$account_arg"} \
         ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
         --field="secrets_file" --reveal 2>/dev/null || true)"
     if [[ -z "$value" ]]; then
         local item_json
-        item_json="$(op item get "$title" \
+        item_json="$(op item get "$item_id" \
             ${account_arg:+--account="$account_arg"} \
             ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
             --format=json 2>/dev/null || true)"
