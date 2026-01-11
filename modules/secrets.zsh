@@ -270,18 +270,19 @@ _op_latest_item_id_by_title() {
     local account_arg="${2:-${OP_ACCOUNT-}}"
     local vault_arg="${3:-${OP_VAULT-}}"
     local items_json
-    items_json="$(op item list \
+    items_json="$(OP_CLI_NO_COLOR=1 op item list \
         ${account_arg:+--account="$account_arg"} \
         ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
         --format=json 2>/dev/null || true)"
-    [[ -z "$items_json" ]] && return 1
-    if command -v jq >/dev/null 2>&1; then
-        echo "$items_json" | jq -r --arg t "$title" '
-            [ .[] | select(.title == $t) ] | sort_by(.updatedAt // .updated_at // .createdAt // .created_at) | last | .id // empty
-        '
-        return 0
-    fi
-    python - <<'PY' "$items_json" "$title"
+    if [[ -n "$items_json" ]]; then
+        if command -v jq >/dev/null 2>&1; then
+            local id
+            id="$(echo "$items_json" | jq -r --arg t "$title" '
+                [ .[] | select(.title == $t) ] | sort_by(.updatedAt // .updated_at // .createdAt // .created_at) | last | .id // empty
+            ' 2>/dev/null || true)"
+            [[ -n "$id" ]] && { echo "$id"; return 0; }
+        fi
+        python - <<'PY' "$items_json" "$title" 2>/dev/null && return 0
 import json,sys
 data=json.loads(sys.argv[1])
 title=sys.argv[2]
@@ -292,6 +293,19 @@ matches.sort(key=ts)
 if matches:
     print(matches[-1].get("id",""))
 PY
+    fi
+
+    local line id
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" == ID* ]] && continue
+        if echo "$line" | awk '{print $2}' | grep -qx "$title"; then
+            id="$(echo "$line" | awk '{print $1}')"
+        fi
+    done < <(OP_CLI_NO_COLOR=1 op item list \
+        ${account_arg:+--account="$account_arg"} \
+        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} 2>/dev/null || true)
+    [[ -n "$id" ]] && { echo "$id"; return 0; }
+    return 1
 }
 
 secrets_validate_setup() {

@@ -326,8 +326,10 @@ case "$1 $2" in
     exit 0
     ;;
   "item list")
-    echo '[{"id":"old","title":"zsh-secrets"},{"id":"new","title":"zsh-secrets","updatedAt":"2026-01-01T00:00:00Z"}]'
-    exit 0
+    if [[ "${OP_CLI_NO_COLOR:-}" == "1" ]]; then
+      echo '[{"id":"old","title":"zsh-secrets"},{"id":"new","title":"zsh-secrets","updatedAt":"2026-01-01T00:00:00Z"}]'
+      exit 0
+    fi
     ;;
   "item get")
     if [[ "$3" == "new" ]]; then
