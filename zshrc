@@ -14,16 +14,27 @@ export ZSH_CONFIG_DIR="$HOME/.config/zsh"
 # Minimal init for non-TTY interactive shells (prevents GUI app timeouts)
 # Set ZSH_FORCE_FULL_INIT=1 to override.
 if [[ -o interactive && ! -t 0 && ! -t 1 && -z "${ZSH_FORCE_FULL_INIT:-}" ]]; then
-    export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    else
+        export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    fi
     [[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
     [[ -d "$HOME/bin" ]] && export PATH="$HOME/bin:$PATH"
     return 0
 fi
 
 # Set base PATH
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+else
+    export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+fi
 [[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
 [[ -d "$HOME/bin" ]] && export PATH="$HOME/bin:$PATH"
+if [[ -d "$HOME/.pyenv/bin" && ":$PATH:" != *":$HOME/.pyenv/bin:"* ]]; then
+    export PATH="$HOME/.pyenv/bin:$PATH"
+fi
 
 # Initialize SDKMAN (sets HADOOP_HOME, SPARK_HOME, JAVA_HOME)
 export SDKMAN_DIR="$HOME/.sdkman"
@@ -404,5 +415,7 @@ if [[ -o interactive ]]; then
 fi
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-export PATH="/Users/dheerajchand/.rd/bin:$PATH"
+if [[ "$OSTYPE" == "darwin"* && -d "/Users/dheerajchand/.rd/bin" ]]; then
+    export PATH="/Users/dheerajchand/.rd/bin:$PATH"
+fi
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
