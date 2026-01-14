@@ -433,15 +433,7 @@ install_pyenv() {
     else
         print_step "Installing pyenv via git..."
         curl https://pyenv.run | bash
-        if [[ -f "$HOME/.bashrc" ]] && ! grep -q "pyenv init" "$HOME/.bashrc" 2>/dev/null; then
-            cat >> "$HOME/.bashrc" << 'PYENV_INIT'
-export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init --path)"
-eval "$(pyenv init -)"
-PYENV_INIT
-            print_info "Added pyenv initialization to ~/.bashrc"
-        fi
+        ensure_pyenv_shell_init
     fi
     
     # Add to current session
@@ -452,6 +444,54 @@ PYENV_INIT
     eval "$(pyenv virtualenv-init -)"
     
     print_success "pyenv installed"
+}
+
+ensure_pyenv_shell_init() {
+    local zshenv="$HOME/.zshenv"
+    local zshrc="$HOME/.zshrc"
+    local bashrc="$HOME/.bashrc"
+
+    if [[ -f "$zshenv" ]] && ! grep -q "PYENV_ROOT" "$zshenv" 2>/dev/null; then
+        cat >> "$zshenv" << 'PYENV_ZSHENV'
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+PYENV_ZSHENV
+        print_info "Added pyenv PATH to ~/.zshenv"
+    elif [[ ! -f "$zshenv" ]]; then
+        cat >> "$zshenv" << 'PYENV_ZSHENV'
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+PYENV_ZSHENV
+        print_info "Created ~/.zshenv with pyenv PATH"
+    fi
+
+    if [[ -f "$zshrc" ]] && ! grep -q "pyenv init" "$zshrc" 2>/dev/null; then
+        cat >> "$zshrc" << 'PYENV_ZSHRC'
+if command -v pyenv >/dev/null 2>&1; then
+  eval "$(pyenv init --path)"
+  eval "$(pyenv init -)"
+fi
+PYENV_ZSHRC
+        print_info "Added pyenv init to ~/.zshrc"
+    elif [[ ! -f "$zshrc" ]]; then
+        cat >> "$zshrc" << 'PYENV_ZSHRC'
+if command -v pyenv >/dev/null 2>&1; then
+  eval "$(pyenv init --path)"
+  eval "$(pyenv init -)"
+fi
+PYENV_ZSHRC
+        print_info "Created ~/.zshrc with pyenv init"
+    fi
+
+    if [[ -f "$bashrc" ]] && ! grep -q "pyenv init" "$bashrc" 2>/dev/null; then
+        cat >> "$bashrc" << 'PYENV_BASHRC'
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init --path)"
+eval "$(pyenv init -)"
+PYENV_BASHRC
+        print_info "Added pyenv init to ~/.bashrc"
+    fi
 }
 
 install_python() {
