@@ -8,6 +8,11 @@
 # Default environment to auto-activate
 export DEFAULT_PYENV_VENV="default_31111"
 
+# Provide python shim on Linux when only python3 exists
+if ! command -v python >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+    python() { command python3 "$@"; }
+fi
+
 # Initialize pyenv if available (skip in test mode)
 if [[ -z "${ZSH_TEST_MODE:-}" ]] && command -v pyenv >/dev/null 2>&1; then
     export PYENV_ROOT="$HOME/.pyenv"

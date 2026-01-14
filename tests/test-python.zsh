@@ -61,6 +61,24 @@ test_python_status_no_pyenv() {
     rm -rf "$tmp"
 }
 
+test_python_status_uses_python3_shim() {
+    local tmp bin old_path out
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    cat > "$bin/python3" <<'PY3'
+#!/usr/bin/env sh
+echo "Python 3.12.3"
+PY3
+    chmod +x "$bin/python3"
+    old_path="$PATH"
+    PATH="$bin:/usr/bin:/bin"
+    out="$(ZSH_TEST_MODE=1 zsh -fc 'source /Users/dheerajchand/.config/zsh/modules/python.zsh; python_status')"
+    assert_contains "$out" "Python: Python 3.12.3" "should use python3 shim"
+    PATH="$old_path"
+    rm -rf "$tmp"
+}
+
 test_python_status_with_pyenv() {
     local old_path="$PATH"
     local old_pyenv_fn="$(typeset -f pyenv 2>/dev/null || true)"
@@ -84,3 +102,4 @@ test_python_status_with_pyenv() {
 
 register_test "test_python_status_no_pyenv" "test_python_status_no_pyenv"
 register_test "test_python_status_with_pyenv" "test_python_status_with_pyenv"
+register_test "test_python_status_uses_python3_shim" "test_python_status_uses_python3_shim"
