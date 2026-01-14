@@ -52,6 +52,7 @@ This repo supports macOS and Ubuntu/Debian. For Linux:
 - Hadoop data paths are created under `~/hadoop-data` (no `/Users/...` paths).
 - If you install Spark/Hadoop outside SDKMAN, set `SPARK_HOME` and `HADOOP_HOME`.
 - Use `linux_system_status` for basic Linux diagnostics (macOS-only iCloud/Dropbox helpers won’t apply).
+- If only `python3` is installed, a `python` shim is provided in the Python module.
 
 ---
 
