@@ -511,6 +511,12 @@ ensure_screen_login_shell() {
     fi
 }
 
+ensure_screen_pyenv_setup() {
+    if [[ -f "$HOME/.config/zsh/modules/screen.zsh" ]]; then
+        zsh -fc 'source "$HOME/.config/zsh/modules/screen.zsh"; screen_ensure_pyenv' >/dev/null 2>&1 || true
+    fi
+}
+
 install_python() {
     print_header "Installing Python $PYTHON_VERSION"
     
@@ -811,6 +817,7 @@ main() {
     install_spark
     install_pyenv
     ensure_screen_login_shell
+    ensure_screen_pyenv_setup
     install_python
     install_python_packages
     

@@ -115,6 +115,7 @@ if detect_ide; then
     load_module secrets     # Local + 1Password env vars
     load_module python      # Python environment (geo31111 auto-activated)
     load_module system_diagnostics  # iCloud/Dropbox helpers
+    load_module screen      # GNU screen helpers
     
     # Tier 2: Credentials & paths (load in background after brief delay)
     {
@@ -143,6 +144,7 @@ else
     load_module secrets
     load_module python
     load_module system_diagnostics
+    load_module screen
     load_module credentials
     load_module database
     load_module backup
