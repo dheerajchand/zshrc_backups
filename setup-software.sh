@@ -494,6 +494,23 @@ PYENV_BASHRC
     fi
 }
 
+ensure_screen_login_shell() {
+    local screenrc="$HOME/.screenrc"
+    local line="defshell -$SHELL"
+    if [[ -f "$screenrc" ]]; then
+        if ! grep -q "defshell -$SHELL" "$screenrc" 2>/dev/null; then
+            echo "" >> "$screenrc"
+            echo "# Ensure screen starts login shell" >> "$screenrc"
+            echo "$line" >> "$screenrc"
+            print_info "Updated ~/.screenrc to use login shell"
+        fi
+    else
+        echo "# Ensure screen starts login shell" >> "$screenrc"
+        echo "$line" >> "$screenrc"
+        print_info "Created ~/.screenrc with login shell"
+    fi
+}
+
 install_python() {
     print_header "Installing Python $PYTHON_VERSION"
     
@@ -793,6 +810,7 @@ main() {
     install_hadoop
     install_spark
     install_pyenv
+    ensure_screen_login_shell
     install_python
     install_python_packages
     
