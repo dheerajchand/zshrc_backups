@@ -42,6 +42,11 @@ secrets_profiles
 # PT_ENV_HOSTNAME=cyberpower
 ```
 
+### **Screen + Pyenv**
+```bash
+screen_ensure_pyenv
+```
+
 ### **Bootstrap from 1Password**
 ```bash
 secrets_bootstrap_from_1p

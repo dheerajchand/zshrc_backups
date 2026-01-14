@@ -75,6 +75,7 @@ Environment variables:
 - `ZSH_ENV_PROFILE=dev|staging|prod|laptop|cyberpower` (shown on startup)
 - `ZSH_ENV_PROFILE` also drives the prompt/banner color palette for quick visual cues.
 - `PT_ENV_HOSTNAME` (optional) maps your profile to a host name for PT workflows
+- `screen_ensure_pyenv` can apply pyenv init for screen login shells
 
 Mapping file format (`secrets.1p`):
 ```
@@ -330,6 +331,7 @@ data_platform_health    # Spark/Hadoop/YARN health suite
 spark_health            # Spark master/worker health
 hadoop_health           # HDFS/YARN health overview
 yarn_health             # YARN health overview
+screen_ensure_pyenv      # Ensure pyenv init for screen shells
 ```
 
 ## 📋 System Architecture
