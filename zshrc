@@ -237,6 +237,8 @@ help() {
     echo "  secrets_sync_to_1p      - Sync secrets.env to 1Password"
     echo "  secrets_pull_from_1p    - Pull secrets.env from 1Password"
     echo "  op_accounts_edit        - Edit 1Password account aliases"
+    echo "  op_accounts_set_alias   - Set alias in op-accounts.env"
+    echo "  op_accounts_seed        - Prompt to seed aliases from op CLI"
     echo "  op_set_default          - Set default 1Password account/vault"
     echo "  op_list_accounts_vaults - List accounts and vaults"
     echo "  op_list_items           - List items in account/vault"

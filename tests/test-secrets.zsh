@@ -207,6 +207,21 @@ EOF
     rm -rf "$tmp"
 }
 
+test_op_accounts_set_alias_updates_file() {
+    local tmp file old_file
+    tmp="$(mktemp -d)"
+    file="$tmp/op-accounts.env"
+    echo "ElectInfo=OLDUUID" > "$file"
+    old_file="$OP_ACCOUNTS_FILE"
+    export OP_ACCOUNTS_FILE="$file"
+    op_accounts_set_alias ElectInfo NEWUUID
+    assert_contains "$(cat "$file")" "ElectInfo=NEWUUID" "should update existing alias"
+    op_accounts_set_alias NewAlias UUID2
+    assert_contains "$(cat "$file")" "NewAlias=UUID2" "should append new alias"
+    export OP_ACCOUNTS_FILE="$old_file"
+    rm -rf "$tmp"
+}
+
 test_op_set_default_clears_vault() {
     local old_account="${OP_ACCOUNT-}"
     local old_vault="${OP_VAULT-}"

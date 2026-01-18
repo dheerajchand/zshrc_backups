@@ -140,6 +140,82 @@ op_accounts_edit() {
     "$editor" "$OP_ACCOUNTS_FILE"
 }
 
+_op_accounts_write_kv() {
+    local alias_name="$1"
+    local uuid="$2"
+    local file="$OP_ACCOUNTS_FILE"
+    [[ -z "$alias_name" || -z "$uuid" ]] && return 1
+    umask 077
+    [[ -f "$file" ]] || : > "$file"
+    local tmp updated
+    tmp="$(mktemp "${file}.XXXXXX")" || return 1
+    updated=0
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ "$line" == "${alias_name}="* ]]; then
+            echo "${alias_name}=${uuid}" >> "$tmp"
+            updated=1
+        else
+            echo "$line" >> "$tmp"
+        fi
+    done < "$file"
+    if [[ "$updated" -eq 0 ]]; then
+        echo "${alias_name}=${uuid}" >> "$tmp"
+    fi
+    mv "$tmp" "$file"
+}
+
+op_accounts_set_alias() {
+    local alias_name="${1:-}"
+    local uuid="${2:-}"
+    if [[ -z "$alias_name" || -z "$uuid" ]]; then
+        echo "Usage: op_accounts_set_alias <alias> <account-uuid>" >&2
+        return 1
+    fi
+    if [[ ! "$alias_name" =~ ^[A-Za-z0-9_]+$ ]]; then
+        _secrets_warn "Alias must be alphanumeric/underscore: $alias_name"
+        return 1
+    fi
+    _op_accounts_write_kv "$alias_name" "$uuid" || return 1
+    _secrets_info "Set alias: $alias_name"
+}
+
+op_accounts_seed() {
+    if ! command -v op >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot seed aliases"
+        return 1
+    fi
+    if ! op account list >/dev/null 2>&1; then
+        _secrets_warn "1Password auth required (run: eval \"\$(op signin)\")"
+        return 1
+    fi
+    if [[ -z "${ZSH_TEST_MODE:-}" && ! -o interactive ]]; then
+        _secrets_warn "Interactive shell required to seed aliases"
+        return 1
+    fi
+    local json
+    json="$(OP_CLI_NO_COLOR=1 op account list --format=json 2>/dev/null || true)"
+    if [[ -z "$json" ]]; then
+        _secrets_warn "No accounts returned by op account list"
+        return 1
+    fi
+    local line account_uuid email url alias_name
+    while IFS=$'\t' read -r account_uuid email url; do
+        [[ -z "$account_uuid" ]] && continue
+        alias_name="$(_op_account_alias_for_uuid "$account_uuid" 2>/dev/null || true)"
+        if [[ -n "$alias_name" ]]; then
+            continue
+        fi
+        read -r "alias_name?Alias for ${email:-unknown} @ ${url:-unknown} (${account_uuid}) [skip]: "
+        [[ -z "$alias_name" ]] && continue
+        if [[ ! "$alias_name" =~ ^[A-Za-z0-9_]+$ ]]; then
+            _secrets_warn "Skipping invalid alias: $alias_name"
+            continue
+        fi
+        _op_accounts_write_kv "$alias_name" "$account_uuid"
+    done < <(printf '%s' "$json" | python -c "import json,sys; data=json.load(sys.stdin); [print(f\"{a.get('account_uuid','')}\\t{a.get('email','')}\\t{a.get('url','')}\") for a in data]")
+    _secrets_info "Alias seeding complete"
+}
+
 secrets_load_file() {
     [[ -f "$ZSH_SECRETS_FILE" ]] || return 1
     while IFS= read -r line || [[ -n "$line" ]]; do

@@ -52,6 +52,12 @@ screen_ensure_pyenv
 secrets_bootstrap_from_1p
 ```
 
+### **Set 1Password Account Aliases**
+```bash
+op_accounts_set_alias Dheeraj_Chand_Family I3C75JBKZJGSLMVQDGRKCVNHIM
+op_accounts_seed
+```
+
 ### **3. Enable Auto-Setup (Optional)**
 ```bash
 # Enable automatic environment setup
