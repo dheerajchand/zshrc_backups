@@ -505,6 +505,12 @@ test_op_signin_account_usage() {
     assert_contains "$out" "Usage: op_signin_account" "should show usage"
 }
 
+test_op_signin_account_uuid_usage() {
+    local out
+    out="$(op_signin_account_uuid 2>&1 || true)"
+    assert_contains "$out" "Usage: op_signin_account_uuid" "should show usage"
+}
+
 test_op_signin_all_missing_accounts_file() {
     local old_file
     old_file="$OP_ACCOUNTS_FILE"
@@ -588,4 +594,5 @@ register_test "test_secrets_update_env_file_error_handling" "test_secrets_update
 register_test "test_secrets_validate_setup_success" "test_secrets_validate_setup_success"
 register_test "test_vault_without_account_warns" "test_vault_without_account_warns"
 register_test "test_op_signin_account_usage" "test_op_signin_account_usage"
+register_test "test_op_signin_account_uuid_usage" "test_op_signin_account_uuid_usage"
 register_test "test_op_signin_all_missing_accounts_file" "test_op_signin_all_missing_accounts_file"

@@ -881,6 +881,43 @@ PY
     _secrets_info "Bootstrap complete"
 }
 
+op_signin_account_uuid() {
+    local account_alias="${1:-}"
+    if [[ -z "$account_alias" ]]; then
+        echo "Usage: op_signin_account_uuid <account-alias>" >&2
+        return 1
+    fi
+    if ! command -v op >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot sign in"
+        return 1
+    fi
+    local resolved
+    resolved="$(_op_account_alias "$account_alias" 2>/dev/null || true)"
+    if [[ -z "$resolved" ]]; then
+        _secrets_warn "Account alias not found: $account_alias"
+        _secrets_info "Edit: op_accounts_edit"
+        return 1
+    fi
+    eval "$(op signin --account "$resolved")"
+}
+
+op_set_default_alias() {
+    local account_alias="${1:-}"
+    local vault="${2:-}"
+    if [[ -z "$account_alias" ]]; then
+        echo "Usage: op_set_default_alias <account-alias> [vault]" >&2
+        return 1
+    fi
+    local resolved
+    resolved="$(_op_account_alias "$account_alias" 2>/dev/null || true)"
+    if [[ -z "$resolved" ]]; then
+        _secrets_warn "Account alias not found: $account_alias"
+        _secrets_info "Edit: op_accounts_edit"
+        return 1
+    fi
+    op_set_default "$resolved" "$vault"
+}
+
 machine_profile() {
     if [[ -n "${ZSH_ENV_PROFILE:-}" ]]; then
         echo "$ZSH_ENV_PROFILE"

@@ -116,6 +116,12 @@ op_signin_account Siege_Analytics
 op_signin_all
 ```
 
+Alias helpers (UUID-based):
+```bash
+op_signin_account_uuid Dheeraj_Chand_Family
+op_set_default_alias Dheeraj_Chand_Family Private
+```
+
 List available profiles (with descriptions/colors):
 ```bash
 secrets_profiles
