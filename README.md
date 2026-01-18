@@ -139,6 +139,11 @@ op_accounts_edit
 ZSH_SECRETS_FILE="$HOME/.config/zsh/op-accounts.env" \
   secrets_sync_to_1p "op-accounts-env" "$OP_ACCOUNT" "$OP_VAULT"
 ```
+Optional helpers:
+```bash
+op_accounts_set_alias Dheeraj_Chand_Family I3C75JBKZJGSLMVQDGRKCVNHIM
+op_accounts_seed
+```
 To retrieve on another machine:
 ```bash
 ZSH_SECRETS_FILE="$HOME/.config/zsh/op-accounts.env" \
@@ -320,6 +325,8 @@ secrets_validate_setup  # Validate 1Password setup (non-blocking)
 secrets_sync_to_1p      # Sync secrets.env into 1Password Secure Note
 secrets_pull_from_1p    # Pull secrets.env from 1Password Secure Note
 op_accounts_edit        # Edit 1Password account aliases
+op_accounts_set_alias   # Set alias in op-accounts.env
+op_accounts_seed        # Prompt to seed aliases from op CLI
 op_set_default          # Set default 1Password account/vault
 op_list_accounts_vaults # List accounts and vaults
 op_list_items           # List items in account/vault
