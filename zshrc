@@ -242,6 +242,8 @@ help() {
     echo "  op_list_items           - List items in account/vault"
     echo "  op_signin_account       - Sign in to an account alias"
     echo "  op_signin_all           - Sign in to all account aliases"
+    echo "  op_signin_account_uuid  - Sign in using alias UUID"
+    echo "  op_set_default_alias    - Set default using alias"
     echo ""
     echo "🩺 Diagnostics:"
     echo "  icloud_status           - macOS-only iCloud status"
