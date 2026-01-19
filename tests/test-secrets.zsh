@@ -254,6 +254,39 @@ test_secrets_rsync_cyberpower_defaults() {
     assert_contains "$out" "rsync not found" "cyberpower wrapper should use rsync"
 }
 
+test_secrets_rsync_verify_requires_ssh() {
+    local out old_path tmp bin
+    old_path="$PATH"
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    PATH="$bin"
+    out="$(secrets_rsync_verify user@host 2>&1 || true)"
+    PATH="$old_path"
+    rm -rf "$tmp"
+    assert_contains "$out" "ssh not found" "verify should require ssh"
+}
+
+test_op_verify_accounts_requires_op() {
+    local old_path="$PATH"
+    local tmp bin out
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    PATH="$bin"
+    out="$(op_verify_accounts 2>&1 || true)"
+    assert_contains "$out" "op not found" "verify should require op"
+    PATH="$old_path"
+    rm -rf "$tmp"
+}
+
+test_secrets_safe_title() {
+    assert_equal "hello" "$(_secrets_safe_title "hello")" "should keep normal title"
+    assert_equal "(redacted)" "$(_secrets_safe_title "API_KEY=secret")" "should redact suspicious title"
+    assert_equal "(redacted)" "$(_secrets_safe_title "$(printf 'x%.0s' {1..81})")" "should redact long title"
+    assert_equal "(unnamed)" "$(_secrets_safe_title "")" "should handle empty title"
+}
+
 test_op_set_default_clears_vault() {
     local old_account="${OP_ACCOUNT-}"
     local old_vault="${OP_VAULT-}"

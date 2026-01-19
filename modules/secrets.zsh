@@ -216,6 +216,96 @@ op_accounts_seed() {
     _secrets_info "Alias seeding complete"
 }
 
+_secrets_safe_title() {
+    local title="${1:-}"
+    if [[ -z "$title" ]]; then
+        echo "(unnamed)"
+        return 0
+    fi
+    if [[ "$title" == *$'\n'* || "$title" == *"="* ]]; then
+        echo "(redacted)"
+        return 0
+    fi
+    if [[ ${#title} -gt 80 ]]; then
+        echo "(redacted)"
+        return 0
+    fi
+    echo "$title"
+}
+
+op_verify_accounts() {
+    if ! command -v op >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot verify accounts"
+        return 1
+    fi
+    if ! op account list >/dev/null 2>&1; then
+        _secrets_warn "1Password auth required (run: eval \"\$(op signin)\")"
+        return 1
+    fi
+    if [[ ! -f "$OP_ACCOUNTS_FILE" ]]; then
+        _secrets_warn "No account aliases file: $OP_ACCOUNTS_FILE"
+        return 1
+    fi
+    echo "🔐 1Password Account Verification"
+    echo "================================"
+    echo "Alias | UUID | Item | Result"
+    local line alias_name uuid
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        alias_name="${line%%=*}"
+        uuid="${line#*=}"
+        alias_name="${alias_name## }"; alias_name="${alias_name%% }"
+        uuid="${uuid## }"; uuid="${uuid%% }"
+        [[ -z "$alias_name" || -z "$uuid" ]] && continue
+        if ! op_signin_account_uuid "$alias_name" >/dev/null 2>&1; then
+            echo "${alias_name} | ${uuid} | (signin) | FAIL"
+            continue
+        fi
+        local items_json item_line item_id item_title
+        items_json="$(OP_CLI_NO_COLOR=1 op item list --account "$uuid" --format json 2>/dev/null || true)"
+        if [[ -z "$items_json" ]]; then
+            echo "${alias_name} | ${uuid} | (none) | FAIL"
+            continue
+        fi
+        item_line="$(printf '%s' "$items_json" | OP_VERIFY_RAND="$RANDOM" python -c 'import json,os,sys; data=json.load(sys.stdin); 
+import random
+if not data: sys.exit(2)
+r=int(os.environ.get("OP_VERIFY_RAND","0") or "0")
+item=data[r % len(data)]
+print(item.get("id",""), item.get("title",""), sep="\t")' 2>/dev/null || true)"
+        item_id="${item_line%%$'\t'*}"
+        item_title="${item_line#*$'\t'}"
+        if [[ -z "$item_id" ]]; then
+            echo "${alias_name} | ${uuid} | (none) | FAIL"
+            continue
+        fi
+        local safe_title
+        safe_title="$(_secrets_safe_title "$item_title")"
+        local item_json value_ok
+        item_json="$(OP_CLI_NO_COLOR=1 op item get "$item_id" --account "$uuid" --format json 2>/dev/null || true)"
+        if [[ -z "$item_json" ]]; then
+            echo "${alias_name} | ${uuid} | ${safe_title} | FAIL"
+            continue
+        fi
+        value_ok="$(printf '%s' "$item_json" | python -c 'import json,sys; data=json.load(sys.stdin); 
+ok=False
+for f in data.get("fields",[]) or []:
+    v=f.get("value")
+    if isinstance(v,str) and v.strip():
+        ok=True; break
+if not ok:
+    np=data.get("notesPlain")
+    if isinstance(np,str) and np.strip():
+        ok=True
+print("1" if ok else "0")' 2>/dev/null || true)"
+        if [[ "$value_ok" == "1" ]]; then
+            echo "${alias_name} | ${uuid} | ${safe_title} | PASS"
+        else
+            echo "${alias_name} | ${uuid} | ${safe_title} | FAIL"
+        fi
+    done < "$OP_ACCOUNTS_FILE"
+}
+
 _secrets_local_path_default() {
     if [[ -n "${ZSH_CONFIG_DIR:-}" ]]; then
         echo "$ZSH_CONFIG_DIR"
@@ -337,6 +427,42 @@ secrets_rsync_to_cyberpower() {
 secrets_rsync_from_cyberpower() {
     local user="${1:-${USER}}"
     secrets_rsync_from_host --user "$user" --host "cyberpower"
+}
+
+secrets_rsync_verify() {
+    local parsed remote remote_path
+    parsed="$(_secrets_rsync_parse_args secrets_rsync_verify "$@")" || {
+        echo "Usage: secrets_rsync_verify [--user <user>] --host <host> [--path <path>] | <user@host> [remote_path]" >&2
+        return 1
+    }
+    remote="${parsed%% *}"
+    remote_path="${parsed#* }"
+    if [[ -z "$remote" ]]; then
+        echo "Usage: secrets_rsync_verify [--user <user>] --host <host> [--path <path>] | <user@host> [remote_path]" >&2
+        return 1
+    fi
+    if ! command -v ssh >/dev/null 2>&1; then
+        _secrets_warn "ssh not found; cannot verify remote"
+        return 1
+    fi
+    local base
+    base="$(_secrets_local_path_default)"
+    local missing=0
+    for f in op-accounts.env secrets.env secrets.1p; do
+        if [[ ! -f "$base/$f" ]]; then
+            _secrets_warn "Missing local file: $base/$f"
+            missing=1
+        fi
+    done
+    ssh "$remote" "test -f ${remote_path}/op-accounts.env -a -f ${remote_path}/secrets.env -a -f ${remote_path}/secrets.1p" >/dev/null 2>&1 || {
+        _secrets_warn "Missing one or more remote files in ${remote_path}"
+        missing=1
+    }
+    if [[ "$missing" -eq 0 ]]; then
+        _secrets_info "Secrets files present locally and on ${remote}:${remote_path}"
+        return 0
+    fi
+    return 1
 }
 
 secrets_load_file() {
