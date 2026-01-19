@@ -248,6 +248,8 @@ help() {
     echo "  op_set_default_alias    - Set default using alias"
     echo "  secrets_rsync_to_host   - Rsync secrets files to host"
     echo "  secrets_rsync_from_host - Rsync secrets files from host"
+    echo "  secrets_rsync_to_cyberpower   - Rsync secrets to cyberpower"
+    echo "  secrets_rsync_from_cyberpower - Rsync secrets from cyberpower"
     echo ""
     echo "🩺 Diagnostics:"
     echo "  icloud_status           - macOS-only iCloud status"

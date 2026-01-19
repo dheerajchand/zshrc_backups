@@ -290,7 +290,7 @@ secrets_rsync_to_host() {
     fi
     local src_base
     src_base="$(_secrets_remote_path_default)"
-    rsync -av --chmod=600 \
+    rsync -av --chmod=Fu=rw,Fgo=,Du=rwx,Dgo= \
         "$src_base/op-accounts.env" \
         "$src_base/secrets.env" \
         "$src_base/secrets.1p" \
@@ -317,11 +317,21 @@ secrets_rsync_from_host() {
     dest_base="$(_secrets_remote_path_default)"
     umask 077
     mkdir -p "$dest_base"
-    rsync -av --chmod=600 \
+    rsync -av --chmod=Fu=rw,Fgo=,Du=rwx,Dgo= \
         "${remote}:${remote_path}/op-accounts.env" \
         "${remote}:${remote_path}/secrets.env" \
         "${remote}:${remote_path}/secrets.1p" \
         "$dest_base/"
+}
+
+secrets_rsync_to_cyberpower() {
+    local user="${1:-${USER}}"
+    secrets_rsync_to_host --user "$user" --host "cyberpower"
+}
+
+secrets_rsync_from_cyberpower() {
+    local user="${1:-${USER}}"
+    secrets_rsync_from_host --user "$user" --host "cyberpower"
 }
 
 secrets_load_file() {
