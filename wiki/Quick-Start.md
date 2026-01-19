@@ -52,6 +52,12 @@ screen_ensure_pyenv
 secrets_bootstrap_from_1p
 ```
 
+### **Verify 1Password Accounts**
+```bash
+op_verify_accounts
+```
+Item titles are redacted if they look like secrets.
+
 ### **Rsync Secrets (Fallback)**
 ```bash
 secrets_rsync_to_host user@host
@@ -59,6 +65,7 @@ secrets_rsync_from_host user@host
 secrets_rsync_to_host --user dheerajchand --host cyberpower --path ~/.config/zsh
 secrets_rsync_to_cyberpower
 secrets_rsync_from_cyberpower
+secrets_rsync_verify --host cyberpower
 ```
 
 ### **Set 1Password Account Aliases**
