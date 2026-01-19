@@ -222,6 +222,25 @@ test_op_accounts_set_alias_updates_file() {
     rm -rf "$tmp"
 }
 
+test_secrets_rsync_requires_rsync() {
+    local old_path="$PATH"
+    local tmp bin out
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    PATH="$bin"
+    out="$(secrets_rsync_to_host user@host 2>&1 || true)"
+    assert_contains "$out" "rsync not found" "rsync should be required"
+    PATH="$old_path"
+    rm -rf "$tmp"
+}
+
+test_secrets_rsync_named_args_usage() {
+    local out
+    out="$(secrets_rsync_to_host --user testuser 2>&1 || true)"
+    assert_contains "$out" "Usage: secrets_rsync_to_host" "should require host when using named args"
+}
+
 test_op_set_default_clears_vault() {
     local old_account="${OP_ACCOUNT-}"
     local old_vault="${OP_VAULT-}"
