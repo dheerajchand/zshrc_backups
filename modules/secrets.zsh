@@ -216,12 +216,16 @@ op_accounts_seed() {
     _secrets_info "Alias seeding complete"
 }
 
-_secrets_remote_path_default() {
+_secrets_local_path_default() {
     if [[ -n "${ZSH_CONFIG_DIR:-}" ]]; then
         echo "$ZSH_CONFIG_DIR"
     else
         echo "$HOME/.config/zsh"
     fi
+}
+
+_secrets_remote_path_default() {
+    echo "~/.config/zsh"
 }
 
 _secrets_rsync_parse_args() {
@@ -289,8 +293,9 @@ secrets_rsync_to_host() {
         return 1
     fi
     local src_base
-    src_base="$(_secrets_remote_path_default)"
+    src_base="$(_secrets_local_path_default)"
     rsync -av --chmod=Fu=rw,Fgo=,Du=rwx,Dgo= \
+        --rsync-path="mkdir -p ${remote_path} && rsync" \
         "$src_base/op-accounts.env" \
         "$src_base/secrets.env" \
         "$src_base/secrets.1p" \
@@ -314,7 +319,7 @@ secrets_rsync_from_host() {
         return 1
     fi
     local dest_base
-    dest_base="$(_secrets_remote_path_default)"
+    dest_base="$(_secrets_local_path_default)"
     umask 077
     mkdir -p "$dest_base"
     rsync -av --chmod=Fu=rw,Fgo=,Du=rwx,Dgo= \
