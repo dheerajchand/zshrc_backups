@@ -150,6 +150,13 @@ ZSH_SECRETS_FILE="$HOME/.config/zsh/op-accounts.env" \
   secrets_pull_from_1p "op-accounts-env" "$OP_ACCOUNT" "$OP_VAULT"
 ```
 
+Rsync secrets files as a fallback (no 1Password):
+```bash
+secrets_rsync_to_host user@host
+secrets_rsync_from_host user@host
+secrets_rsync_to_host --user dheerajchand --host cyberpower --path ~/.config/zsh
+```
+
 ## 🌎 Multi-Environment Workflow (Laptop/Dev/Staging/Prod)
 
 Recommended approach: keep a small local `secrets.env` with the profile and defaults,
@@ -324,6 +331,8 @@ secrets_init_profile    # Interactive profile setup for new machines
 secrets_validate_setup  # Validate 1Password setup (non-blocking)
 secrets_sync_to_1p      # Sync secrets.env into 1Password Secure Note
 secrets_pull_from_1p    # Pull secrets.env from 1Password Secure Note
+secrets_rsync_to_host   # Rsync secrets files to host
+secrets_rsync_from_host # Rsync secrets files from host
 op_accounts_edit        # Edit 1Password account aliases
 op_accounts_set_alias   # Set alias in op-accounts.env
 op_accounts_seed        # Prompt to seed aliases from op CLI

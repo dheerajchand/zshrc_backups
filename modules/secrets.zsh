@@ -216,6 +216,114 @@ op_accounts_seed() {
     _secrets_info "Alias seeding complete"
 }
 
+_secrets_remote_path_default() {
+    if [[ -n "${ZSH_CONFIG_DIR:-}" ]]; then
+        echo "$ZSH_CONFIG_DIR"
+    else
+        echo "$HOME/.config/zsh"
+    fi
+}
+
+_secrets_rsync_parse_args() {
+    local user="" host="" path="" remote=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --user)
+                user="$2"
+                shift 2
+                ;;
+            --host)
+                host="$2"
+                shift 2
+                ;;
+            --path)
+                path="$2"
+                shift 2
+                ;;
+            --help|-h)
+                echo "Usage: $0 [--user <user>] --host <host> [--path <path>] | <user@host> [remote_path]" >&2
+                return 2
+                ;;
+            *)
+                if [[ -z "$remote" ]]; then
+                    remote="$1"
+                elif [[ -z "$path" ]]; then
+                    path="$1"
+                else
+                    echo "Usage: $0 [--user <user>] --host <host> [--path <path>] | <user@host> [remote_path]" >&2
+                    return 2
+                fi
+                shift
+                ;;
+        esac
+    done
+    if [[ -n "$user" || -n "$host" ]]; then
+        [[ -z "$host" ]] && return 1
+        if [[ -n "$user" ]]; then
+            remote="${user}@${host}"
+        else
+            remote="$host"
+        fi
+    fi
+    if [[ -z "$path" ]]; then
+        path="$(_secrets_remote_path_default)"
+    fi
+    echo "$remote" "$path"
+    return 0
+}
+
+secrets_rsync_to_host() {
+    local parsed remote remote_path
+    parsed="$(_secrets_rsync_parse_args secrets_rsync_to_host "$@")" || {
+        echo "Usage: secrets_rsync_to_host [--user <user>] --host <host> [--path <path>] | <user@host> [remote_path]" >&2
+        return 1
+    }
+    remote="${parsed%% *}"
+    remote_path="${parsed#* }"
+    if [[ -z "$remote" ]]; then
+        echo "Usage: secrets_rsync_to_host [--user <user>] --host <host> [--path <path>] | <user@host> [remote_path]" >&2
+        return 1
+    fi
+    if ! command -v rsync >/dev/null 2>&1; then
+        _secrets_warn "rsync not found; cannot sync secrets"
+        return 1
+    fi
+    local src_base
+    src_base="$(_secrets_remote_path_default)"
+    rsync -av --chmod=600 \
+        "$src_base/op-accounts.env" \
+        "$src_base/secrets.env" \
+        "$src_base/secrets.1p" \
+        "${remote}:${remote_path}/"
+}
+
+secrets_rsync_from_host() {
+    local parsed remote remote_path
+    parsed="$(_secrets_rsync_parse_args secrets_rsync_from_host "$@")" || {
+        echo "Usage: secrets_rsync_from_host [--user <user>] --host <host> [--path <path>] | <user@host> [remote_path]" >&2
+        return 1
+    }
+    remote="${parsed%% *}"
+    remote_path="${parsed#* }"
+    if [[ -z "$remote" ]]; then
+        echo "Usage: secrets_rsync_from_host [--user <user>] --host <host> [--path <path>] | <user@host> [remote_path]" >&2
+        return 1
+    fi
+    if ! command -v rsync >/dev/null 2>&1; then
+        _secrets_warn "rsync not found; cannot sync secrets"
+        return 1
+    fi
+    local dest_base
+    dest_base="$(_secrets_remote_path_default)"
+    umask 077
+    mkdir -p "$dest_base"
+    rsync -av --chmod=600 \
+        "${remote}:${remote_path}/op-accounts.env" \
+        "${remote}:${remote_path}/secrets.env" \
+        "${remote}:${remote_path}/secrets.1p" \
+        "$dest_base/"
+}
+
 secrets_load_file() {
     [[ -f "$ZSH_SECRETS_FILE" ]] || return 1
     while IFS= read -r line || [[ -n "$line" ]]; do

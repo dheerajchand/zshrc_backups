@@ -52,6 +52,13 @@ screen_ensure_pyenv
 secrets_bootstrap_from_1p
 ```
 
+### **Rsync Secrets (Fallback)**
+```bash
+secrets_rsync_to_host user@host
+secrets_rsync_from_host user@host
+secrets_rsync_to_host --user dheerajchand --host cyberpower --path ~/.config/zsh
+```
+
 ### **Set 1Password Account Aliases**
 ```bash
 op_accounts_set_alias Dheeraj_Chand_Family I3C75JBKZJGSLMVQDGRKCVNHIM
