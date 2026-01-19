@@ -155,6 +155,8 @@ Rsync secrets files as a fallback (no 1Password):
 secrets_rsync_to_host user@host
 secrets_rsync_from_host user@host
 secrets_rsync_to_host --user dheerajchand --host cyberpower --path ~/.config/zsh
+secrets_rsync_to_cyberpower
+secrets_rsync_from_cyberpower
 ```
 
 ## 🌎 Multi-Environment Workflow (Laptop/Dev/Staging/Prod)
@@ -333,6 +335,8 @@ secrets_sync_to_1p      # Sync secrets.env into 1Password Secure Note
 secrets_pull_from_1p    # Pull secrets.env from 1Password Secure Note
 secrets_rsync_to_host   # Rsync secrets files to host
 secrets_rsync_from_host # Rsync secrets files from host
+secrets_rsync_to_cyberpower   # Rsync secrets to cyberpower
+secrets_rsync_from_cyberpower # Rsync secrets from cyberpower
 op_accounts_edit        # Edit 1Password account aliases
 op_accounts_set_alias   # Set alias in op-accounts.env
 op_accounts_seed        # Prompt to seed aliases from op CLI

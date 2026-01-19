@@ -241,6 +241,19 @@ test_secrets_rsync_named_args_usage() {
     assert_contains "$out" "Usage: secrets_rsync_to_host" "should require host when using named args"
 }
 
+test_secrets_rsync_cyberpower_defaults() {
+    local out old_path tmp bin
+    old_path="$PATH"
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    PATH="$bin"
+    out="$(secrets_rsync_to_cyberpower 2>&1 || true)"
+    PATH="$old_path"
+    rm -rf "$tmp"
+    assert_contains "$out" "rsync not found" "cyberpower wrapper should use rsync"
+}
+
 test_op_set_default_clears_vault() {
     local old_account="${OP_ACCOUNT-}"
     local old_vault="${OP_VAULT-}"
