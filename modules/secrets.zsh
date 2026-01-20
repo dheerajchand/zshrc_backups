@@ -251,9 +251,7 @@ _secrets_truncate() {
 op_verify_accounts() {
     local rc=0
     (
-        setopt local_options
-        unsetopt xtrace verbose
-        set +x +v
+        emulate -L zsh -o no_xtrace -o no_verbose
         if ! command -v op >/dev/null 2>&1; then
             _secrets_warn "op not found; cannot verify accounts"
             exit 1
@@ -281,8 +279,17 @@ op_verify_accounts() {
                 printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(signin)" "FAIL"
                 continue
             fi
-            local item_line item_id item_title
-            item_line="$(OP_CLI_NO_COLOR=1 op item list --account "$uuid" --format json 2>/dev/null | OP_VERIFY_RAND="$RANDOM" python -c 'import json,os,sys; data=json.load(sys.stdin); 
+            local items_json item_line item_id item_title
+            items_json="$(OP_CLI_NO_COLOR=1 op item list --account "$uuid" --format json 2>/dev/null)"
+            if [[ $? -ne 0 ]]; then
+                printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(list)" "FAIL"
+                continue
+            fi
+            if [[ -z "$items_json" || "$items_json" == "[]" ]]; then
+                printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(none)" "FAIL"
+                continue
+            fi
+            item_line="$(printf '%s' "$items_json" | OP_VERIFY_RAND="$RANDOM" python -c 'import json,os,sys; data=json.load(sys.stdin); 
 import random
 if not data: sys.exit(2)
 r=int(os.environ.get("OP_VERIFY_RAND","0") or "0")
