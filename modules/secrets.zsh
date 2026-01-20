@@ -180,6 +180,22 @@ _op_account_uuid_configured() {
 print("1" if any((a.get("account_uuid") or "")==u for a in data) else "0")' "$uuid" 2>/dev/null | grep -q '^1$'
 }
 
+_op_account_shorthand_configured() {
+    local shorthand="${1:-}"
+    local json="${2:-}"
+    [[ -z "$shorthand" || -z "$json" ]] && return 1
+    local py_cmd=""
+    if command -v python3 >/dev/null 2>&1; then
+        py_cmd="python3"
+    elif command -v python >/dev/null 2>&1; then
+        py_cmd="python"
+    else
+        return 1
+    fi
+    printf '%s' "$json" | "$py_cmd" -c 'import json,sys; data=json.load(sys.stdin); s=sys.argv[1]; 
+print("1" if any((a.get("shorthand") or "")==s for a in data) else "0")' "$shorthand" 2>/dev/null | grep -q '^1$'
+}
+
 op_accounts_set_alias() {
     local alias_name="${1:-}"
     local uuid="${2:-}"
@@ -1175,12 +1191,33 @@ op_signin_all() {
                 _secrets_warn "Account alias not found: $alias_name"
                 continue
             fi
-            if ! _op_account_uuid_configured "$resolved" "$accounts_json"; then
-                _secrets_warn "Account not configured on this device: $alias_name ($resolved)"
-                _secrets_info "Run: op account add --shorthand $alias_name"
-                continue
+            local signin_arg=""
+            if _op_account_shorthand_configured "$alias_name" "$accounts_json"; then
+                signin_arg="$alias_name"
+            elif _op_account_uuid_configured "$resolved" "$accounts_json"; then
+                signin_arg="$resolved"
             fi
-            op_signin_account_uuid "$alias_name" || return 1
+            if [[ -z "$signin_arg" ]]; then
+                _secrets_warn "Account not configured on this device: $alias_name ($resolved)"
+                if [[ -o interactive ]]; then
+                    local reply=""
+                    read -r "reply?Add now with 'op account add --shorthand $alias_name'? [y/N]: "
+                    if [[ "$reply" =~ ^[Yy]$ ]]; then
+                        op account add --shorthand "$alias_name" || return 1
+                        accounts_json="$(OP_CLI_NO_COLOR=1 op account list --format=json 2>/dev/null || true)"
+                        if _op_account_shorthand_configured "$alias_name" "$accounts_json"; then
+                            signin_arg="$alias_name"
+                        elif _op_account_uuid_configured "$resolved" "$accounts_json"; then
+                            signin_arg="$resolved"
+                        fi
+                    fi
+                fi
+                if [[ -z "$signin_arg" ]]; then
+                    _secrets_info "Run: op account add --shorthand $alias_name"
+                    continue
+                fi
+            fi
+            eval "$(op signin --account "$signin_arg")" || return 1
         fi
     done < "$OP_ACCOUNTS_FILE"
 }
