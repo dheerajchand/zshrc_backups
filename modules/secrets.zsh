@@ -233,61 +233,77 @@ _secrets_safe_title() {
     echo "$title"
 }
 
+_secrets_truncate() {
+    local value="${1:-}"
+    local max="${2:-40}"
+    if (( max < 4 )); then
+        echo "${value:0:$max}"
+        return 0
+    fi
+    if (( ${#value} > max )); then
+        local cut=$(( max - 3 ))
+        echo "${value:0:$cut}..."
+        return 0
+    fi
+    echo "$value"
+}
+
 op_verify_accounts() {
-    if ! command -v op >/dev/null 2>&1; then
-        _secrets_warn "op not found; cannot verify accounts"
-        return 1
-    fi
-    if ! op account list >/dev/null 2>&1; then
-        _secrets_warn "1Password auth required (run: eval \"\$(op signin)\")"
-        return 1
-    fi
-    if [[ ! -f "$OP_ACCOUNTS_FILE" ]]; then
-        _secrets_warn "No account aliases file: $OP_ACCOUNTS_FILE"
-        return 1
-    fi
-    echo "🔐 1Password Account Verification"
-    echo "================================"
-    echo "Alias | UUID | Item | Result"
-    local line alias_name uuid
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        [[ -z "$line" || "$line" == \#* ]] && continue
-        alias_name="${line%%=*}"
-        uuid="${line#*=}"
-        alias_name="${alias_name## }"; alias_name="${alias_name%% }"
-        uuid="${uuid## }"; uuid="${uuid%% }"
-        [[ -z "$alias_name" || -z "$uuid" ]] && continue
-        if ! op_signin_account_uuid "$alias_name" >/dev/null 2>&1; then
-            echo "${alias_name} | ${uuid} | (signin) | FAIL"
-            continue
+    local rc=0
+    (
+        setopt local_options
+        unsetopt xtrace verbose
+        set +x +v
+        if ! command -v op >/dev/null 2>&1; then
+            _secrets_warn "op not found; cannot verify accounts"
+            exit 1
         fi
-        local items_json item_line item_id item_title
-        items_json="$(OP_CLI_NO_COLOR=1 op item list --account "$uuid" --format json 2>/dev/null || true)"
-        if [[ -z "$items_json" ]]; then
-            echo "${alias_name} | ${uuid} | (none) | FAIL"
-            continue
+        if ! op account list >/dev/null 2>&1; then
+            _secrets_warn "1Password auth required (run: eval \"\$(op signin)\")"
+            exit 1
         fi
-        item_line="$(printf '%s' "$items_json" | OP_VERIFY_RAND="$RANDOM" python -c 'import json,os,sys; data=json.load(sys.stdin); 
+        if [[ ! -f "$OP_ACCOUNTS_FILE" ]]; then
+            _secrets_warn "No account aliases file: $OP_ACCOUNTS_FILE"
+            exit 1
+        fi
+        echo "🔐 1Password Account Verification"
+        echo "================================"
+        printf "%-22s | %-32s | %-40s | %s\n" "Alias" "UUID" "Item" "Result"
+        local line alias_name uuid
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            [[ -z "$line" || "$line" == \#* ]] && continue
+            alias_name="${line%%=*}"
+            uuid="${line#*=}"
+            alias_name="${alias_name## }"; alias_name="${alias_name%% }"
+            uuid="${uuid## }"; uuid="${uuid%% }"
+            [[ -z "$alias_name" || -z "$uuid" ]] && continue
+            if ! op_signin_account_uuid "$alias_name" >/dev/null 2>&1; then
+                printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(signin)" "FAIL"
+                continue
+            fi
+            local item_line item_id item_title
+            item_line="$(OP_CLI_NO_COLOR=1 op item list --account "$uuid" --format json 2>/dev/null | OP_VERIFY_RAND="$RANDOM" python -c 'import json,os,sys; data=json.load(sys.stdin); 
 import random
 if not data: sys.exit(2)
 r=int(os.environ.get("OP_VERIFY_RAND","0") or "0")
 item=data[r % len(data)]
 print(item.get("id",""), item.get("title",""), sep="\t")' 2>/dev/null || true)"
-        item_id="${item_line%%$'\t'*}"
-        item_title="${item_line#*$'\t'}"
-        if [[ -z "$item_id" ]]; then
-            echo "${alias_name} | ${uuid} | (none) | FAIL"
-            continue
-        fi
-        local safe_title
-        safe_title="$(_secrets_safe_title "$item_title")"
-        local item_json value_ok
-        item_json="$(OP_CLI_NO_COLOR=1 op item get "$item_id" --account "$uuid" --format json 2>/dev/null || true)"
-        if [[ -z "$item_json" ]]; then
-            echo "${alias_name} | ${uuid} | ${safe_title} | FAIL"
-            continue
-        fi
-        value_ok="$(printf '%s' "$item_json" | python -c 'import json,sys; data=json.load(sys.stdin); 
+            item_id="${item_line%%$'\t'*}"
+            item_title="${item_line#*$'\t'}"
+            if [[ -z "$item_id" ]]; then
+                printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(none)" "FAIL"
+                continue
+            fi
+            local safe_title display_title title_out
+            safe_title="$(_secrets_safe_title "$item_title")"
+            if [[ "$safe_title" == "(redacted)" ]]; then
+                display_title="item:${item_id}"
+            else
+                display_title="$safe_title"
+            fi
+            title_out="$(_secrets_truncate "$display_title" 40)"
+            local value_ok
+            value_ok="$(OP_CLI_NO_COLOR=1 op item get "$item_id" --account "$uuid" --format json 2>/dev/null | python -c 'import json,sys; data=json.load(sys.stdin); 
 ok=False
 for f in data.get("fields",[]) or []:
     v=f.get("value")
@@ -298,12 +314,15 @@ if not ok:
     if isinstance(np,str) and np.strip():
         ok=True
 print("1" if ok else "0")' 2>/dev/null || true)"
-        if [[ "$value_ok" == "1" ]]; then
-            echo "${alias_name} | ${uuid} | ${safe_title} | PASS"
-        else
-            echo "${alias_name} | ${uuid} | ${safe_title} | FAIL"
-        fi
-    done < "$OP_ACCOUNTS_FILE"
+            if [[ "$value_ok" == "1" ]]; then
+                printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "$title_out" "PASS"
+            else
+                printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "$title_out" "FAIL"
+            fi
+        done < "$OP_ACCOUNTS_FILE"
+    )
+    rc=$?
+    return $rc
 }
 
 _secrets_local_path_default() {

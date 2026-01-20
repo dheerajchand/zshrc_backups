@@ -287,6 +287,12 @@ test_secrets_safe_title() {
     assert_equal "(unnamed)" "$(_secrets_safe_title "")" "should handle empty title"
 }
 
+test_secrets_truncate() {
+    assert_equal "short" "$(_secrets_truncate "short" 10)" "should keep short text"
+    assert_equal "abcd..." "$(_secrets_truncate "abcdefghijk" 7)" "should truncate long text"
+    assert_equal "ab" "$(_secrets_truncate "abcdef" 2)" "should handle tiny max"
+}
+
 test_op_set_default_clears_vault() {
     local old_account="${OP_ACCOUNT-}"
     local old_vault="${OP_VAULT-}"
