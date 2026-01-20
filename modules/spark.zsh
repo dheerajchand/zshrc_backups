@@ -258,6 +258,69 @@ spark_history_server() {
     echo "✅ History server started: http://localhost:18080"
 }
 
+spark_install_from_tar() {
+    local set_default=0
+    local dry_run=0
+    local version=""
+    local tarball=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --default)
+                set_default=1
+                shift
+                ;;
+            --dry-run)
+                dry_run=1
+                shift
+                ;;
+            --help|-h)
+                echo "Usage: spark_install_from_tar [--default] [--dry-run] <version> <tarball>" >&2
+                return 0
+                ;;
+            *)
+                if [[ -z "$version" ]]; then
+                    version="$1"
+                elif [[ -z "$tarball" ]]; then
+                    tarball="$1"
+                else
+                    echo "Usage: spark_install_from_tar [--default] [--dry-run] <version> <tarball>" >&2
+                    return 1
+                fi
+                shift
+                ;;
+        esac
+    done
+    if [[ -z "$version" || -z "$tarball" ]]; then
+        echo "Usage: spark_install_from_tar [--default] [--dry-run] <version> <tarball>" >&2
+        return 1
+    fi
+    if [[ ! -f "$tarball" ]]; then
+        echo "Tarball not found: $tarball" >&2
+        return 1
+    fi
+    local target="$HOME/.sdkman/candidates/spark/$version"
+    if (( dry_run )); then
+        echo "DRY RUN: mkdir -p \"$target\""
+        echo "DRY RUN: tar -xf \"$tarball\" --strip-components=1 -C \"$target\""
+        echo "DRY RUN: sdk use spark \"$version\""
+        if (( set_default )); then
+            echo "DRY RUN: sdk default spark \"$version\""
+        fi
+        return 0
+    fi
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found; install SDKMAN first" >&2
+        return 1
+    fi
+    mkdir -p "$target" || return 1
+    tar -xf "$tarball" --strip-components=1 -C "$target" || return 1
+    sdk use spark "$version"
+    if (( set_default )); then
+        sdk default spark "$version"
+    fi
+    echo "Installed Spark $version from $tarball"
+}
+
 # Submit to YARN cluster
 spark_yarn_submit() {
     local script_file="$1"

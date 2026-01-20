@@ -199,6 +199,7 @@ help() {
     echo "  spark_status           - Show status"
     echo "  smart_spark_submit <file> - Submit job (auto-detects cluster)"
     echo "  spark_yarn_submit <file> - Submit to YARN"
+    echo "  spark_install_from_tar [--default] [--dry-run] <version> <tarball> - Install Spark via SDKMAN layout"
     echo "  pyspark_shell          - Interactive PySpark"
     echo ""
     echo "🐘 Hadoop:"
