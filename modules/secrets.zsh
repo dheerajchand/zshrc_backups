@@ -164,6 +164,22 @@ _op_accounts_write_kv() {
     mv "$tmp" "$file"
 }
 
+_op_account_uuid_configured() {
+    local uuid="${1:-}"
+    local json="${2:-}"
+    [[ -z "$uuid" || -z "$json" ]] && return 1
+    local py_cmd=""
+    if command -v python3 >/dev/null 2>&1; then
+        py_cmd="python3"
+    elif command -v python >/dev/null 2>&1; then
+        py_cmd="python"
+    else
+        return 1
+    fi
+    printf '%s' "$json" | "$py_cmd" -c 'import json,sys; data=json.load(sys.stdin); u=sys.argv[1]; 
+print("1" if any((a.get("account_uuid") or "")==u for a in data) else "0")' "$uuid" 2>/dev/null | grep -q '^1$'
+}
+
 op_accounts_set_alias() {
     local alias_name="${1:-}"
     local uuid="${2:-}"
@@ -1139,6 +1155,12 @@ op_signin_all() {
         _secrets_info "Create: op_accounts_edit"
         return 1
     fi
+    local accounts_json
+    accounts_json="$(OP_CLI_NO_COLOR=1 op account list --format=json 2>/dev/null || true)"
+    if [[ -z "$accounts_json" ]]; then
+        _secrets_warn "No accounts configured on this device (run: op account add)"
+        return 1
+    fi
     local line alias_name
     while IFS= read -r line || [[ -n "$line" ]]; do
         [[ -z "$line" || "$line" == \#* ]] && continue
@@ -1147,7 +1169,18 @@ op_signin_all() {
             alias_name="${alias_name## }"; alias_name="${alias_name%% }"
             [[ -z "$alias_name" ]] && continue
             echo "🔐 Signing in: $alias_name"
-            op_signin_account "$alias_name" || return 1
+            local resolved
+            resolved="$(_op_account_alias "$alias_name" 2>/dev/null || true)"
+            if [[ -z "$resolved" ]]; then
+                _secrets_warn "Account alias not found: $alias_name"
+                continue
+            fi
+            if ! _op_account_uuid_configured "$resolved" "$accounts_json"; then
+                _secrets_warn "Account not configured on this device: $alias_name ($resolved)"
+                _secrets_info "Run: op account add --shorthand $alias_name"
+                continue
+            fi
+            op_signin_account_uuid "$alias_name" || return 1
         fi
     done < "$OP_ACCOUNTS_FILE"
 }

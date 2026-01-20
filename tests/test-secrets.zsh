@@ -222,6 +222,18 @@ test_op_accounts_set_alias_updates_file() {
     rm -rf "$tmp"
 }
 
+test_op_account_uuid_configured() {
+    local json
+    json='[{"account_uuid":"UUID1"},{"account_uuid":"UUID2"}]'
+    local rc
+    _op_account_uuid_configured UUID1 "$json"
+    rc=$?
+    assert_equal "0" "$rc" "should detect configured uuid"
+    _op_account_uuid_configured UUID3 "$json"
+    rc=$?
+    assert_not_equal "0" "$rc" "should reject missing uuid"
+}
+
 test_secrets_rsync_requires_rsync() {
     local old_path="$PATH"
     local tmp bin out
@@ -663,6 +675,7 @@ register_test "test_secrets_init_from_example" "test_secrets_init_from_example"
 register_test "test_secrets_init_map_from_example" "test_secrets_init_map_from_example"
 register_test "test_op_list_accounts_vaults_requires_op" "test_op_list_accounts_vaults_requires_op"
 register_test "test_op_account_alias_lookup" "test_op_account_alias_lookup"
+register_test "test_op_account_uuid_configured" "test_op_account_uuid_configured"
 register_test "test_op_set_default_clears_vault" "test_op_set_default_clears_vault"
 register_test "test_op_list_accounts_vaults_empty" "test_op_list_accounts_vaults_empty"
 register_test "test_op_list_items_requires_op" "test_op_list_items_requires_op"
