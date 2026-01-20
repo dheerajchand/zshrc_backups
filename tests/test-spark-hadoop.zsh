@@ -23,6 +23,22 @@ test_spark_home_sdkman_preferred() {
     assert_equal "$HOME/.sdkman/candidates/spark/current" "$out" "should prefer SDKMAN Spark path"
 }
 
+test_spark_install_from_tar_usage() {
+    source "$ROOT_DIR/modules/spark.zsh"
+    local out
+    out="$(spark_install_from_tar 2>&1 || true)"
+    assert_contains "$out" "Usage: spark_install_from_tar" "should show usage"
+}
+
+test_spark_install_from_tar_dry_run() {
+    source "$ROOT_DIR/modules/spark.zsh"
+    local tmp out
+    tmp="$(mktemp)"
+    out="$(spark_install_from_tar --dry-run 4.1.1 "$tmp" 2>&1 || true)"
+    assert_contains "$out" "DRY RUN: tar -xf" "should print dry run commands"
+    rm -f "$tmp"
+}
+
 test_hadoop_home_sdkman_preferred() {
     local out
     if [[ ! -d "$HOME/.sdkman/candidates/hadoop/current" ]]; then
@@ -43,6 +59,8 @@ test_hadoop_conf_dir_overrides_invalid() {
 }
 
 register_test "test_spark_home_sdkman_preferred" "test_spark_home_sdkman_preferred"
+register_test "test_spark_install_from_tar_usage" "test_spark_install_from_tar_usage"
+register_test "test_spark_install_from_tar_dry_run" "test_spark_install_from_tar_dry_run"
 register_test "test_hadoop_home_sdkman_preferred" "test_hadoop_home_sdkman_preferred"
 register_test "test_spark_health_defined" "test_spark_health_defined"
 register_test "test_hadoop_health_defined" "test_hadoop_health_defined"

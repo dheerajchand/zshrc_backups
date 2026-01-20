@@ -149,6 +149,12 @@ sparkr_shell
 smart_spark_shell
 ```
 
+### **Install Spark from Tarball**
+```bash
+spark_install_from_tar 4.1.1 /path/to/spark-4.1.1-bin-hadoop3-connect.tar
+spark_install_from_tar --default --dry-run 4.1.1 /path/to/spark-4.1.1-bin-hadoop3-connect.tar
+```
+
 ### **Jupyter Integration**
 ```bash
 # Start Jupyter Lab with Spark optimization
