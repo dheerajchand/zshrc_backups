@@ -1290,7 +1290,7 @@ op_login_headless() {
             ((fail++))
             continue
         fi
-        token="$(op signin --account "$alias_name" --raw 2>/dev/null || true)"
+        token="$(op signin --account "$alias_name" --raw || true)"
         if [[ -z "$token" ]]; then
             _secrets_warn "Failed to sign in: $alias_name"
             ((fail++))
