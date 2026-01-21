@@ -1217,7 +1217,17 @@ op_signin_all() {
                     continue
                 fi
             fi
-            eval "$(op signin --account "$signin_arg")" || return 1
+            if [[ "$signin_arg" == "$alias_name" && "$alias_name" =~ ^[A-Za-z0-9_]+$ ]]; then
+                local token
+                token="$(op signin --account "$signin_arg" --raw 2>/dev/null || true)"
+                if [[ -z "$token" ]]; then
+                    _secrets_warn "Failed to sign in: $alias_name"
+                    return 1
+                fi
+                export "OP_SESSION_${alias_name}=${token}"
+            else
+                eval "$(op signin --account "$signin_arg")" || return 1
+            fi
         fi
     done < "$OP_ACCOUNTS_FILE"
 }
