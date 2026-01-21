@@ -340,14 +340,8 @@ print(item.get("id",""), item.get("title",""), sep="\t")' 2>/dev/null || true)"
                 printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(none)" "FAIL"
                 continue
             fi
-            local safe_title display_title title_out
-            safe_title="$(_secrets_safe_title "$item_title")"
-            if [[ "$safe_title" == "(redacted)" ]]; then
-                display_title="item:${item_id}"
-            else
-                display_title="$safe_title"
-            fi
-            title_out="$(_secrets_truncate "$display_title" 40)"
+            local title_out
+            title_out="$(_secrets_truncate "item:${item_id}" 40)"
             local value_ok
             value_ok="$(OP_CLI_NO_COLOR=1 op item get "$item_id" --account "$account_arg" --format json 2>/dev/null | python -c 'import json,sys; data=json.load(sys.stdin); 
 ok=False
