@@ -299,6 +299,15 @@ op_verify_accounts() {
         echo "🔐 1Password Account Verification"
         echo "================================"
         printf "%-22s | %-32s | %-40s | %s\n" "Alias" "UUID" "Item" "Result"
+        local py_cmd=""
+        if command -v python3 >/dev/null 2>&1; then
+            py_cmd="python3"
+        elif command -v python >/dev/null 2>&1; then
+            py_cmd="python"
+        else
+            _secrets_warn "python not found; cannot verify items"
+            exit 1
+        fi
         local line alias_name uuid
         local accounts_json
         accounts_json="$(OP_CLI_NO_COLOR=1 op account list --format=json 2>/dev/null || true)"
@@ -318,32 +327,25 @@ op_verify_accounts() {
                 printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(account)" "FAIL"
                 continue
             fi
-            local items_json item_line item_id item_title
-            items_json="$(OP_CLI_NO_COLOR=1 op item list --account "$account_arg" --format json 2>/dev/null)"
-            if [[ $? -ne 0 ]]; then
-                printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(list)" "FAIL"
-                continue
-            fi
-            if [[ -z "$items_json" || "$items_json" == "[]" ]]; then
-                printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(none)" "FAIL"
-                continue
-            fi
-            item_line="$(printf '%s' "$items_json" | OP_VERIFY_RAND="$RANDOM" python -c 'import json,os,sys; data=json.load(sys.stdin); 
-import random
+            local item_id rc_code
+            item_id="$(OP_CLI_NO_COLOR=1 op item list --account "$account_arg" --format json 2>/dev/null | OP_VERIFY_RAND="$RANDOM" "$py_cmd" -c 'import json,os,sys; data=json.load(sys.stdin);
 if not data: sys.exit(2)
 r=int(os.environ.get("OP_VERIFY_RAND","0") or "0")
 item=data[r % len(data)]
-print(item.get("id",""), item.get("title",""), sep="\t")' 2>/dev/null || true)"
-            item_id="${item_line%%$'\t'*}"
-            item_title="${item_line#*$'\t'}"
-            if [[ -z "$item_id" ]]; then
+print(item.get("id",""))' 2>/dev/null)"
+            rc_code=$?
+            if [[ "$rc_code" -eq 2 ]]; then
                 printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(none)" "FAIL"
+                continue
+            fi
+            if [[ "$rc_code" -ne 0 || -z "$item_id" ]]; then
+                printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(list)" "FAIL"
                 continue
             fi
             local title_out
             title_out="$(_secrets_truncate "item:${item_id}" 40)"
             local value_ok
-            value_ok="$(OP_CLI_NO_COLOR=1 op item get "$item_id" --account "$account_arg" --format json 2>/dev/null | python -c 'import json,sys; data=json.load(sys.stdin); 
+            value_ok="$(OP_CLI_NO_COLOR=1 op item get "$item_id" --account "$account_arg" --format json 2>/dev/null | "$py_cmd" -c 'import json,sys; data=json.load(sys.stdin); 
 ok=False
 for f in data.get("fields",[]) or []:
     v=f.get("value")
