@@ -174,6 +174,10 @@ export SPARK_SEDONA_ENABLE=1
 export SPARK_SEDONA_VERSION=1.8.1
 export SPARK_GEOTOOLS_VERSION=1.8.1-33.1
 ```
+Resolve jar matrix:
+```bash
+jar_matrix_resolve
+```
 
 ### **Jupyter Integration**
 ```bash

@@ -27,6 +27,9 @@ export SPARK_EXECUTOR_MEMORY="${SPARK_EXECUTOR_MEMORY:-2g}"
 : "${SPARK_SEDONA_ENABLE:=1}"
 : "${SPARK_SEDONA_VERSION:=1.8.1}"
 : "${SPARK_GEOTOOLS_VERSION:=1.8.1-33.1}"
+: "${SPARK_KAFKA_ENABLE:=1}"
+: "${SPARK_KAFKA_VERSION:=}"
+: "${HADOOP_VERSION:=}"
 
 # Detect Spark and Scala versions from spark-submit output
 _spark_detect_versions() {
@@ -42,6 +45,52 @@ _spark_detect_versions() {
         return 0
     fi
     return 1
+}
+
+jar_matrix_resolve() {
+    local spark_version="${SPARK_VERSION:-}"
+    local scala_version="${SPARK_SCALA_VERSION:-}"
+    if [[ -z "$spark_version" || -z "$scala_version" ]]; then
+        local detected
+        detected="$(_spark_detect_versions 2>/dev/null || true)"
+        spark_version="${spark_version:-${detected%% *}}"
+        scala_version="${scala_version:-${detected#* }}"
+    fi
+    local scala_binary=""
+    if [[ -n "$scala_version" ]]; then
+        scala_binary="${scala_version%.*}"
+    fi
+    local spark_mm=""
+    if [[ -n "$spark_version" ]]; then
+        spark_mm="${spark_version%.*}"
+    fi
+    local sedona_spark_mm="${SPARK_SEDONA_SPARK_VERSION:-}"
+    if [[ -z "$sedona_spark_mm" && -n "$spark_version" ]]; then
+        if [[ "$spark_version" == 4.* ]]; then
+            sedona_spark_mm="4.0"
+        else
+            sedona_spark_mm="$spark_mm"
+        fi
+    fi
+    local coords=()
+    if [[ "$SPARK_SEDONA_ENABLE" == "1" && -n "$sedona_spark_mm" && -n "$scala_binary" ]]; then
+        coords+=("org.apache.sedona:sedona-spark-shaded-${sedona_spark_mm}_${scala_binary}:${SPARK_SEDONA_VERSION}")
+        coords+=("org.datasyslab:geotools-wrapper:${SPARK_GEOTOOLS_VERSION}")
+    fi
+    if [[ "$SPARK_KAFKA_ENABLE" == "1" && -n "$scala_binary" ]]; then
+        local kafka_version="${SPARK_KAFKA_VERSION:-$spark_version}"
+        if [[ -n "$kafka_version" ]]; then
+            coords+=("org.apache.spark:spark-sql-kafka-0-10_${scala_binary}:${kafka_version}")
+        fi
+    fi
+    if [[ -n "${SPARK_JARS_COORDS:-}" ]]; then
+        coords+=("${(s:,:)SPARK_JARS_COORDS}")
+    fi
+    if [[ ${#coords[@]} -eq 0 ]]; then
+        return 1
+    fi
+    local joined="${(j:,:)coords}"
+    echo "$joined"
 }
 
 # Check if Spark is available
@@ -211,34 +260,11 @@ get_spark_dependencies() {
     local deps=""
     local jars_root="${JARS_DIR:-$HOME/.jars}"
     local spark_version="${SPARK_VERSION:-}"
-    local scala_version="${SPARK_SCALA_VERSION:-}"
-    if [[ -z "$spark_version" || -z "$scala_version" ]]; then
-        local detected
-        detected="$(_spark_detect_versions 2>/dev/null || true)"
-        spark_version="${spark_version:-${detected%% *}}"
-        scala_version="${scala_version:-${detected#* }}"
+    if [[ -z "$spark_version" ]]; then
+        spark_version="$(_spark_detect_versions 2>/dev/null | awk '{print $1}' || true)"
     fi
-    local scala_binary=""
-    if [[ -n "$scala_version" ]]; then
-        scala_binary="${scala_version%.*}"
-    fi
-    local spark_mm=""
-    if [[ -n "$spark_version" ]]; then
-        spark_mm="${spark_version%.*}"
-    fi
-    local sedona_spark_mm="${SPARK_SEDONA_SPARK_VERSION:-}"
-    if [[ -z "$sedona_spark_mm" && -n "$spark_version" ]]; then
-        if [[ "$spark_version" == 4.* ]]; then
-            sedona_spark_mm="4.0"
-        else
-            sedona_spark_mm="$spark_mm"
-        fi
-    fi
-    local sedona_coords=""
-    if [[ "$SPARK_SEDONA_ENABLE" == "1" && -n "$sedona_spark_mm" && -n "$scala_binary" ]]; then
-        sedona_coords="org.apache.sedona:sedona-spark-shaded-${sedona_spark_mm}_${scala_binary}:${SPARK_SEDONA_VERSION},org.datasyslab:geotools-wrapper:${SPARK_GEOTOOLS_VERSION}"
-    fi
-    local spark_jars_coords="${SPARK_JARS_COORDS:-$sedona_coords}"
+    local spark_jars_coords=""
+    spark_jars_coords="$(jar_matrix_resolve 2>/dev/null || true)"
     
     # Check for local JARs first (for offline use)
     local jar_dirs=()

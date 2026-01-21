@@ -349,6 +349,10 @@ export SPARK_SEDONA_ENABLE=1
 export SPARK_SEDONA_VERSION=1.8.1
 export SPARK_GEOTOOLS_VERSION=1.8.1-33.1
 ```
+Spark jar resolver:
+```bash
+jar_matrix_resolve
+```
 
 **🔐 Secrets & Profiles:**
 ```bash

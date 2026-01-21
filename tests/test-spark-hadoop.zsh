@@ -91,10 +91,19 @@ test_spark_dependencies_use_jars_dir() {
     rm -rf "$tmp"
 }
 
+test_jar_matrix_resolve_basic() {
+    source "$ROOT_DIR/modules/spark.zsh"
+    local out
+    out="$(SPARK_VERSION=4.1.1 SPARK_SCALA_VERSION=2.13.17 jar_matrix_resolve)"
+    assert_contains "$out" "sedona-spark-shaded-4.0_2.13" "should include sedona coords"
+    assert_contains "$out" "spark-sql-kafka-0-10_2.13:4.1.1" "should include kafka coords"
+}
+
 register_test "test_spark_home_sdkman_preferred" "test_spark_home_sdkman_preferred"
 register_test "test_spark_install_from_tar_usage" "test_spark_install_from_tar_usage"
 register_test "test_spark_install_from_tar_dry_run" "test_spark_install_from_tar_dry_run"
 register_test "test_spark_dependencies_use_jars_dir" "test_spark_dependencies_use_jars_dir"
+register_test "test_jar_matrix_resolve_basic" "test_jar_matrix_resolve_basic"
 register_test "test_hadoop_home_sdkman_preferred" "test_hadoop_home_sdkman_preferred"
 register_test "test_start_hadoop_usage" "test_start_hadoop_usage"
 register_test "test_yarn_kill_all_apps_requires_force" "test_yarn_kill_all_apps_requires_force"
