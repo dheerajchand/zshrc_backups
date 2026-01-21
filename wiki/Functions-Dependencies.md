@@ -6,6 +6,21 @@ Comprehensive documentation of all functions, their dependencies, parameters, re
 
 Your zsh configuration system provides **78+ functions** across **8 functional categories**, each with specific dependencies, error handling, and performance characteristics.
 
+## 📚 **Module References (Full Function Index)**
+
+- [Module: Zshrc](Module-Zshrc)
+- [Module: Utils](Module-Utils)
+- [Module: Spark](Module-Spark)
+- [Module: Hadoop & YARN](Module-Hadoop)
+- [Module: Python](Module-Python)
+- [Module: Secrets](Module-Secrets)
+- [Module: Credentials](Module-Credentials)
+- [Module: Database](Module-Database)
+- [Module: Docker](Module-Docker)
+- [Module: System Diagnostics](Module-System-Diagnostics)
+- [Module: Backup](Module-Backup)
+- [Module: Screen](Module-Screen)
+
 ## 📊 **Function Categories & Counts**
 
 ```
@@ -154,6 +169,51 @@ function zshreboot {
 | `smart_spark_shell` | Intelligent shell selection | None | Shell process | Java, Spark | O(1) |
 | `heavy_api_shell` | High-memory shell | memory (opt) | Shell process | Java, Spark | O(1) |
 | `test_spark_dependencies` | Test Spark setup | None | Success/failure | Java, Spark | O(n) |
+
+### **Current Spark Operations (Recommended)**
+
+| Function | Purpose | Parameters | Notes |
+|----------|---------|------------|-------|
+| `spark_start` | Start master + worker | None | Writes `spark-env-zsh.sh`, preserves existing `spark-env.sh` |
+| `spark_stop` | Stop cluster | None | Stops worker/master |
+| `spark_status` | Status summary | None | Uses `pgrep`/`jps` |
+| `spark_health` | Health overview | None | Prints version + process health |
+| `smart_spark_submit` | Submit job | `<file>` | Uses local or Maven deps |
+| `spark_yarn_submit` | Submit to YARN | `<file> [client|cluster]` | Requires YARN |
+| `spark_install_from_tar` | Install Spark via SDKMAN layout | `[--default] [--dry-run] <version> <tarball>` | Manual version support |
+
+### **Jar Management (Universal)**
+
+The system uses a **single universal jars root** for all jar workflows:
+
+```
+export JARS_DIR="$HOME/.jars"
+```
+
+Spark resolves jars in this order:
+1) `${JARS_DIR}/spark/<spark_version>/`
+2) `${JARS_DIR}/spark/`
+3) `${JARS_DIR}/`
+
+Key functions:
+
+| Function | Purpose | Parameters | Notes |
+|----------|---------|------------|-------|
+| `jar_matrix_resolve` | Resolve jar coordinates | None | Uses Spark/Scala + infra toggles |
+| `jar_matrix_status` | Explain resolution | None | Prints Spark/Scala + coords + jar dir |
+| `download_jars` | Download Maven jars | `[--dest <dir>] <group:artifact:version>...` | Uses `JARS_DIR` by default |
+
+### **Jar Matrix Inputs**
+
+These environment variables drive resolution:
+
+- `SPARK_VERSION`, `SPARK_SCALA_VERSION` (auto‑detected if unset)
+- `SPARK_SEDONA_ENABLE=1`
+- `SPARK_SEDONA_VERSION=1.8.1`
+- `SPARK_GEOTOOLS_VERSION=1.8.1-33.1`
+- `SPARK_KAFKA_ENABLE=1`
+- `SPARK_KAFKA_VERSION` (defaults to `SPARK_VERSION`)
+- `SPARK_JARS_COORDS` (extra coordinates, comma‑separated)
 
 ### **Spark Function Dependencies**
 
