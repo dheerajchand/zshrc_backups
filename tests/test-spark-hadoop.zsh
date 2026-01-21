@@ -58,10 +58,34 @@ test_hadoop_conf_dir_overrides_invalid() {
     rm -rf "$tmp"
 }
 
+test_start_hadoop_usage() {
+    source "$ROOT_DIR/modules/hadoop.zsh"
+    local out
+    out="$(start_hadoop --help 2>&1 || true)"
+    assert_contains "$out" "Usage: start_hadoop" "should show usage"
+}
+
+test_yarn_kill_all_apps_requires_force() {
+    source "$ROOT_DIR/modules/hadoop.zsh"
+    local out
+    out="$(yarn_kill_all_apps 2>&1 || true)"
+    assert_contains "$out" "Refusing to kill all apps" "should require --force"
+}
+
+test_hdfs_rm_requires_force() {
+    source "$ROOT_DIR/modules/hadoop.zsh"
+    local out
+    out="$(hdfs_rm /tmp 2>&1 || true)"
+    assert_contains "$out" "Refusing to delete without --force" "should require --force"
+}
+
 register_test "test_spark_home_sdkman_preferred" "test_spark_home_sdkman_preferred"
 register_test "test_spark_install_from_tar_usage" "test_spark_install_from_tar_usage"
 register_test "test_spark_install_from_tar_dry_run" "test_spark_install_from_tar_dry_run"
 register_test "test_hadoop_home_sdkman_preferred" "test_hadoop_home_sdkman_preferred"
+register_test "test_start_hadoop_usage" "test_start_hadoop_usage"
+register_test "test_yarn_kill_all_apps_requires_force" "test_yarn_kill_all_apps_requires_force"
+register_test "test_hdfs_rm_requires_force" "test_hdfs_rm_requires_force"
 register_test "test_spark_health_defined" "test_spark_health_defined"
 register_test "test_hadoop_health_defined" "test_hadoop_health_defined"
 register_test "test_hadoop_conf_dir_overrides_invalid" "test_hadoop_conf_dir_overrides_invalid"
