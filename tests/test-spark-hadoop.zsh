@@ -99,11 +99,17 @@ test_jar_matrix_resolve_basic() {
     assert_contains "$out" "spark-sql-kafka-0-10_2.13:4.1.1" "should include kafka coords"
 }
 
+test_jar_matrix_status_defined() {
+    source "$ROOT_DIR/modules/spark.zsh"
+    assert_true "typeset -f jar_matrix_status >/dev/null 2>&1" "jar_matrix_status should be defined"
+}
+
 register_test "test_spark_home_sdkman_preferred" "test_spark_home_sdkman_preferred"
 register_test "test_spark_install_from_tar_usage" "test_spark_install_from_tar_usage"
 register_test "test_spark_install_from_tar_dry_run" "test_spark_install_from_tar_dry_run"
 register_test "test_spark_dependencies_use_jars_dir" "test_spark_dependencies_use_jars_dir"
 register_test "test_jar_matrix_resolve_basic" "test_jar_matrix_resolve_basic"
+register_test "test_jar_matrix_status_defined" "test_jar_matrix_status_defined"
 register_test "test_hadoop_home_sdkman_preferred" "test_hadoop_home_sdkman_preferred"
 register_test "test_start_hadoop_usage" "test_start_hadoop_usage"
 register_test "test_yarn_kill_all_apps_requires_force" "test_yarn_kill_all_apps_requires_force"

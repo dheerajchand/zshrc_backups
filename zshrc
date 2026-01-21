@@ -202,6 +202,7 @@ help() {
     echo "  spark_install_from_tar [--default] [--dry-run] <version> <tarball> - Install Spark via SDKMAN layout"
     echo "  pyspark_shell          - Interactive PySpark"
     echo "  jar_matrix_resolve     - Resolve Spark jar coordinates"
+    echo "  jar_matrix_status      - Show Spark jar resolution status"
     echo ""
     echo "🐘 Hadoop:"
     echo "  start_hadoop [--format] - Start HDFS + YARN (format if needed)"
