@@ -1290,9 +1290,11 @@ op_login_headless() {
             ((fail++))
             continue
         fi
-        token="$(op signin --account "$alias_name" --raw || true)"
+        unset "OP_SESSION_${alias_name}" 2>/dev/null || true
+        token="$(OP_CLI_NO_COLOR=1 op signin --account "$alias_name" --raw </dev/tty || true)"
         if [[ -z "$token" ]]; then
             _secrets_warn "Failed to sign in: $alias_name"
+            _secrets_info "Try: export OP_SESSION_${alias_name}=\"\$(op signin --account $alias_name --raw)\""
             ((fail++))
             continue
         fi
