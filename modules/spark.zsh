@@ -23,6 +23,10 @@ export SPARK_MASTER_PORT="${SPARK_MASTER_PORT:-7077}"
 export SPARK_MASTER_URL="spark://${SPARK_MASTER_HOST}:${SPARK_MASTER_PORT}"
 export SPARK_DRIVER_MEMORY="${SPARK_DRIVER_MEMORY:-2g}"
 export SPARK_EXECUTOR_MEMORY="${SPARK_EXECUTOR_MEMORY:-2g}"
+: "${SPARK_JARS_AUTO_DOWNLOAD:=1}"
+: "${SPARK_SEDONA_ENABLE:=1}"
+: "${SPARK_SEDONA_VERSION:=1.8.1}"
+: "${SPARK_GEOTOOLS_VERSION:=1.8.1-33.1}"
 
 # Detect Spark and Scala versions from spark-submit output
 _spark_detect_versions() {
@@ -205,9 +209,43 @@ spark_health() {
 # CRITICAL: Uses is_online() to decide local JARs vs Maven
 get_spark_dependencies() {
     local deps=""
+    local jars_root="${JARS_DIR:-$HOME/.jars}"
+    local spark_version="${SPARK_VERSION:-}"
+    local scala_version="${SPARK_SCALA_VERSION:-}"
+    if [[ -z "$spark_version" || -z "$scala_version" ]]; then
+        local detected
+        detected="$(_spark_detect_versions 2>/dev/null || true)"
+        spark_version="${spark_version:-${detected%% *}}"
+        scala_version="${scala_version:-${detected#* }}"
+    fi
+    local scala_binary=""
+    if [[ -n "$scala_version" ]]; then
+        scala_binary="${scala_version%.*}"
+    fi
+    local spark_mm=""
+    if [[ -n "$spark_version" ]]; then
+        spark_mm="${spark_version%.*}"
+    fi
+    local sedona_spark_mm="${SPARK_SEDONA_SPARK_VERSION:-}"
+    if [[ -z "$sedona_spark_mm" && -n "$spark_version" ]]; then
+        if [[ "$spark_version" == 4.* ]]; then
+            sedona_spark_mm="4.0"
+        else
+            sedona_spark_mm="$spark_mm"
+        fi
+    fi
+    local sedona_coords=""
+    if [[ "$SPARK_SEDONA_ENABLE" == "1" && -n "$sedona_spark_mm" && -n "$scala_binary" ]]; then
+        sedona_coords="org.apache.sedona:sedona-spark-shaded-${sedona_spark_mm}_${scala_binary}:${SPARK_SEDONA_VERSION},org.datasyslab:geotools-wrapper:${SPARK_GEOTOOLS_VERSION}"
+    fi
+    local spark_jars_coords="${SPARK_JARS_COORDS:-$sedona_coords}"
     
     # Check for local JARs first (for offline use)
-    local jar_dirs=("$HOME/spark-jars" "$HOME/.spark/jars")
+    local jar_dirs=()
+    if [[ -n "$spark_version" ]]; then
+        jar_dirs+=("${jars_root}/spark/${spark_version}")
+    fi
+    jar_dirs+=("${jars_root}/spark" "${jars_root}" "$HOME/spark-jars" "$HOME/.spark/jars")
     
     for jar_dir in "${jar_dirs[@]}"; do
         if [[ -d "$jar_dir" ]]; then
@@ -226,6 +264,21 @@ get_spark_dependencies() {
     
     # No local JARs - check if online for Maven
     if is_online; then
+        if [[ -n "$spark_jars_coords" && "$SPARK_JARS_AUTO_DOWNLOAD" == "1" && "$(command -v download_jars 2>/dev/null)" != "" ]]; then
+            local download_dir="${jars_root}/spark"
+            [[ -n "$spark_version" ]] && download_dir="${jars_root}/spark/${spark_version}"
+            download_jars --dest "$download_dir" "$spark_jars_coords" || true
+            if [[ -d "$download_dir" ]]; then
+                local jars=("$download_dir"/*.jar(N))
+                if [[ ${#jars[@]} -gt 0 ]]; then
+                    local jar_list="${(j:,:)jars}"
+                    deps="--jars $jar_list"
+                    echo "📦 Using downloaded JARs from $download_dir (${#jars[@]} files)" >&2
+                    echo "$deps"
+                    return 0
+                fi
+            fi
+        fi
         local spark_version scala_version scala_binary
         spark_version="${SPARK_VERSION:-}"
         scala_version="${SPARK_SCALA_VERSION:-}"

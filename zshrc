@@ -278,6 +278,7 @@ help() {
     echo "  zshreboot              - Start a fresh shell"
     echo "  zshreload              - Alias for zshreboot"
     echo "  is_online              - Check internet (used by Spark)"
+    echo "  download_jars          - Download Maven JARs to JARS_DIR"
     echo "  mkcd <dir>             - Create and cd"
     echo "  extract <file>         - Universal archive extraction"
     echo "  path_clean             - Remove duplicate PATH entries"

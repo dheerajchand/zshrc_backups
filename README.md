@@ -339,6 +339,16 @@ Version overrides for Maven dependencies:
 export SPARK_VERSION=4.1.1
 export SPARK_SCALA_VERSION=2.13.17
 ```
+Universal jars directory:
+```bash
+export JARS_DIR="$HOME/.jars"
+```
+Sedona defaults:
+```bash
+export SPARK_SEDONA_ENABLE=1
+export SPARK_SEDONA_VERSION=1.8.1
+export SPARK_GEOTOOLS_VERSION=1.8.1-33.1
+```
 
 **🔐 Secrets & Profiles:**
 ```bash
