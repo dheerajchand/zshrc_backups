@@ -300,6 +300,8 @@ op_verify_accounts() {
         echo "================================"
         printf "%-22s | %-32s | %-40s | %s\n" "Alias" "UUID" "Item" "Result"
         local line alias_name uuid
+        local accounts_json
+        accounts_json="$(OP_CLI_NO_COLOR=1 op account list --format=json 2>/dev/null || true)"
         while IFS= read -r line || [[ -n "$line" ]]; do
             [[ -z "$line" || "$line" == \#* ]] && continue
             alias_name="${line%%=*}"
@@ -307,12 +309,17 @@ op_verify_accounts() {
             alias_name="${alias_name## }"; alias_name="${alias_name%% }"
             uuid="${uuid## }"; uuid="${uuid%% }"
             [[ -z "$alias_name" || -z "$uuid" ]] && continue
-            if ! op_signin_account_uuid "$alias_name" >/dev/null 2>&1; then
-                printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(signin)" "FAIL"
+            local account_arg=""
+            if _op_account_shorthand_configured "$alias_name" "$accounts_json"; then
+                account_arg="$alias_name"
+            elif _op_account_uuid_configured "$uuid" "$accounts_json"; then
+                account_arg="$uuid"
+            else
+                printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(account)" "FAIL"
                 continue
             fi
             local items_json item_line item_id item_title
-            items_json="$(OP_CLI_NO_COLOR=1 op item list --account "$uuid" --format json 2>/dev/null)"
+            items_json="$(OP_CLI_NO_COLOR=1 op item list --account "$account_arg" --format json 2>/dev/null)"
             if [[ $? -ne 0 ]]; then
                 printf "%-22s | %-32s | %-40s | %s\n" "$alias_name" "$uuid" "(list)" "FAIL"
                 continue
@@ -342,7 +349,7 @@ print(item.get("id",""), item.get("title",""), sep="\t")' 2>/dev/null || true)"
             fi
             title_out="$(_secrets_truncate "$display_title" 40)"
             local value_ok
-            value_ok="$(OP_CLI_NO_COLOR=1 op item get "$item_id" --account "$uuid" --format json 2>/dev/null | python -c 'import json,sys; data=json.load(sys.stdin); 
+            value_ok="$(OP_CLI_NO_COLOR=1 op item get "$item_id" --account "$account_arg" --format json 2>/dev/null | python -c 'import json,sys; data=json.load(sys.stdin); 
 ok=False
 for f in data.get("fields",[]) or []:
     v=f.get("value")
