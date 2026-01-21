@@ -48,6 +48,23 @@ fi
 
 # Start Hadoop services (HDFS + YARN)
 start_hadoop() {
+    local do_format=0
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --format)
+                do_format=1
+                shift
+                ;;
+            --help|-h)
+                echo "Usage: start_hadoop [--format]" >&2
+                return 0
+                ;;
+            *)
+                echo "Usage: start_hadoop [--format]" >&2
+                return 1
+                ;;
+        esac
+    done
     if [[ ! -d "$HADOOP_HOME" ]]; then
         echo "❌ HADOOP_HOME not found: $HADOOP_HOME"
         echo "Install via SDKMAN or set HADOOP_HOME"
@@ -59,6 +76,10 @@ start_hadoop() {
     # Check if HDFS needs formatting
     local namenode_dir="${HOME}/hadoop-data/namenode"
     if [[ ! -d "$namenode_dir/current" ]]; then
+        if [[ "$do_format" -ne 1 ]]; then
+            echo "⚠️  HDFS not formatted. Run: start_hadoop --format"
+            return 1
+        fi
         echo "📝 Formatting HDFS namenode..."
         # Clean any old data to avoid clusterID mismatch
         rm -rf "${HOME}/hadoop-data/datanode" 2>/dev/null
@@ -270,6 +291,27 @@ yarn_application_list() {
 
 # Kill all YARN applications
 yarn_kill_all_apps() {
+    local force=0
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --force)
+                force=1
+                shift
+                ;;
+            --help|-h)
+                echo "Usage: yarn_kill_all_apps [--force]" >&2
+                return 0
+                ;;
+            *)
+                echo "Usage: yarn_kill_all_apps [--force]" >&2
+                return 1
+                ;;
+        esac
+    done
+    if [[ "$force" -ne 1 ]]; then
+        echo "⚠️  Refusing to kill all apps without --force" >&2
+        return 1
+    fi
     echo "🗑️  Killing all YARN applications..."
     
     local app_ids=$(yarn application -list 2>/dev/null | grep "application_" | awk '{print $1}')
@@ -344,13 +386,37 @@ hdfs_get() {
 
 # Remove file from HDFS
 hdfs_rm() {
-    local hdfs_path="$1"
-    
+    local hdfs_path=""
+    local force=0
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --force)
+                force=1
+                shift
+                ;;
+            --help|-h)
+                echo "Usage: hdfs_rm [--force] <hdfs_path>" >&2
+                return 0
+                ;;
+            *)
+                if [[ -z "$hdfs_path" ]]; then
+                    hdfs_path="$1"
+                else
+                    echo "Usage: hdfs_rm [--force] <hdfs_path>" >&2
+                    return 1
+                fi
+                shift
+                ;;
+        esac
+    done
     if [[ -z "$hdfs_path" ]]; then
-        echo "Usage: hdfs_rm <hdfs_path>"
+        echo "Usage: hdfs_rm [--force] <hdfs_path>" >&2
         return 1
     fi
-    
+    if [[ "$force" -ne 1 ]]; then
+        echo "⚠️  Refusing to delete without --force" >&2
+        return 1
+    fi
     hdfs dfs -rm -r "$hdfs_path"
 }
 

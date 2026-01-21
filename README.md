@@ -323,10 +323,21 @@ load-docker             # Manual loading if needed
 **⚡ Big Data Processing:**
 ```bash
 spark_status            # Spark cluster status
-start_hadoop            # Hadoop ecosystem
+start_hadoop            # Hadoop ecosystem (use --format if needed)
 smart_spark_submit job.py
 spark_install_from_tar 4.1.1 /path/to/spark-4.1.1-bin-hadoop3-connect.tar
 spark_install_from_tar --default --dry-run 4.1.1 /path/to/spark-4.1.1-bin-hadoop3-connect.tar
+```
+Safety flags:
+```bash
+start_hadoop --format          # explicit HDFS format
+yarn_kill_all_apps --force     # kill all YARN apps
+hdfs_rm --force /path          # remove HDFS path
+```
+Version overrides for Maven dependencies:
+```bash
+export SPARK_VERSION=4.1.1
+export SPARK_SCALA_VERSION=2.13.17
 ```
 
 **🔐 Secrets & Profiles:**

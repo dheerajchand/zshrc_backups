@@ -159,6 +159,11 @@ smart_spark_shell
 spark_install_from_tar 4.1.1 /path/to/spark-4.1.1-bin-hadoop3-connect.tar
 spark_install_from_tar --default --dry-run 4.1.1 /path/to/spark-4.1.1-bin-hadoop3-connect.tar
 ```
+Optional dependency overrides:
+```bash
+export SPARK_VERSION=4.1.1
+export SPARK_SCALA_VERSION=2.13.17
+```
 
 ### **Jupyter Integration**
 ```bash
