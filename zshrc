@@ -201,6 +201,7 @@ help() {
     echo "  spark_yarn_submit <file> - Submit to YARN"
     echo "  spark_install_from_tar [--default] [--dry-run] <version> <tarball> - Install Spark via SDKMAN layout"
     echo "  pyspark_shell          - Interactive PySpark"
+    echo "  jar_matrix_resolve     - Resolve Spark jar coordinates"
     echo ""
     echo "🐘 Hadoop:"
     echo "  start_hadoop [--format] - Start HDFS + YARN (format if needed)"
