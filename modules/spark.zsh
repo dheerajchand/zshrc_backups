@@ -93,6 +93,33 @@ jar_matrix_resolve() {
     echo "$joined"
 }
 
+jar_matrix_status() {
+    local spark_version="${SPARK_VERSION:-}"
+    local scala_version="${SPARK_SCALA_VERSION:-}"
+    if [[ -z "$spark_version" || -z "$scala_version" ]]; then
+        local detected
+        detected="$(_spark_detect_versions 2>/dev/null || true)"
+        spark_version="${spark_version:-${detected%% *}}"
+        scala_version="${scala_version:-${detected#* }}"
+    fi
+    local coords
+    coords="$(jar_matrix_resolve 2>/dev/null || true)"
+    local jars_root="${JARS_DIR:-$HOME/.jars}"
+    local jar_dir="${jars_root}/spark"
+    [[ -n "$spark_version" ]] && jar_dir="${jars_root}/spark/${spark_version}"
+    echo "🧩 Jar Matrix Status"
+    echo "===================="
+    echo "Spark: ${spark_version:-unknown}"
+    echo "Scala: ${scala_version:-unknown}"
+    echo "JARS_DIR: ${jars_root}"
+    echo "Jar dir: ${jar_dir}"
+    if [[ -n "$coords" ]]; then
+        echo "Coords: $coords"
+    else
+        echo "Coords: (none)"
+    fi
+}
+
 # Check if Spark is available
 if [[ ! -d "$SPARK_HOME" ]] && command -v spark-submit >/dev/null 2>&1; then
     SPARK_HOME="$(dirname $(dirname $(which spark-submit)))"

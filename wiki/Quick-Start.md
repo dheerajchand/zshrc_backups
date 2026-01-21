@@ -177,6 +177,7 @@ export SPARK_GEOTOOLS_VERSION=1.8.1-33.1
 Resolve jar matrix:
 ```bash
 jar_matrix_resolve
+jar_matrix_status
 ```
 
 ### **Jupyter Integration**
