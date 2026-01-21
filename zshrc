@@ -248,6 +248,7 @@ help() {
     echo "  op_signin_all           - Sign in to all account aliases"
     echo "  op_signin_account_uuid  - Sign in using alias UUID"
     echo "  op_set_default_alias    - Set default using alias"
+    echo "  op_login_headless       - Add missing + sign in all accounts (headless)"
     echo "  secrets_rsync_to_host   - Rsync secrets files to host"
     echo "  secrets_rsync_from_host - Rsync secrets files from host"
     echo "  secrets_rsync_to_cyberpower   - Rsync secrets to cyberpower"

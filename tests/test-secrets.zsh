@@ -292,6 +292,19 @@ test_op_verify_accounts_requires_op() {
     rm -rf "$tmp"
 }
 
+test_op_login_headless_requires_op() {
+    local old_path="$PATH"
+    local tmp bin out
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    PATH="$bin"
+    out="$(op_login_headless 2>&1 || true)"
+    assert_contains "$out" "op not found" "headless login should require op"
+    PATH="$old_path"
+    rm -rf "$tmp"
+}
+
 test_secrets_safe_title() {
     assert_equal "hello" "$(_secrets_safe_title "hello")" "should keep normal title"
     assert_equal "(redacted)" "$(_secrets_safe_title "API_KEY=secret")" "should redact suspicious title"
@@ -681,6 +694,7 @@ register_test "test_op_list_accounts_vaults_empty" "test_op_list_accounts_vaults
 register_test "test_op_list_items_requires_op" "test_op_list_items_requires_op"
 register_test "test_secrets_pull_requires_op" "test_secrets_pull_requires_op"
 register_test "test_secrets_pull_fallback_notes_plain" "test_secrets_pull_fallback_notes_plain"
+register_test "test_op_login_headless_requires_op" "test_op_login_headless_requires_op"
 register_test "test_secrets_profile_switch_usage" "test_secrets_profile_switch_usage"
 register_test "test_secrets_profile_switch_sets_profile" "test_secrets_profile_switch_sets_profile"
 register_test "test_secrets_profile_switch_persists" "test_secrets_profile_switch_persists"

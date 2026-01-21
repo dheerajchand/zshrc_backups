@@ -58,6 +58,11 @@ op_verify_accounts
 ```
 Item titles are redacted if they look like secrets.
 
+### **Headless 1Password Login**
+```bash
+op_login_headless
+```
+
 ### **Rsync Secrets (Fallback)**
 ```bash
 secrets_rsync_to_host user@host
