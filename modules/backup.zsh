@@ -84,10 +84,9 @@ repo_status() {
 
 # Aliases
 alias zshbackup='backup'
-alias zshsync='sync'
+alias zshsync='repo_sync'
 alias zshstatus='repo_status'
 
 echo "✅ backup loaded"
-
 
 

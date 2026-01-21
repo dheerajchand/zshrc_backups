@@ -16,7 +16,7 @@ register_test() {
     local name="$1"
     local func="${2:-$1}"
     TEST_NAMES+=("$name")
-    TEST_FUNCS["$name"]="$func"
+    TEST_FUNCS[$name]="$func"
 }
 
 _print_fail() {

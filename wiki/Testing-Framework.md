@@ -7,22 +7,15 @@ Comprehensive unit testing framework for Zsh functions, providing pytest-like fu
 The ZSH Testing Framework provides:
 - **Unit Testing**: Test individual functions in isolation
 - **Integration Testing**: Test function interactions and workflows
-- **Coverage Reporting**: Identify untested code paths
-- **Hostile Testing**: **100% pass rate achieved** - comprehensive failure scenario validation
-- **Parallel Execution**: Run tests in parallel for faster execution
-- **CI/CD Integration**: Automated testing in continuous integration
 - **Comprehensive Assertions**: Rich set of assertion functions
 - **Test Discovery**: Automatic test discovery and execution
-- **Big Data Validation**: Complete Spark + Hadoop cluster functionality testing
 
 ## 🎯 Key Features
 
 ### **pytest-like Functionality**
 - Test discovery and execution
-- Assertions and mocking capabilities
-- Test reporting and coverage
-- Parallel test execution
-- Integration with CI/CD
+- Assertions for common validation
+- Test reporting (pass/fail summary)
 
 ### **Comprehensive Assertions**
 - `assert_true()` / `assert_false()` - Boolean assertions
@@ -33,15 +26,12 @@ The ZSH Testing Framework provides:
 - `assert_var_set()` / `assert_var_unset()` - Variable validation
 
 ### **Test Categories**
-- **Python Functions**: `setup_pyenv`, `setup_uv`, `python_status`, etc.
-- **Backup System**: `deduplicate_path`, `enhanced_backup`, `sync_repositories`, etc.
-- **Bash Compatibility**: Cross-shell compatibility functions
-- **Bash Installation**: Installation scripts and setup validation
-- **Spark Functions**: Spark, Hadoop, YARN function testing
-- **JVM Functions**: Java environment and big data tools
-- **Jupyter Functions**: Notebook and Jupyter integration
-- **Environment Variables**: Configuration validation
-- **Integration Tests**: End-to-end workflow testing
+- **Secrets & Credentials**: 1Password + env handling
+- **Python**: pyenv status + shims
+- **Spark/Hadoop**: core workflows and safety guards
+- **System Diagnostics**: macOS/Linux checks
+- **Core Utilities**: path helpers + jar downloads
+- **Backup/Database/Docker/Screen**: module sanity tests
 
 ## 🚀 Quick Start
 
@@ -53,64 +43,26 @@ zsh run-tests.zsh
 # Run with verbose output
 zsh run-tests.zsh --verbose
 
-# Run with coverage reporting
-zsh run-tests.zsh --coverage
-
 # Run specific test
 zsh run-tests.zsh --test "test_python_status"
-
-# Run tests in parallel
-zsh run-tests.zsh --parallel 4
-```
-
-### **Quick System Tests**
-```bash
-# Run comprehensive hostile testing (100% verified)
-./honest-testing-framework.sh
-
-# Run quick integration tests
-test_system
-
-# Test specific components
-test_backup
-test_python
-test_compatibility
-test_bash_install
-test_spark
-test_jvm
-test_jupyter
-```
-
-### **🎯 Hostile Testing Results**
-```
-🎉 HONEST VERDICT: SYSTEM FULLY FUNCTIONAL
-✅ All components work together completely
-✅ No partial successes accepted
-✅ Ready for production use
-
-📊 Total tests run: 8
-✅ Complete successes: 8
-❌ Failures/Incomplete: 0
-📈 HONEST pass rate: 100%
 ```
 
 ## 📁 Test Structure
 
 ```
 tests/
-├── README.md                    # Comprehensive testing documentation
-├── test-config.zsh             # Test configuration and setup
-├── test-python-functions.zsh   # Python function tests
-├── test-backup-functions.zsh   # Backup system tests
-├── test-bash-compatibility.zsh # Bash compatibility tests
-├── test-bash-installation.zsh  # Bash installation tests
-├── test-bash-compatibility-detailed.zsh # Detailed bash compatibility tests
-├── test-spark-functions.zsh    # Spark and JVM function tests
-├── test-jvm-functions.zsh      # JVM, Hadoop, YARN function tests
-├── test-notebook-functions.zsh # Jupyter notebook function tests
-└── test-results/               # Test output directory
-    ├── test-report.json        # Detailed test results
-    └── coverage-report.html    # Coverage report (if enabled)
+├── README.md
+├── test-framework.zsh
+├── test-credentials.zsh
+├── test-secrets.zsh
+├── test-python.zsh
+├── test-spark-hadoop.zsh
+├── test-system-diagnostics.zsh
+├── test-utils.zsh
+├── test-backup.zsh
+├── test-database.zsh
+├── test-docker.zsh
+└── test-screen.zsh
 ```
 
 ## 🧪 Writing Tests
@@ -179,25 +131,14 @@ test_backup_function() {
 
 ### **Coverage Reporting**
 ```bash
-# Run tests with coverage
-zsh run-tests.zsh --coverage
-
-# View coverage report
-open test-results/coverage-report.html
 ```
-
-### **Coverage Metrics**
-- **Function Coverage**: Percentage of functions tested
-- **Line Coverage**: Percentage of code lines executed
-- **Branch Coverage**: Percentage of conditional branches tested
-- **Path Coverage**: Percentage of execution paths tested
 
 ## 🔧 Test Framework Components
 
 ### **Core Framework** (`test-framework.zsh`)
 - Test discovery and execution
-- Assertion functions
-- Test reporting and statistics
+- Assertion helpers
+- Pass/fail summary output
 - Coverage tracking
 - Parallel execution support
 
