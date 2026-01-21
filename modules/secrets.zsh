@@ -1232,6 +1232,78 @@ op_signin_all() {
     done < "$OP_ACCOUNTS_FILE"
 }
 
+op_login_headless() {
+    setopt local_options
+    unsetopt xtrace verbose
+    if ! command -v op >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot sign in"
+        return 1
+    fi
+    if [[ ! -f "$OP_ACCOUNTS_FILE" ]]; then
+        _secrets_warn "No account aliases file: $OP_ACCOUNTS_FILE"
+        _secrets_info "Create: op_accounts_edit"
+        return 1
+    fi
+    local accounts_json
+    accounts_json="$(OP_CLI_NO_COLOR=1 op account list --format=json 2>/dev/null || true)"
+    if [[ -z "$accounts_json" ]]; then
+        _secrets_warn "No accounts configured on this device (run: op account add)"
+        return 1
+    fi
+    echo "🔐 1Password Headless Login"
+    echo "==========================="
+    local line alias_name resolved token ok=0 fail=0
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        alias_name="${line%%=*}"
+        alias_name="${alias_name## }"; alias_name="${alias_name%% }"
+        [[ -z "$alias_name" ]] && continue
+        resolved="$(_op_account_alias "$alias_name" 2>/dev/null || true)"
+        if [[ -z "$resolved" ]]; then
+            _secrets_warn "Account alias not found: $alias_name"
+            ((fail++))
+            continue
+        fi
+        if ! _op_account_shorthand_configured "$alias_name" "$accounts_json" && \
+           ! _op_account_uuid_configured "$resolved" "$accounts_json"; then
+            _secrets_warn "Account not configured: $alias_name ($resolved)"
+            if [[ -o interactive ]]; then
+                local reply=""
+                read -r "reply?Add now with 'op account add --shorthand $alias_name'? [y/N]: "
+                if [[ "$reply" =~ ^[Yy]$ ]]; then
+                    op account add --shorthand "$alias_name" || {
+                        ((fail++))
+                        continue
+                    }
+                    accounts_json="$(OP_CLI_NO_COLOR=1 op account list --format=json 2>/dev/null || true)"
+                else
+                    ((fail++))
+                    continue
+                fi
+            else
+                ((fail++))
+                continue
+            fi
+        fi
+        if [[ ! "$alias_name" =~ ^[A-Za-z0-9_]+$ ]]; then
+            _secrets_warn "Invalid alias for OP_SESSION var: $alias_name"
+            ((fail++))
+            continue
+        fi
+        token="$(op signin --account "$alias_name" --raw 2>/dev/null || true)"
+        if [[ -z "$token" ]]; then
+            _secrets_warn "Failed to sign in: $alias_name"
+            ((fail++))
+            continue
+        fi
+        export "OP_SESSION_${alias_name}=${token}"
+        echo "✅ Signed in: $alias_name"
+        ((ok++))
+    done < "$OP_ACCOUNTS_FILE"
+    echo "Done: ${ok} ok, ${fail} failed"
+    [[ "$fail" -eq 0 ]] || return 1
+}
+
 secrets_profiles() {
     local list
     local -a profiles

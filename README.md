@@ -115,6 +115,7 @@ Multi-account sign-in helpers (uses `op-accounts.env` aliases):
 op_signin_account Siege_Analytics
 op_signin_all
 op_verify_accounts
+op_login_headless
 ```
 `op_verify_accounts` redacts suspicious item titles (e.g., long or key=value).
 
@@ -347,6 +348,7 @@ op_accounts_edit        # Edit 1Password account aliases
 op_accounts_set_alias   # Set alias in op-accounts.env
 op_accounts_seed        # Prompt to seed aliases from op CLI
 op_verify_accounts      # Sign in + verify secrets per alias
+op_login_headless       # Add missing + sign in all accounts (headless)
 op_set_default          # Set default 1Password account/vault
 op_list_accounts_vaults # List accounts and vaults
 op_list_items           # List items in account/vault
