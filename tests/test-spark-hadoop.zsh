@@ -79,9 +79,22 @@ test_hdfs_rm_requires_force() {
     assert_contains "$out" "Refusing to delete without --force" "should require --force"
 }
 
+test_spark_dependencies_use_jars_dir() {
+    source "$ROOT_DIR/modules/spark.zsh"
+    local tmp dir out
+    tmp="$(mktemp -d)"
+    dir="$tmp/jars/spark/4.1.1"
+    mkdir -p "$dir"
+    touch "$dir/test.jar"
+    out="$(JARS_DIR="$tmp/jars" SPARK_VERSION="4.1.1" ZSH_TEST_MODE=1 zsh -fc "source $ROOT_DIR/modules/spark.zsh; get_spark_dependencies")"
+    assert_contains "$out" "--jars" "should use local jars when available"
+    rm -rf "$tmp"
+}
+
 register_test "test_spark_home_sdkman_preferred" "test_spark_home_sdkman_preferred"
 register_test "test_spark_install_from_tar_usage" "test_spark_install_from_tar_usage"
 register_test "test_spark_install_from_tar_dry_run" "test_spark_install_from_tar_dry_run"
+register_test "test_spark_dependencies_use_jars_dir" "test_spark_dependencies_use_jars_dir"
 register_test "test_hadoop_home_sdkman_preferred" "test_hadoop_home_sdkman_preferred"
 register_test "test_start_hadoop_usage" "test_start_hadoop_usage"
 register_test "test_yarn_kill_all_apps_requires_force" "test_yarn_kill_all_apps_requires_force"

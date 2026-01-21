@@ -5,6 +5,8 @@
 # Essential helper functions for daily shell work
 # =================================================================
 
+: "${JARS_DIR:=$HOME/.jars}"
+
 # Check if internet connection is available
 # Used by Spark to decide: local JARs vs Maven downloads
 is_online() {
@@ -45,6 +47,60 @@ extract() {
     else
         echo "File not found: $1"
     fi
+}
+
+download_jars() {
+    local dest="${JARS_DIR}"
+    local -a coords=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --dest)
+                dest="$2"
+                shift 2
+                ;;
+            --help|-h)
+                echo "Usage: download_jars [--dest <dir>] <group:artifact:version> [more...]" >&2
+                return 0
+                ;;
+            *)
+                coords+=("$1")
+                shift
+                ;;
+        esac
+    done
+    if [[ ${#coords[@]} -eq 0 ]]; then
+        echo "Usage: download_jars [--dest <dir>] <group:artifact:version> [more...]" >&2
+        return 1
+    fi
+    if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+        echo "Neither curl nor wget found; cannot download jars" >&2
+        return 1
+    fi
+    mkdir -p "$dest" || return 1
+    local coord
+    for coord in "${coords[@]}"; do
+        for c in ${(s:,:)coord}; do
+            [[ -z "$c" ]] && continue
+            local group artifact version
+            IFS=':' read -r group artifact version <<< "$c"
+            if [[ -z "$group" || -z "$artifact" || -z "$version" ]]; then
+                echo "Invalid coordinate: $c" >&2
+                return 1
+            fi
+            local group_path="${group//./\/}"
+            local jar_name="${artifact}-${version}.jar"
+            local url="https://repo1.maven.org/maven2/${group_path}/${artifact}/${version}/${jar_name}"
+            local out="${dest}/${jar_name}"
+            if [[ -f "$out" ]]; then
+                continue
+            fi
+            if command -v curl >/dev/null 2>&1; then
+                curl -fsSL "$url" -o "$out" || return 1
+            else
+                wget -qO "$out" "$url" || return 1
+            fi
+        done
+    done
 }
 
 # Recursive text search
@@ -116,6 +172,5 @@ alias zshreload='zshreboot'
 alias editconfig='zshconfig'
 
 echo "✅ utils loaded"
-
 
 
