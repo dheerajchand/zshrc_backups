@@ -128,22 +128,28 @@ if detect_ide; then
     load_module system_diagnostics  # iCloud/Dropbox helpers
     load_module screen      # GNU screen helpers
     
-    # Tier 2: Credentials & paths (load in background after brief delay)
-    {
-        sleep 0.1
+    # Tier 2: Credentials & paths (defer in current shell)
+    _zsh_load_tier2() {
         load_module credentials  # 1Password/Keychain
         load_module database     # PostgreSQL with credentials
         load_module backup       # Git self-backup
-    } &
+    }
     
-    # Tier 3: Heavy tools (load in background - Spark/Hadoop/Docker)
-    {
-        sleep 0.5
+    # Tier 3: Heavy tools (defer in current shell)
+    _zsh_load_tier3() {
         load_module docker       # Docker management
         load_module spark        # Spark cluster (uses is_online!)
         load_module hadoop       # Hadoop/YARN/HDFS
         echo "✅ All modules loaded" >&2
-    } &
+    }
+    
+    if zmodload zsh/sched 2>/dev/null; then
+        sched +0.1 _zsh_load_tier2
+        sched +0.5 _zsh_load_tier3
+    else
+        _zsh_load_tier2
+        _zsh_load_tier3
+    fi
     
     echo "💡 Python ready now, Spark/Hadoop loading in background"
     
@@ -273,7 +279,7 @@ help() {
     echo "📦 Backup:"
     echo "  backup ['message']     - Commit and push to GitHub"
     echo "  pushmain               - Quick push"
-    echo "  sync                   - Sync repository"
+    echo "  repo_sync              - Sync repository"
     echo ""
     echo "🛠️  Utilities:"
     echo "  zshconfig              - Edit zsh configuration"
@@ -432,7 +438,13 @@ if [[ -o interactive ]]; then
 fi
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-if [[ "$OSTYPE" == "darwin"* && -d "/Users/dheerajchand/.rd/bin" ]]; then
-    export PATH="/Users/dheerajchand/.rd/bin:$PATH"
+if [[ "$OSTYPE" == "darwin"* && -d "$HOME/.rd/bin" ]]; then
+    export PATH="$HOME/.rd/bin:$PATH"
 fi
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
+
+# pyenv (screen)
+if command -v pyenv >/dev/null 2>&1; then
+  eval "$(pyenv init --path)"
+  eval "$(pyenv init -)"
+fi
