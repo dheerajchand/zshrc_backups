@@ -39,6 +39,11 @@ Welcome to the comprehensive documentation for your enhanced zsh configuration s
 - Hadoop integration
 - Jupyter notebook setup
 
+### **🧩 [Functions & Dependencies](Functions-Dependencies)**
+- Detailed function reference
+- Jar matrix resolution
+- Spark/Hadoop safety flags
+
 ### **🐍 [Python Environment](Python-Environment)**
 - Pyenv and UV management
 - Virtual environment setup
