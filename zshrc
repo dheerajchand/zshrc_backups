@@ -286,6 +286,8 @@ help() {
     echo "  linux_system_status     - Linux-only system overview"
     echo "  data_platform_health    - Spark/Hadoop/YARN health suite"
     echo "  data_platform_config_status - Spark/Hadoop/Python config"
+    echo "  data_platform_use_versions --spark v --hadoop v --scala v --java v --pyenv v"
+    echo "  data_platform_default_versions --spark v --hadoop v --scala v --java v --pyenv v"
     echo "  spark_health            - Spark master/worker health"
     echo "  hadoop_health           - HDFS/YARN health overview"
     echo "  yarn_health             - YARN health overview"

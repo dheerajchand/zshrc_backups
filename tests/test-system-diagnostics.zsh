@@ -72,6 +72,21 @@ test_data_platform_config_status_defined() {
     assert_true "typeset -f data_platform_config_status >/dev/null 2>&1" "data_platform_config_status should be defined"
 }
 
+_make_stub_sdk() {
+    local bin_dir="$1"
+    cat > "$bin_dir/sdk" <<'SDK'
+#!/usr/bin/env zsh
+exit 0
+SDK
+    chmod +x "$bin_dir/sdk"
+}
+
+test_data_platform_use_versions_defined() {
+    source "$ROOT_DIR/modules/system_diagnostics.zsh"
+    assert_true "typeset -f data_platform_use_versions >/dev/null 2>&1" "data_platform_use_versions should be defined"
+    assert_true "typeset -f data_platform_default_versions >/dev/null 2>&1" "data_platform_default_versions should be defined"
+}
+
 register_test "test_icloud_status_missing_tools" "test_icloud_status_missing_tools"
 register_test "test_icloud_preflight_no_brctl" "test_icloud_preflight_no_brctl"
 register_test "test_icloud_reset_state_non_interactive" "test_icloud_reset_state_non_interactive"
@@ -79,3 +94,4 @@ register_test "test_dropbox_restart_test_mode" "test_dropbox_restart_test_mode"
 register_test "test_linux_system_status_non_linux" "test_linux_system_status_non_linux"
 register_test "test_data_platform_health_without_modules" "test_data_platform_health_without_modules"
 register_test "test_data_platform_config_status_defined" "test_data_platform_config_status_defined"
+register_test "test_data_platform_use_versions_defined" "test_data_platform_use_versions_defined"
