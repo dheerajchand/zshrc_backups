@@ -99,6 +99,24 @@ test_jar_matrix_resolve_basic() {
     assert_contains "$out" "spark-sql-kafka-0-10_2.13:4.1.1" "should include kafka coords"
 }
 
+test_jar_matrix_defaults_spark22() {
+    local out
+    out="$(SPARK_VERSION=2.2.3 SPARK_SCALA_VERSION= PATH="/usr/bin:/bin" ZSH_TEST_MODE=1 zsh -fc "source $ROOT_DIR/modules/spark.zsh; jar_matrix_resolve")"
+    assert_contains "$out" "spark-sql-kafka-0-10_2.11:2.2.3" "spark 2.2 should default scala 2.11"
+}
+
+test_jar_matrix_defaults_spark24() {
+    local out
+    out="$(SPARK_VERSION=2.4.8 SPARK_SCALA_VERSION= PATH="/usr/bin:/bin" ZSH_TEST_MODE=1 zsh -fc "source $ROOT_DIR/modules/spark.zsh; jar_matrix_resolve")"
+    assert_contains "$out" "spark-sql-kafka-0-10_2.12:2.4.8" "spark 2.4 should default scala 2.12"
+}
+
+test_jar_matrix_defaults_spark4() {
+    local out
+    out="$(SPARK_VERSION=4.1.1 SPARK_SCALA_VERSION= PATH="/usr/bin:/bin" ZSH_TEST_MODE=1 zsh -fc "source $ROOT_DIR/modules/spark.zsh; jar_matrix_resolve")"
+    assert_contains "$out" "spark-sql-kafka-0-10_2.13:4.1.1" "spark 4.x should default scala 2.13"
+}
+
 test_jar_matrix_status_defined() {
     source "$ROOT_DIR/modules/spark.zsh"
     assert_true "typeset -f jar_matrix_status >/dev/null 2>&1" "jar_matrix_status should be defined"
@@ -109,6 +127,9 @@ register_test "test_spark_install_from_tar_usage" "test_spark_install_from_tar_u
 register_test "test_spark_install_from_tar_dry_run" "test_spark_install_from_tar_dry_run"
 register_test "test_spark_dependencies_use_jars_dir" "test_spark_dependencies_use_jars_dir"
 register_test "test_jar_matrix_resolve_basic" "test_jar_matrix_resolve_basic"
+register_test "test_jar_matrix_defaults_spark22" "test_jar_matrix_defaults_spark22"
+register_test "test_jar_matrix_defaults_spark24" "test_jar_matrix_defaults_spark24"
+register_test "test_jar_matrix_defaults_spark4" "test_jar_matrix_defaults_spark4"
 register_test "test_jar_matrix_status_defined" "test_jar_matrix_status_defined"
 register_test "test_hadoop_home_sdkman_preferred" "test_hadoop_home_sdkman_preferred"
 register_test "test_start_hadoop_usage" "test_start_hadoop_usage"

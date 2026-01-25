@@ -8,6 +8,7 @@ Local Spark cluster management, job submission, dependency resolution, and jar m
 ## Environment
 - `SPARK_HOME`, `SPARK_MASTER_HOST`, `SPARK_MASTER_PORT`
 - `SPARK_VERSION`, `SPARK_SCALA_VERSION`
+- `HADOOP_VERSION` (optional override for Hadoop detection)
 - `SPARK_SEDONA_ENABLE`, `SPARK_SEDONA_VERSION`, `SPARK_GEOTOOLS_VERSION`
 - `SPARK_KAFKA_ENABLE`, `SPARK_KAFKA_VERSION`
 - `SPARK_JARS_COORDS` (extra Maven coords, comma-separated)
@@ -19,6 +20,9 @@ Local Spark cluster management, job submission, dependency resolution, and jar m
 | Function | Purpose | Dependencies | Assumptions |
 |---|---|---|---|
 | `_spark_detect_versions` | Detect Spark/Scala versions | `spark-submit` | Spark installed and in PATH |
+| `_spark_detect_scala_version` | Detect Scala version | `scala` | Scala installed |
+| `_spark_detect_hadoop_version` | Detect Hadoop version | `hadoop` | Hadoop installed |
+| `_spark_default_scala_for_spark` | Default Scala for Spark major | None | Spark version known |
 | `jar_matrix_resolve` | Resolve jar coordinates | `_spark_detect_versions` | Env vars set or detectable |
 | `jar_matrix_status` | Explain jar resolution | `jar_matrix_resolve` | None |
 | `spark_start` | Start master + worker | `jps`, `start-master.sh`, `start-worker.sh` | Local single-node cluster |
@@ -37,3 +41,12 @@ Local Spark cluster management, job submission, dependency resolution, and jar m
 ## Notes
 - `spark_start` writes `spark-env-zsh.sh` and sources it from `spark-env.sh` to avoid clobbering user settings.
 - Sedona coordinates are resolved for Spark 4.x as `sedona-spark-shaded-4.0_2.13` (per Sedona docs).
+- Default Scala selection:
+  - Spark 2.0–2.3 → Scala 2.11
+  - Spark 2.4 → Scala 2.12
+  - Spark 3.x → Scala 2.12
+  - Spark 4.x → Scala 2.13
+- Local jars are searched in:
+  - `${JARS_DIR}/spark/<spark_version>/scala-<scala_binary>`
+  - `${JARS_DIR}/spark/<spark_version>/hadoop-<hadoop_major>`
+  - `${JARS_DIR}/spark/<spark_version>`

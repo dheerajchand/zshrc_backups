@@ -33,18 +33,61 @@ export SPARK_EXECUTOR_MEMORY="${SPARK_EXECUTOR_MEMORY:-2g}"
 
 # Detect Spark and Scala versions from spark-submit output
 _spark_detect_versions() {
-    local spark_version scala_version
+    local spark_version scala_version output
     spark_version=""
     scala_version=""
     if command -v spark-submit >/dev/null 2>&1; then
-        spark_version="$(spark-submit --version 2>&1 | awk '/version/{print $NF; exit}')"
-        scala_version="$(spark-submit --version 2>&1 | awk -F'version ' '/Scala/{print $2; exit}')"
+        output="$(spark-submit --version 2>&1 || true)"
+        spark_version="$(printf '%s' "$output" | awk '/version/{print $NF; exit}')"
+        scala_version="$(printf '%s' "$output" | awk -F'version ' '/Scala/{print $2; exit}')"
     fi
     if [[ -n "$spark_version" ]]; then
         echo "$spark_version" "${scala_version:-}"
         return 0
     fi
     return 1
+}
+
+_spark_detect_scala_version() {
+    if command -v scala >/dev/null 2>&1; then
+        scala -version 2>&1 | awk '/version/{print $NF; exit}'
+    fi
+}
+
+_spark_detect_hadoop_version() {
+    local hv=""
+    if [[ -n "${HADOOP_VERSION:-}" ]]; then
+        echo "$HADOOP_VERSION"
+        return 0
+    fi
+    if command -v hadoop >/dev/null 2>&1; then
+        hv="$(hadoop version 2>/dev/null | awk '/Hadoop/{print $2; exit}')"
+        [[ -n "$hv" ]] && echo "$hv"
+    fi
+}
+
+_spark_default_scala_for_spark() {
+    local spark_version="$1"
+    case "$spark_version" in
+        2.0*|2.1*|2.2*|2.3*) echo "2.11" ;;
+        2.4*) echo "2.12" ;;
+        3.*) echo "2.12" ;;
+        4.*) echo "2.13" ;;
+        *) echo "" ;;
+    esac
+}
+
+_spark_scala_binary() {
+    local v="$1"
+    if [[ -z "$v" ]]; then
+        echo ""
+        return 0
+    fi
+    if [[ "$v" == *.*.* ]]; then
+        echo "${v%.*}"
+        return 0
+    fi
+    echo "$v"
 }
 
 jar_matrix_resolve() {
@@ -56,10 +99,14 @@ jar_matrix_resolve() {
         spark_version="${spark_version:-${detected%% *}}"
         scala_version="${scala_version:-${detected#* }}"
     fi
-    local scala_binary=""
-    if [[ -n "$scala_version" ]]; then
-        scala_binary="${scala_version%.*}"
+    if [[ -z "$scala_version" ]]; then
+        scala_version="$(_spark_detect_scala_version 2>/dev/null || true)"
     fi
+    if [[ -z "$scala_version" && -n "$spark_version" ]]; then
+        scala_version="$(_spark_default_scala_for_spark "$spark_version")"
+    fi
+    local scala_binary=""
+    scala_binary="$(_spark_scala_binary "$scala_version")"
     local spark_mm=""
     if [[ -n "$spark_version" ]]; then
         spark_mm="${spark_version%.*}"
@@ -102,6 +149,14 @@ jar_matrix_status() {
         spark_version="${spark_version:-${detected%% *}}"
         scala_version="${scala_version:-${detected#* }}"
     fi
+    if [[ -z "$scala_version" ]]; then
+        scala_version="$(_spark_detect_scala_version 2>/dev/null || true)"
+    fi
+    if [[ -z "$scala_version" && -n "$spark_version" ]]; then
+        scala_version="$(_spark_default_scala_for_spark "$spark_version")"
+    fi
+    local hadoop_version
+    hadoop_version="$(_spark_detect_hadoop_version 2>/dev/null || true)"
     local coords
     coords="$(jar_matrix_resolve 2>/dev/null || true)"
     local jars_root="${JARS_DIR:-$HOME/.jars}"
@@ -111,6 +166,7 @@ jar_matrix_status() {
     echo "===================="
     echo "Spark: ${spark_version:-unknown}"
     echo "Scala: ${scala_version:-unknown}"
+    echo "Hadoop: ${hadoop_version:-unknown}"
     echo "JARS_DIR: ${jars_root}"
     echo "Jar dir: ${jar_dir}"
     if [[ -n "$coords" ]]; then
@@ -290,6 +346,22 @@ get_spark_dependencies() {
     if [[ -z "$spark_version" ]]; then
         spark_version="$(_spark_detect_versions 2>/dev/null | awk '{print $1}' || true)"
     fi
+    local scala_version="${SPARK_SCALA_VERSION:-}"
+    if [[ -z "$scala_version" ]]; then
+        scala_version="$(_spark_detect_versions 2>/dev/null | awk '{print $2}' || true)"
+    fi
+    if [[ -z "$scala_version" ]]; then
+        scala_version="$(_spark_detect_scala_version 2>/dev/null || true)"
+    fi
+    if [[ -z "$scala_version" && -n "$spark_version" ]]; then
+        scala_version="$(_spark_default_scala_for_spark "$spark_version")"
+    fi
+    local scala_binary=""
+    scala_binary="$(_spark_scala_binary "$scala_version")"
+    local hadoop_version
+    hadoop_version="$(_spark_detect_hadoop_version 2>/dev/null || true)"
+    local hadoop_mm=""
+    [[ -n "$hadoop_version" ]] && hadoop_mm="${hadoop_version%.*}"
     local spark_jars_coords=""
     spark_jars_coords="$(jar_matrix_resolve 2>/dev/null || true)"
     
@@ -297,6 +369,8 @@ get_spark_dependencies() {
     local jar_dirs=()
     if [[ -n "$spark_version" ]]; then
         jar_dirs+=("${jars_root}/spark/${spark_version}")
+        [[ -n "$scala_binary" ]] && jar_dirs+=("${jars_root}/spark/${spark_version}/scala-${scala_binary}")
+        [[ -n "$hadoop_mm" ]] && jar_dirs+=("${jars_root}/spark/${spark_version}/hadoop-${hadoop_mm}")
     fi
     jar_dirs+=("${jars_root}/spark" "${jars_root}" "$HOME/spark-jars" "$HOME/.spark/jars")
     
@@ -319,7 +393,10 @@ get_spark_dependencies() {
     if is_online; then
         if [[ -n "$spark_jars_coords" && "$SPARK_JARS_AUTO_DOWNLOAD" == "1" && "$(command -v download_jars 2>/dev/null)" != "" ]]; then
             local download_dir="${jars_root}/spark"
-            [[ -n "$spark_version" ]] && download_dir="${jars_root}/spark/${spark_version}"
+            if [[ -n "$spark_version" ]]; then
+                download_dir="${jars_root}/spark/${spark_version}"
+                [[ -n "$scala_binary" ]] && download_dir="${download_dir}/scala-${scala_binary}"
+            fi
             download_jars --dest "$download_dir" "$spark_jars_coords" || true
             if [[ -d "$download_dir" ]]; then
                 local jars=("$download_dir"/*.jar(N))
