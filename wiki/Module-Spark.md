@@ -25,6 +25,16 @@ Local Spark cluster management, job submission, dependency resolution, and jar m
 | `_spark_default_scala_for_spark` | Default Scala for Spark major | None | Spark version known |
 | `jar_matrix_resolve` | Resolve jar coordinates | `_spark_detect_versions` | Env vars set or detectable |
 | `jar_matrix_status` | Explain jar resolution | `jar_matrix_resolve` | None |
+| `spark_config_status` | Show configuration | `_spark_detect_versions` | None |
+| `spark_versions` | List SDKMAN versions | `sdk` | SDKMAN installed |
+| `spark_use_version` | Use SDKMAN Spark | `sdk` | Version installed |
+| `spark_default_version` | Set default Spark | `sdk` | Version installed |
+| `scala_versions` | List SDKMAN Scala | `sdk` | SDKMAN installed |
+| `scala_use_version` | Use SDKMAN Scala | `sdk` | Version installed |
+| `scala_default_version` | Set default Scala | `sdk` | Version installed |
+| `java_versions` | List SDKMAN Java | `sdk` | SDKMAN installed |
+| `java_use_version` | Use SDKMAN Java | `sdk` | Version installed |
+| `java_default_version` | Set default Java | `sdk` | Version installed |
 | `spark_start` | Start master + worker | `jps`, `start-master.sh`, `start-worker.sh` | Local single-node cluster |
 | `spark_stop` | Stop master + worker | `stop-master.sh`, `stop-worker.sh` | Local cluster |
 | `spark_status` | Basic status | `pgrep`, `spark-submit` | Local processes |

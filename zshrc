@@ -197,12 +197,22 @@ help() {
     echo "🐍 Python:"
     echo "  py_env_switch [env]    - Switch Python environment"
     echo "  python_status          - Show current environment"
+    echo "  python_config_status   - Show configuration"
+    echo "  pyenv_use_version <v>  - pyenv shell <version>"
+    echo "  pyenv_default_version <v> - pyenv global <version>"
     echo "  ds_project_init <name> - Create data science project"
     echo ""
     echo "⚡ Spark:"
     echo "  spark_start            - Start Spark cluster"
     echo "  spark_stop             - Stop cluster"
     echo "  spark_status           - Show status"
+    echo "  spark_config_status    - Show configuration"
+    echo "  spark_use_version <v>  - SDKMAN use Spark version"
+    echo "  spark_default_version <v> - SDKMAN default Spark"
+    echo "  scala_use_version <v>  - SDKMAN use Scala version"
+    echo "  scala_default_version <v> - SDKMAN default Scala"
+    echo "  java_use_version <v>   - SDKMAN use Java version"
+    echo "  java_default_version <v> - SDKMAN default Java"
     echo "  smart_spark_submit <file> - Submit job (auto-detects cluster)"
     echo "  spark_yarn_submit <file> - Submit to YARN"
     echo "  spark_install_from_tar [--default] [--dry-run] <version> <tarball> - Install Spark via SDKMAN layout"
@@ -214,6 +224,9 @@ help() {
     echo "  start_hadoop [--format] - Start HDFS + YARN (format if needed)"
     echo "  stop_hadoop            - Stop services"
     echo "  hadoop_status          - Show status"
+    echo "  hadoop_config_status   - Show configuration"
+    echo "  hadoop_use_version <v> - SDKMAN use Hadoop version"
+    echo "  hadoop_default_version <v> - SDKMAN default Hadoop"
     echo "  yarn_application_list  - List YARN apps"
     echo "  yarn_kill_all_apps --force - Kill all YARN apps"
     echo "  hdfs_ls [path]         - List HDFS files"
@@ -272,6 +285,7 @@ help() {
     echo "  dropbox_restart         - macOS-only Dropbox restart"
     echo "  linux_system_status     - Linux-only system overview"
     echo "  data_platform_health    - Spark/Hadoop/YARN health suite"
+    echo "  data_platform_config_status - Spark/Hadoop/Python config"
     echo "  spark_health            - Spark master/worker health"
     echo "  hadoop_health           - HDFS/YARN health overview"
     echo "  yarn_health             - YARN health overview"
@@ -408,6 +422,26 @@ zsh_status_banner() {
     fi
     printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "⚡ Spark:" "$reset_color" "$spark_state  🐘 Hadoop: $hadoop_state  🧠 Scala: $scala_state"
     [[ -n "${JAVA_HOME:-}" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "☕ Java:" "$reset_color" "$JAVA_HOME"
+    local spark_version=""
+    local scala_version=""
+    local hadoop_version=""
+    if typeset -f _spark_detect_versions >/dev/null 2>&1; then
+        local detected
+        detected="$(_spark_detect_versions 2>/dev/null || true)"
+        spark_version="${detected%% *}"
+        scala_version="${detected#* }"
+    fi
+    if [[ -z "$scala_version" ]] && typeset -f _spark_detect_scala_version >/dev/null 2>&1; then
+        scala_version="$(_spark_detect_scala_version 2>/dev/null || true)"
+    fi
+    if command -v hadoop >/dev/null 2>&1; then
+        hadoop_version="$(hadoop version 2>/dev/null | awk '/Hadoop/{print $2; exit}')"
+    fi
+    if [[ -n "$spark_version" || -n "$scala_version" || -n "$hadoop_version" ]]; then
+        printf "\033[%sm%s\033[%sm Spark %s  Scala %s  Hadoop %s\n" \
+            "$accent_color" "🧪 Stack:" "$reset_color" \
+            "${spark_version:-unknown}" "${scala_version:-unknown}" "${hadoop_version:-unknown}"
+    fi
 
     # Current directory
     printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "📁 Location:" "$reset_color" "$(pwd)"
@@ -425,6 +459,7 @@ zsh_status_banner() {
     echo "   python_status - Check Python environment"
     echo "   spark_status  - Check Spark status"
     echo "   hadoop_status - Check Hadoop status"
+    echo "   data_platform_config_status - Spark/Hadoop/Python config"
     echo "   data_platform_health - Spark/Hadoop/YARN health"
     echo "   backup        - Commit and push config to GitHub"
     echo ""

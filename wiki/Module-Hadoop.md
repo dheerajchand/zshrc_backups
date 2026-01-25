@@ -28,6 +28,10 @@ HDFS/YARN start/stop/status, health checks, and HDFS helpers.
 | `hdfs_put` | Upload to HDFS | `hdfs` | Local file exists |
 | `hdfs_get` | Download from HDFS | `hdfs` | HDFS path exists |
 | `hdfs_rm` | Remove from HDFS | `hdfs` | Requires `--force` |
+| `hadoop_config_status` | Show configuration | `hadoop` | None |
+| `hadoop_versions` | List SDKMAN versions | `sdk` | SDKMAN installed |
+| `hadoop_use_version` | Use SDKMAN Hadoop | `sdk` | Version installed |
+| `hadoop_default_version` | Set default Hadoop | `sdk` | Version installed |
 
 ## Notes
 - `start_hadoop` requires `--format` if NameNode is not formatted.

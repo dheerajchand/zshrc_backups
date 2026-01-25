@@ -242,6 +242,53 @@ yarn_health() {
     return "$ok"
 }
 
+hadoop_config_status() {
+    local hadoop_version=""
+    if command -v hadoop >/dev/null 2>&1; then
+        hadoop_version="$(hadoop version 2>/dev/null | awk '/Hadoop/{print $2; exit}')"
+    fi
+    echo "⚙️  Hadoop Configuration"
+    echo "======================="
+    echo "HADOOP_HOME: ${HADOOP_HOME:-unset}"
+    echo "HADOOP_CONF_DIR: ${HADOOP_CONF_DIR:-unset}"
+    echo "YARN_CONF_DIR: ${YARN_CONF_DIR:-unset}"
+    echo "Hadoop: ${hadoop_version:-unknown}"
+}
+
+hadoop_versions() {
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found (install SDKMAN)" >&2
+        return 1
+    fi
+    sdk list hadoop
+}
+
+hadoop_use_version() {
+    local version="$1"
+    if [[ -z "$version" ]]; then
+        echo "Usage: hadoop_use_version <version>" >&2
+        return 1
+    fi
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found (install SDKMAN)" >&2
+        return 1
+    fi
+    sdk use hadoop "$version"
+}
+
+hadoop_default_version() {
+    local version="$1"
+    if [[ -z "$version" ]]; then
+        echo "Usage: hadoop_default_version <version>" >&2
+        return 1
+    fi
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found (install SDKMAN)" >&2
+        return 1
+    fi
+    sdk default hadoop "$version"
+}
+
 hadoop_health() {
     local ok=0
     echo "🐘 Hadoop Health"
