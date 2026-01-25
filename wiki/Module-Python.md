@@ -18,6 +18,7 @@ Python/pyenv management and data‑science helpers.
 | `get_python_version` | Get Python version | `python` | Python installed |
 | `python_status` | Show Python status | `pyenv` | None |
 | `python_config_status` | Show configuration | `pyenv`/`python` | None |
+| `py_env_switch --default` | Set default venv | `pyenv` | Env exists |
 | `pyenv_use_version` | `pyenv shell` | `pyenv` | Version exists |
 | `pyenv_default_version` | `pyenv global` | `pyenv` | Version exists |
 | `with_python` | Run command with Python env | `pyenv` | Env exists |

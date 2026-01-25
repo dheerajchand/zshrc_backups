@@ -26,6 +26,7 @@ Local Spark cluster management, job submission, dependency resolution, and jar m
 | `jar_matrix_resolve` | Resolve jar coordinates | `_spark_detect_versions` | Env vars set or detectable |
 | `jar_matrix_status` | Explain jar resolution | `jar_matrix_resolve` | None |
 | `spark_config_status` | Show configuration | `_spark_detect_versions` | None |
+| `spark_validate_versions` | Validate Spark/Scala/Hadoop | `hadoop`, `scala` | Versions detectable |
 | `spark_versions` | List SDKMAN versions | `sdk` | SDKMAN installed |
 | `spark_use_version` | Use SDKMAN Spark | `sdk` | Version installed |
 | `spark_default_version` | Set default Spark | `sdk` | Version installed |

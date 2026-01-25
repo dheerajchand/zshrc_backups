@@ -66,6 +66,9 @@ data_platform_config_status() {
     if typeset -f spark_config_status >/dev/null 2>&1; then
         ran=1
         spark_config_status || rc=1
+        if typeset -f spark_validate_versions >/dev/null 2>&1; then
+            spark_validate_versions || rc=1
+        fi
         echo ""
     else
         echo "⚠️  spark_config_status not available (spark module not loaded)"
