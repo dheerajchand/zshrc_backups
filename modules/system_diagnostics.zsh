@@ -93,6 +93,62 @@ data_platform_config_status() {
     return "$rc"
 }
 
+data_platform_use_versions() {
+    local spark="" hadoop="" scala="" java="" pyenv=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --spark) spark="$2"; shift 2 ;;
+            --hadoop) hadoop="$2"; shift 2 ;;
+            --scala) scala="$2"; shift 2 ;;
+            --java) java="$2"; shift 2 ;;
+            --pyenv) pyenv="$2"; shift 2 ;;
+            --help|-h)
+                echo "Usage: data_platform_use_versions [--spark v] [--hadoop v] [--scala v] [--java v] [--pyenv v]" >&2
+                return 0
+                ;;
+            *)
+                echo "Usage: data_platform_use_versions [--spark v] [--hadoop v] [--scala v] [--java v] [--pyenv v]" >&2
+                return 1
+                ;;
+        esac
+    done
+    local rc=0
+    [[ -n "$spark" ]] && typeset -f spark_use_version >/dev/null 2>&1 && spark_use_version "$spark" || true
+    [[ -n "$hadoop" ]] && typeset -f hadoop_use_version >/dev/null 2>&1 && hadoop_use_version "$hadoop" || true
+    [[ -n "$scala" ]] && typeset -f scala_use_version >/dev/null 2>&1 && scala_use_version "$scala" || true
+    [[ -n "$java" ]] && typeset -f java_use_version >/dev/null 2>&1 && java_use_version "$java" || true
+    [[ -n "$pyenv" ]] && typeset -f pyenv_use_version >/dev/null 2>&1 && pyenv_use_version "$pyenv" || true
+    return "$rc"
+}
+
+data_platform_default_versions() {
+    local spark="" hadoop="" scala="" java="" pyenv=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --spark) spark="$2"; shift 2 ;;
+            --hadoop) hadoop="$2"; shift 2 ;;
+            --scala) scala="$2"; shift 2 ;;
+            --java) java="$2"; shift 2 ;;
+            --pyenv) pyenv="$2"; shift 2 ;;
+            --help|-h)
+                echo "Usage: data_platform_default_versions [--spark v] [--hadoop v] [--scala v] [--java v] [--pyenv v]" >&2
+                return 0
+                ;;
+            *)
+                echo "Usage: data_platform_default_versions [--spark v] [--hadoop v] [--scala v] [--java v] [--pyenv v]" >&2
+                return 1
+                ;;
+        esac
+    done
+    local rc=0
+    [[ -n "$spark" ]] && typeset -f spark_default_version >/dev/null 2>&1 && spark_default_version "$spark" || true
+    [[ -n "$hadoop" ]] && typeset -f hadoop_default_version >/dev/null 2>&1 && hadoop_default_version "$hadoop" || true
+    [[ -n "$scala" ]] && typeset -f scala_default_version >/dev/null 2>&1 && scala_default_version "$scala" || true
+    [[ -n "$java" ]] && typeset -f java_default_version >/dev/null 2>&1 && java_default_version "$java" || true
+    [[ -n "$pyenv" ]] && typeset -f pyenv_default_version >/dev/null 2>&1 && pyenv_default_version "$pyenv" || true
+    return "$rc"
+}
+
 icloud_status() {
     if ! _is_macos; then
         echo "iCloud diagnostics are macOS-only."

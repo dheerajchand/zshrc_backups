@@ -135,6 +135,10 @@ pyenv_use_version() {
         return 1
     fi
     pyenv shell "$version"
+    if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
+        _secrets_update_env_file "PYENV_VERSION" "$version" >/dev/null 2>&1 || true
+    fi
+    export PYENV_VERSION="$version"
 }
 
 pyenv_default_version() {
@@ -148,6 +152,10 @@ pyenv_default_version() {
         return 1
     fi
     pyenv global "$version"
+    if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
+        _secrets_update_env_file "PYENV_VERSION" "$version" >/dev/null 2>&1 || true
+    fi
+    export PYENV_VERSION="$version"
 }
 
 # Run command with current Python (for Spark, Jupyter, etc.)

@@ -224,6 +224,10 @@ spark_use_version() {
         return 1
     fi
     sdk use spark "$version"
+    if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
+        _secrets_update_env_file "SPARK_VERSION" "$version" >/dev/null 2>&1 || true
+    fi
+    export SPARK_VERSION="$version"
 }
 
 spark_default_version() {
@@ -237,6 +241,10 @@ spark_default_version() {
         return 1
     fi
     sdk default spark "$version"
+    if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
+        _secrets_update_env_file "SPARK_VERSION" "$version" >/dev/null 2>&1 || true
+    fi
+    export SPARK_VERSION="$version"
 }
 
 scala_versions() {
@@ -258,6 +266,10 @@ scala_use_version() {
         return 1
     fi
     sdk use scala "$version"
+    if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
+        _secrets_update_env_file "SPARK_SCALA_VERSION" "$version" >/dev/null 2>&1 || true
+    fi
+    export SPARK_SCALA_VERSION="$version"
 }
 
 scala_default_version() {
@@ -271,6 +283,10 @@ scala_default_version() {
         return 1
     fi
     sdk default scala "$version"
+    if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
+        _secrets_update_env_file "SPARK_SCALA_VERSION" "$version" >/dev/null 2>&1 || true
+    fi
+    export SPARK_SCALA_VERSION="$version"
 }
 
 java_versions() {
@@ -292,6 +308,10 @@ java_use_version() {
         return 1
     fi
     sdk use java "$version"
+    if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
+        _secrets_update_env_file "JAVA_VERSION" "$version" >/dev/null 2>&1 || true
+    fi
+    export JAVA_VERSION="$version"
 }
 
 java_default_version() {
@@ -305,6 +325,10 @@ java_default_version() {
         return 1
     fi
     sdk default java "$version"
+    if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
+        _secrets_update_env_file "JAVA_VERSION" "$version" >/dev/null 2>&1 || true
+    fi
+    export JAVA_VERSION="$version"
 }
 
 # Check if Spark is available

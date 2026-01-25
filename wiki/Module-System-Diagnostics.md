@@ -26,6 +26,8 @@ macOS iCloud/Dropbox helpers, Linux system summary, and data platform health.
 | `dropbox_relink_helper` | Assist relink flow | `open`, `Finder` | macOS only |
 | `linux_system_status` | Linux summary | `uname`, `df`, `free`/`vmstat`, `systemctl` | Linux only |
 | `data_platform_config_status` | Spark/Hadoop/Python config | module functions | Modules loaded |
+| `data_platform_use_versions` | Switch versions | SDKMAN/pyenv | Version tools installed |
+| `data_platform_default_versions` | Persist versions | SDKMAN/pyenv | Version tools installed |
 
 ## Notes
 - `icloud_reset_state` is destructive; it moves state to `.bak.<timestamp>`.
