@@ -176,6 +176,50 @@ jar_matrix_status() {
     fi
 }
 
+spark_validate_versions() {
+    local spark_version="${SPARK_VERSION:-}"
+    local scala_version="${SPARK_SCALA_VERSION:-}"
+    if [[ -z "$spark_version" || -z "$scala_version" ]]; then
+        local detected
+        detected="$(_spark_detect_versions 2>/dev/null || true)"
+        spark_version="${spark_version:-${detected%% *}}"
+        scala_version="${scala_version:-${detected#* }}"
+    fi
+    if [[ -z "$scala_version" ]]; then
+        scala_version="$(_spark_detect_scala_version 2>/dev/null || true)"
+    fi
+    local expected_scala=""
+    if [[ -n "$spark_version" ]]; then
+        expected_scala="$(_spark_default_scala_for_spark "$spark_version")"
+    fi
+    local scala_binary=""
+    scala_binary="$(_spark_scala_binary "$scala_version")"
+    local expected_binary=""
+    expected_binary="$(_spark_scala_binary "$expected_scala")"
+    local hadoop_version
+    hadoop_version="$(_spark_detect_hadoop_version 2>/dev/null || true)"
+    local hadoop_mm=""
+    [[ -n "$hadoop_version" ]] && hadoop_mm="${hadoop_version%.*}"
+    local ok=0
+    if [[ -n "$spark_version" && -n "$expected_binary" && -n "$scala_binary" && "$expected_binary" != "$scala_binary" ]]; then
+        echo "⚠️  Spark $spark_version expects Scala $expected_binary but found $scala_binary" >&2
+        ok=1
+    fi
+    if [[ -n "$hadoop_mm" && "$hadoop_mm" != "2" && "$hadoop_mm" != "3" ]]; then
+        echo "⚠️  Unsupported Hadoop major version: $hadoop_mm (expected 2.x or 3.x)" >&2
+        ok=1
+    fi
+    if [[ -z "$spark_version" ]]; then
+        echo "⚠️  Spark version unknown; set SPARK_VERSION or install Spark" >&2
+        ok=1
+    fi
+    if [[ -z "$scala_binary" ]]; then
+        echo "⚠️  Scala version unknown; set SPARK_SCALA_VERSION or install Scala" >&2
+        ok=1
+    fi
+    return "$ok"
+}
+
 spark_config_status() {
     local spark_version="${SPARK_VERSION:-}"
     local scala_version="${SPARK_SCALA_VERSION:-}"

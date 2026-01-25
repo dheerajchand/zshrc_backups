@@ -6,7 +6,12 @@
 # =================================================================
 
 # Default environment to auto-activate
-export DEFAULT_PYENV_VENV="default_31111"
+: "${PYENV_DEFAULT_VENV:=${DEFAULT_PYENV_VENV:-default_31111}}"
+export DEFAULT_PYENV_VENV="${PYENV_DEFAULT_VENV}"
+
+_pyenv_default_venv() {
+    echo "${PYENV_DEFAULT_VENV:-${DEFAULT_PYENV_VENV:-}}"
+}
 
 # Provide python shim on Linux when only python3 exists
 if ! command -v python >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
@@ -28,14 +33,36 @@ if [[ -z "${ZSH_TEST_MODE:-}" ]] && command -v pyenv >/dev/null 2>&1; then
     fi
     
     # Auto-activate default environment
-    if [[ -n "$DEFAULT_PYENV_VENV" ]] && pyenv versions --bare | grep -q "^${DEFAULT_PYENV_VENV}$"; then
-        pyenv activate "$DEFAULT_PYENV_VENV" 2>/dev/null || pyenv shell "$DEFAULT_PYENV_VENV" 2>/dev/null
+    local default_venv
+    default_venv="$(_pyenv_default_venv)"
+    if [[ -n "$default_venv" ]] && pyenv versions --bare | grep -q "^${default_venv}$"; then
+        pyenv activate "$default_venv" 2>/dev/null || pyenv shell "$default_venv" 2>/dev/null
     fi
 fi
 
 # Switch Python environments
 py_env_switch() {
-    local env_name="${1:-list}"
+    local env_name="${1:-}"
+    if [[ "$env_name" == "--default" ]]; then
+        local set_name="${2:-}"
+        if [[ -z "$set_name" ]]; then
+            echo "Usage: py_env_switch --default <env>" >&2
+            return 1
+        fi
+        PYENV_DEFAULT_VENV="$set_name"
+        DEFAULT_PYENV_VENV="$set_name"
+        if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
+            _secrets_update_env_file "PYENV_DEFAULT_VENV" "$set_name" >/dev/null 2>&1 || true
+            _secrets_update_env_file "DEFAULT_PYENV_VENV" "$set_name" >/dev/null 2>&1 || true
+        fi
+        env_name="$set_name"
+    fi
+    if [[ -z "$env_name" || "$env_name" == "default" ]]; then
+        env_name="$(_pyenv_default_venv)"
+    fi
+    if [[ -z "$env_name" ]]; then
+        env_name="list"
+    fi
     
     if [[ "$env_name" == "list" ]]; then
         echo "📋 Available Python environments:"
@@ -49,6 +76,9 @@ py_env_switch() {
         pyenv activate "$env_name" 2>/dev/null || pyenv shell "$env_name" 2>/dev/null
         echo "✅ Activated: $env_name"
         python --version
+        if [[ -n "$DEFAULT_PYENV_VENV" && "$env_name" == "$DEFAULT_PYENV_VENV" ]]; then
+            export PYENV_DEFAULT_VENV="$DEFAULT_PYENV_VENV"
+        fi
     else
         echo "❌ Environment not found: $env_name"
         echo "Available:"
@@ -121,6 +151,9 @@ python_config_status() {
     echo "Python: $py_version"
     if command -v pyenv >/dev/null 2>&1; then
         echo "PYENV_ROOT: ${PYENV_ROOT:-$HOME/.pyenv}"
+        local default_venv
+        default_venv="$(_pyenv_default_venv)"
+        [[ -n "$default_venv" ]] && echo "Default venv: $default_venv"
     fi
 }
 

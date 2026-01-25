@@ -196,6 +196,7 @@ help() {
     echo ""
     echo "🐍 Python:"
     echo "  py_env_switch [env]    - Switch Python environment"
+    echo "  py_env_switch --default <env> - Set default venv"
     echo "  python_status          - Show current environment"
     echo "  python_config_status   - Show configuration"
     echo "  pyenv_use_version <v>  - pyenv shell <version>"
@@ -403,6 +404,10 @@ zsh_status_banner() {
         py_version="$("$py_bin" --version 2>&1 | head -1)"
     fi
     printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🐍 Python:" "$reset_color" "$pyenv_version (${py_version})"
+    if command -v pyenv >/dev/null 2>&1; then
+        local default_venv="${PYENV_DEFAULT_VENV:-${DEFAULT_PYENV_VENV:-}}"
+        [[ -n "$default_venv" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🧪 Pyenv venv:" "$reset_color" "$pyenv_version (default: $default_venv)"
+    fi
 
     # Machine profile (env/role/host)
     if command -v machine_profile >/dev/null 2>&1; then

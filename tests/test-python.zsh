@@ -104,7 +104,14 @@ test_python_config_status_defined() {
     assert_true "typeset -f python_config_status >/dev/null 2>&1" "python_config_status should be defined"
 }
 
+test_pyenv_default_venv_variable() {
+    local out
+    out="$(PYENV_DEFAULT_VENV=geo31111 ZSH_TEST_MODE=1 zsh -fc 'source /Users/dheerajchand/.config/zsh/modules/python.zsh; python_config_status')"
+    assert_contains "$out" "Default venv: geo31111" "should show default venv"
+}
+
 register_test "test_python_status_no_pyenv" "test_python_status_no_pyenv"
 register_test "test_python_status_with_pyenv" "test_python_status_with_pyenv"
 register_test "test_python_status_uses_python3_shim" "test_python_status_uses_python3_shim"
 register_test "test_python_config_status_defined" "test_python_config_status_defined"
+register_test "test_pyenv_default_venv_variable" "test_pyenv_default_venv_variable"
