@@ -100,6 +100,11 @@ test_python_status_with_pyenv() {
     rm -rf "$tmp"
 }
 
+test_python_config_status_defined() {
+    assert_true "typeset -f python_config_status >/dev/null 2>&1" "python_config_status should be defined"
+}
+
 register_test "test_python_status_no_pyenv" "test_python_status_no_pyenv"
 register_test "test_python_status_with_pyenv" "test_python_status_with_pyenv"
 register_test "test_python_status_uses_python3_shim" "test_python_status_uses_python3_shim"
+register_test "test_python_config_status_defined" "test_python_config_status_defined"

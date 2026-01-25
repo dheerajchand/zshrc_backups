@@ -58,6 +58,41 @@ data_platform_health() {
     return "$rc"
 }
 
+data_platform_config_status() {
+    local rc=0
+    local ran=0
+    echo "⚙️  Data Platform Configuration"
+    echo "=============================="
+    if typeset -f spark_config_status >/dev/null 2>&1; then
+        ran=1
+        spark_config_status || rc=1
+        echo ""
+    else
+        echo "⚠️  spark_config_status not available (spark module not loaded)"
+        rc=1
+    fi
+    if typeset -f hadoop_config_status >/dev/null 2>&1; then
+        ran=1
+        hadoop_config_status || rc=1
+        echo ""
+    else
+        echo "⚠️  hadoop_config_status not available (hadoop module not loaded)"
+        rc=1
+    fi
+    if typeset -f python_config_status >/dev/null 2>&1; then
+        ran=1
+        python_config_status || rc=1
+    else
+        echo "⚠️  python_config_status not available (python module not loaded)"
+        rc=1
+    fi
+    if [[ "$ran" -eq 0 ]]; then
+        echo "⚠️  No configuration checks available"
+        return 1
+    fi
+    return "$rc"
+}
+
 icloud_status() {
     if ! _is_macos; then
         echo "iCloud diagnostics are macOS-only."

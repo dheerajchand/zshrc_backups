@@ -6,12 +6,14 @@ source "$ROOT_DIR/tests/test-framework.zsh"
 test_spark_health_defined() {
     source "$ROOT_DIR/modules/spark.zsh"
     assert_true "typeset -f spark_health >/dev/null 2>&1" "spark_health should be defined"
+    assert_true "typeset -f spark_config_status >/dev/null 2>&1" "spark_config_status should be defined"
 }
 
 test_hadoop_health_defined() {
     source "$ROOT_DIR/modules/hadoop.zsh"
     assert_true "typeset -f hadoop_health >/dev/null 2>&1" "hadoop_health should be defined"
     assert_true "typeset -f yarn_health >/dev/null 2>&1" "yarn_health should be defined"
+    assert_true "typeset -f hadoop_config_status >/dev/null 2>&1" "hadoop_config_status should be defined"
 }
 
 test_spark_home_sdkman_preferred() {

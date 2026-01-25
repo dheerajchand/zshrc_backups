@@ -67,9 +67,15 @@ test_data_platform_health_without_modules() {
     assert_contains "$out" "hadoop_health not available" "should warn for missing hadoop module"
 }
 
+test_data_platform_config_status_defined() {
+    source "$ROOT_DIR/modules/system_diagnostics.zsh"
+    assert_true "typeset -f data_platform_config_status >/dev/null 2>&1" "data_platform_config_status should be defined"
+}
+
 register_test "test_icloud_status_missing_tools" "test_icloud_status_missing_tools"
 register_test "test_icloud_preflight_no_brctl" "test_icloud_preflight_no_brctl"
 register_test "test_icloud_reset_state_non_interactive" "test_icloud_reset_state_non_interactive"
 register_test "test_dropbox_restart_test_mode" "test_dropbox_restart_test_mode"
 register_test "test_linux_system_status_non_linux" "test_linux_system_status_non_linux"
 register_test "test_data_platform_health_without_modules" "test_data_platform_health_without_modules"
+register_test "test_data_platform_config_status_defined" "test_data_platform_config_status_defined"

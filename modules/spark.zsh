@@ -176,6 +176,137 @@ jar_matrix_status() {
     fi
 }
 
+spark_config_status() {
+    local spark_version="${SPARK_VERSION:-}"
+    local scala_version="${SPARK_SCALA_VERSION:-}"
+    if [[ -z "$spark_version" || -z "$scala_version" ]]; then
+        local detected
+        detected="$(_spark_detect_versions 2>/dev/null || true)"
+        spark_version="${spark_version:-${detected%% *}}"
+        scala_version="${scala_version:-${detected#* }}"
+    fi
+    if [[ -z "$scala_version" ]]; then
+        scala_version="$(_spark_detect_scala_version 2>/dev/null || true)"
+    fi
+    if [[ -z "$scala_version" && -n "$spark_version" ]]; then
+        scala_version="$(_spark_default_scala_for_spark "$spark_version")"
+    fi
+    local hadoop_version
+    hadoop_version="$(_spark_detect_hadoop_version 2>/dev/null || true)"
+    echo "⚙️  Spark Configuration"
+    echo "======================"
+    echo "SPARK_HOME: ${SPARK_HOME:-unset}"
+    echo "Spark: ${spark_version:-unknown}"
+    echo "Scala: ${scala_version:-unknown}"
+    echo "Hadoop: ${hadoop_version:-unknown}"
+    echo "JARS_DIR: ${JARS_DIR:-$HOME/.jars}"
+    echo "Auto-download: ${SPARK_JARS_AUTO_DOWNLOAD}"
+    echo "Sedona: ${SPARK_SEDONA_ENABLE} (v${SPARK_SEDONA_VERSION})"
+    echo "GeoTools: ${SPARK_GEOTOOLS_VERSION}"
+}
+
+spark_versions() {
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found (install SDKMAN)" >&2
+        return 1
+    fi
+    sdk list spark
+}
+
+spark_use_version() {
+    local version="$1"
+    if [[ -z "$version" ]]; then
+        echo "Usage: spark_use_version <version>" >&2
+        return 1
+    fi
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found (install SDKMAN)" >&2
+        return 1
+    fi
+    sdk use spark "$version"
+}
+
+spark_default_version() {
+    local version="$1"
+    if [[ -z "$version" ]]; then
+        echo "Usage: spark_default_version <version>" >&2
+        return 1
+    fi
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found (install SDKMAN)" >&2
+        return 1
+    fi
+    sdk default spark "$version"
+}
+
+scala_versions() {
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found (install SDKMAN)" >&2
+        return 1
+    fi
+    sdk list scala
+}
+
+scala_use_version() {
+    local version="$1"
+    if [[ -z "$version" ]]; then
+        echo "Usage: scala_use_version <version>" >&2
+        return 1
+    fi
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found (install SDKMAN)" >&2
+        return 1
+    fi
+    sdk use scala "$version"
+}
+
+scala_default_version() {
+    local version="$1"
+    if [[ -z "$version" ]]; then
+        echo "Usage: scala_default_version <version>" >&2
+        return 1
+    fi
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found (install SDKMAN)" >&2
+        return 1
+    fi
+    sdk default scala "$version"
+}
+
+java_versions() {
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found (install SDKMAN)" >&2
+        return 1
+    fi
+    sdk list java
+}
+
+java_use_version() {
+    local version="$1"
+    if [[ -z "$version" ]]; then
+        echo "Usage: java_use_version <version>" >&2
+        return 1
+    fi
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found (install SDKMAN)" >&2
+        return 1
+    fi
+    sdk use java "$version"
+}
+
+java_default_version() {
+    local version="$1"
+    if [[ -z "$version" ]]; then
+        echo "Usage: java_default_version <version>" >&2
+        return 1
+    fi
+    if ! command -v sdk >/dev/null 2>&1; then
+        echo "sdk not found (install SDKMAN)" >&2
+        return 1
+    fi
+    sdk default java "$version"
+}
+
 # Check if Spark is available
 if [[ ! -d "$SPARK_HOME" ]] && command -v spark-submit >/dev/null 2>&1; then
     SPARK_HOME="$(dirname $(dirname $(which spark-submit)))"

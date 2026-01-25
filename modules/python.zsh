@@ -101,6 +101,55 @@ python_status() {
     fi
 }
 
+python_config_status() {
+    local manager="system"
+    local active="system"
+    if command -v pyenv >/dev/null 2>&1; then
+        manager="pyenv"
+        active="$(pyenv version-name 2>/dev/null || echo 'system')"
+    fi
+    local py_bin="python"
+    command -v python >/dev/null 2>&1 || py_bin="python3"
+    local py_version="not found"
+    if command -v "$py_bin" >/dev/null 2>&1; then
+        py_version="$("$py_bin" --version 2>&1 | head -1)"
+    fi
+    echo "⚙️  Python Configuration"
+    echo "======================"
+    echo "Manager: $manager"
+    echo "Active: $active"
+    echo "Python: $py_version"
+    if command -v pyenv >/dev/null 2>&1; then
+        echo "PYENV_ROOT: ${PYENV_ROOT:-$HOME/.pyenv}"
+    fi
+}
+
+pyenv_use_version() {
+    local version="$1"
+    if [[ -z "$version" ]]; then
+        echo "Usage: pyenv_use_version <version>" >&2
+        return 1
+    fi
+    if ! command -v pyenv >/dev/null 2>&1; then
+        echo "pyenv not found" >&2
+        return 1
+    fi
+    pyenv shell "$version"
+}
+
+pyenv_default_version() {
+    local version="$1"
+    if [[ -z "$version" ]]; then
+        echo "Usage: pyenv_default_version <version>" >&2
+        return 1
+    fi
+    if ! command -v pyenv >/dev/null 2>&1; then
+        echo "pyenv not found" >&2
+        return 1
+    fi
+    pyenv global "$version"
+}
+
 # Run command with current Python (for Spark, Jupyter, etc.)
 with_python() {
     local cmd="$1"
