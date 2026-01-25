@@ -448,6 +448,11 @@ zsh_status_banner() {
         printf "\033[%sm%s\033[%sm Spark %s  Scala %s  Hadoop %s\n" \
             "$accent_color" "🧪 Stack:" "$reset_color" \
             "${spark_version:-unknown}" "${scala_version:-unknown}" "${hadoop_version:-unknown}"
+        if typeset -f spark_validate_versions >/dev/null 2>&1; then
+            if ! spark_validate_versions >/dev/null 2>&1; then
+                printf "\033[%sm%s\033[%sm\n" "$accent_color" "⚠️  Spark/Scala/Hadoop version mismatch (run: spark_validate_versions)" "$reset_color"
+            fi
+        fi
     fi
 
     # Current directory
