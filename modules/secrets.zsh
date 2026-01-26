@@ -450,6 +450,7 @@ secrets_rsync_to_host() {
         "$src_base/op-accounts.env" \
         "$src_base/secrets.env" \
         "$src_base/secrets.1p" \
+        "$src_base/codex-sessions.env" \
         "${remote}:${remote_path}/"
 }
 
@@ -477,6 +478,7 @@ secrets_rsync_from_host() {
         "${remote}:${remote_path}/op-accounts.env" \
         "${remote}:${remote_path}/secrets.env" \
         "${remote}:${remote_path}/secrets.1p" \
+        "${remote}:${remote_path}/codex-sessions.env" \
         "$dest_base/"
 }
 
@@ -509,13 +511,13 @@ secrets_rsync_verify() {
     local base
     base="$(_secrets_local_path_default)"
     local missing=0
-    for f in op-accounts.env secrets.env secrets.1p; do
+    for f in op-accounts.env secrets.env secrets.1p codex-sessions.env; do
         if [[ ! -f "$base/$f" ]]; then
             _secrets_warn "Missing local file: $base/$f"
             missing=1
         fi
     done
-    ssh "$remote" "test -f ${remote_path}/op-accounts.env -a -f ${remote_path}/secrets.env -a -f ${remote_path}/secrets.1p" >/dev/null 2>&1 || {
+    ssh "$remote" "test -f ${remote_path}/op-accounts.env -a -f ${remote_path}/secrets.env -a -f ${remote_path}/secrets.1p -a -f ${remote_path}/codex-sessions.env" >/dev/null 2>&1 || {
         _secrets_warn "Missing one or more remote files in ${remote_path}"
         missing=1
     }
@@ -784,6 +786,13 @@ EOF
             _secrets_info "Created $ZSH_SECRETS_MAP from example"
         fi
     fi
+    if [[ ! -f "$CODEX_SESSIONS_FILE" ]]; then
+        umask 077
+        cat > "$CODEX_SESSIONS_FILE" <<'EOF'
+# name=id|description
+EOF
+        _secrets_info "Created $CODEX_SESSIONS_FILE"
+    fi
 
     export ZSH_ENV_PROFILE="$profile"
     export ZSH_SECRETS_MODE="$mode"
@@ -1051,6 +1060,26 @@ PY
     umask 077
     printf '%s\n' "$value" > "$ZSH_SECRETS_FILE"
     _secrets_info "Pulled secrets into $ZSH_SECRETS_FILE"
+}
+
+secrets_sync_codex_sessions_to_1p() {
+    local title="${1:-codex-sessions-env}"
+    local account_arg="${2:-${OP_ACCOUNT-}}"
+    local vault_arg="${3:-${OP_VAULT-}}"
+    local old_file="$ZSH_SECRETS_FILE"
+    ZSH_SECRETS_FILE="$CODEX_SESSIONS_FILE" \
+        secrets_sync_to_1p "$title" "$account_arg" "$vault_arg"
+    ZSH_SECRETS_FILE="$old_file"
+}
+
+secrets_pull_codex_sessions_from_1p() {
+    local title="${1:-codex-sessions-env}"
+    local account_arg="${2:-${OP_ACCOUNT-}}"
+    local vault_arg="${3:-${OP_VAULT-}}"
+    local old_file="$ZSH_SECRETS_FILE"
+    ZSH_SECRETS_FILE="$CODEX_SESSIONS_FILE" \
+        secrets_pull_from_1p "$title" "$account_arg" "$vault_arg"
+    ZSH_SECRETS_FILE="$old_file"
 }
 
 secrets_profile_switch() {
@@ -1383,6 +1412,9 @@ PY
 
     ZSH_SECRETS_FILE="$ZSH_SECRETS_MAP" \
         secrets_pull_from_1p "zsh-secrets-map" "$OP_ACCOUNT" "$OP_VAULT" || true
+
+    ZSH_SECRETS_FILE="$CODEX_SESSIONS_FILE" \
+        secrets_pull_from_1p "codex-sessions-env" "$OP_ACCOUNT" "$OP_VAULT" || true
 
     export ZSH_SECRETS_FILE="$old_file"
     load_secrets
