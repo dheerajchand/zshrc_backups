@@ -126,6 +126,7 @@ if detect_ide; then
     load_module secrets     # Local + 1Password env vars
     load_module python      # Python environment (geo31111 auto-activated)
     load_module system_diagnostics  # iCloud/Dropbox helpers
+    load_module agents
     load_module screen      # GNU screen helpers
     
     # Tier 2: Credentials & paths (defer in current shell)
@@ -161,6 +162,7 @@ else
     load_module secrets
     load_module python
     load_module system_diagnostics
+    load_module agents
     load_module screen
     load_module credentials
     load_module database
@@ -308,6 +310,14 @@ help() {
     echo "  extract <file>         - Universal archive extraction"
     echo "  path_clean             - Remove duplicate PATH entries"
     echo ""
+    echo "🤖 Codex:"
+    echo "  codex_session [name]   - Print resume command (select if empty)"
+    echo "  codex_session_list     - List saved sessions"
+    echo "  codex_session_add      - Add session (name id|desc)"
+    echo "  codex_session_update   - Update session"
+    echo "  codex_session_remove   - Remove session"
+    echo "  codex_session_edit     - Edit sessions file"
+    echo ""
     echo "📚 Full docs: $ZSH_CONFIG_DIR/README.md"
 }
 
@@ -324,6 +334,7 @@ modules() {
     echo "✅ credentials - Secure credential storage"
     echo "✅ secrets     - Local + 1Password secrets"
     echo "✅ system_diagnostics - iCloud/Dropbox/Linux diagnostics"
+    echo "✅ agents      - Codex session helpers"
     echo "✅ backup      - Git self-backup system"
 }
 
