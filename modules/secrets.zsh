@@ -1082,6 +1082,40 @@ secrets_pull_codex_sessions_from_1p() {
     ZSH_SECRETS_FILE="$old_file"
 }
 
+secrets_sync_all_to_1p() {
+    local account_arg="${1:-${OP_ACCOUNT-}}"
+    local vault_arg="${2:-${OP_VAULT-}}"
+    local ok=0
+    local old_file="$ZSH_SECRETS_FILE"
+    ZSH_SECRETS_FILE="$OP_ACCOUNTS_FILE" \
+        secrets_sync_to_1p "op-accounts-env" "$account_arg" "$vault_arg" || ok=1
+    ZSH_SECRETS_FILE="$old_file" \
+        secrets_sync_to_1p "zsh-secrets-env" "$account_arg" "$vault_arg" || ok=1
+    ZSH_SECRETS_FILE="$ZSH_SECRETS_MAP" \
+        secrets_sync_to_1p "zsh-secrets-map" "$account_arg" "$vault_arg" || ok=1
+    ZSH_SECRETS_FILE="$CODEX_SESSIONS_FILE" \
+        secrets_sync_to_1p "codex-sessions-env" "$account_arg" "$vault_arg" || ok=1
+    ZSH_SECRETS_FILE="$old_file"
+    return "$ok"
+}
+
+secrets_pull_all_from_1p() {
+    local account_arg="${1:-${OP_ACCOUNT-}}"
+    local vault_arg="${2:-${OP_VAULT-}}"
+    local ok=0
+    local old_file="$ZSH_SECRETS_FILE"
+    ZSH_SECRETS_FILE="$OP_ACCOUNTS_FILE" \
+        secrets_pull_from_1p "op-accounts-env" "$account_arg" "$vault_arg" || ok=1
+    ZSH_SECRETS_FILE="$old_file" \
+        secrets_pull_from_1p "zsh-secrets-env" "$account_arg" "$vault_arg" || ok=1
+    ZSH_SECRETS_FILE="$ZSH_SECRETS_MAP" \
+        secrets_pull_from_1p "zsh-secrets-map" "$account_arg" "$vault_arg" || ok=1
+    ZSH_SECRETS_FILE="$CODEX_SESSIONS_FILE" \
+        secrets_pull_from_1p "codex-sessions-env" "$account_arg" "$vault_arg" || ok=1
+    ZSH_SECRETS_FILE="$old_file"
+    return "$ok"
+}
+
 secrets_profile_switch() {
     local profile="${1-}"
     local account="${2:-${OP_ACCOUNT-}}"
