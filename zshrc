@@ -127,6 +127,7 @@ if detect_ide; then
     load_module python      # Python environment (geo31111 auto-activated)
     load_module system_diagnostics  # iCloud/Dropbox helpers
     load_module agents
+    load_module paths
     load_module screen      # GNU screen helpers
     
     # Tier 2: Credentials & paths (defer in current shell)
@@ -163,6 +164,7 @@ else
     load_module python
     load_module system_diagnostics
     load_module agents
+    load_module paths
     load_module screen
     load_module credentials
     load_module database
@@ -314,6 +316,11 @@ help() {
     echo "  extract <file>         - Universal archive extraction"
     echo "  path_clean             - Remove duplicate PATH entries"
     echo ""
+    echo "📌 Custom Paths:"
+    echo "  paths_init             - Create paths.env"
+    echo "  paths_edit             - Edit custom paths"
+    echo "  paths_list             - List custom paths"
+    echo ""
     echo "🤖 Codex:"
     echo "  codex_session [name]   - Print resume command (select if empty)"
     echo "  codex_session_list     - List saved sessions"
@@ -339,6 +346,7 @@ modules() {
     echo "✅ secrets     - Local + 1Password secrets"
     echo "✅ system_diagnostics - iCloud/Dropbox/Linux diagnostics"
     echo "✅ agents      - Codex session helpers"
+    echo "✅ paths       - Custom path aliases"
     echo "✅ backup      - Git self-backup system"
 }
 
