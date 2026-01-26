@@ -30,7 +30,7 @@ paths_list() {
     rg -n "^export " "$ZSH_PATHS_FILE" 2>/dev/null || grep -n "^export " "$ZSH_PATHS_FILE"
 }
 
-if [[ -f "$ZSH_PATHS_FILE" ]]; then
+if [[ -z "${PATHS_LOADED:-}" && -f "$ZSH_PATHS_FILE" ]]; then
     source "$ZSH_PATHS_FILE"
 fi
 
