@@ -47,6 +47,16 @@ zsh run-tests.zsh --verbose
 zsh run-tests.zsh --test "test_python_status"
 ```
 
+## ✅ Development Standard (Required)
+
+Every code change must include:
+- Tests for new or modified behavior
+- Tests documented in `tests/README.md`
+- Built‑in `help` updated (if user‑facing commands changed)
+- Wiki updated for affected modules
+
+The `test-docs.zsh` suite enforces documentation for test files.
+
 ## 📁 Test Structure
 
 ```

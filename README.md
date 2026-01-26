@@ -481,6 +481,12 @@ setup_snowflake_credentials
 
 ## 🧪 Testing & Verification
 
+### ✅ Development Standard (Required)
+- Add tests for any new or changed behavior
+- Update `tests/README.md` with new test files
+- Update built‑in `help` for user‑visible commands
+- Update wiki pages for affected modules
+
 ### **Run Hostile Tests**
 ```bash
 # Complete security and functionality verification

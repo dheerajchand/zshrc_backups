@@ -10,6 +10,7 @@ Minimal zsh test framework and test suites for this repo.
 - `test-spark-hadoop.zsh`
 - `test-system-diagnostics.zsh`
 - `test-agents.zsh`
+- `test-docs.zsh`
 - `test-utils.zsh`
 - `test-backup.zsh`
 - `test-database.zsh`
