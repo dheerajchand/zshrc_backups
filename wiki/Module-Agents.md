@@ -22,3 +22,5 @@ Codex session shortcuts and CRUD for saved session IDs.
 ## Notes
 - Format: `name=id|description`
 - If `fzf` is installed, `codex_session` uses it for selection.
+- In interactive shells, `codex_session` prompts to execute the resume command (default **Y**).
+- In non‑interactive shells, it auto‑executes the resume command.
