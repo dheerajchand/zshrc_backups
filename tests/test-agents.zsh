@@ -21,4 +21,26 @@ test_codex_session_crud() {
     rm -f "$tmp"
 }
 
+test_codex_session_auto_exec_non_interactive() {
+    local tmp bin out log
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    log="$tmp/log"
+    mkdir -p "$bin"
+    cat > "$bin/codex" <<'CODEX'
+#!/usr/bin/env zsh
+echo "$*" >> "$CODEX_LOG"
+CODEX
+    chmod +x "$bin/codex"
+    export CODEX_SESSIONS_FILE="$tmp/sessions.env"
+    export CODEX_LOG="$log"
+    printf "demo=abc123|Test\n" > "$CODEX_SESSIONS_FILE"
+    : > "$log"
+    PATH="$bin:/usr/bin:/bin" ZSH_TEST_MODE=1 zsh -fc \
+        "source $ROOT_DIR/modules/agents.zsh; codex_session demo >/dev/null"
+    assert_contains "$(cat "$log")" "resume abc123" "should execute codex resume in non-interactive mode"
+    rm -rf "$tmp"
+}
+
 register_test "test_codex_session_crud" "test_codex_session_crud"
+register_test "test_codex_session_auto_exec_non_interactive" "test_codex_session_auto_exec_non_interactive"

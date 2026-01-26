@@ -153,10 +153,19 @@ codex_session() {
     if [[ "$id" == "$desc" ]]; then
         desc=""
     fi
+    local cmd="codex resume $id"
     if [[ -n "$desc" ]]; then
-        echo "codex resume $id  # $desc"
+        echo "$cmd  # $desc"
     else
-        echo "codex resume $id"
+        echo "$cmd"
+    fi
+    local reply="y"
+    if [[ -o interactive ]]; then
+        read -r "reply?Execute command? [Y/n]: "
+        reply="${reply:-y}"
+    fi
+    if [[ "$reply" =~ ^[Yy]$ ]]; then
+        eval "$cmd"
     fi
 }
 
