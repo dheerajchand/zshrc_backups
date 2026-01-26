@@ -263,6 +263,8 @@ help() {
     echo "  secrets_bootstrap_from_1p - Pull secrets files from 1Password"
     echo "  secrets_sync_to_1p      - Sync secrets.env to 1Password"
     echo "  secrets_pull_from_1p    - Pull secrets.env from 1Password"
+    echo "  secrets_sync_codex_sessions_to_1p - Sync codex sessions to 1Password"
+    echo "  secrets_pull_codex_sessions_from_1p - Pull codex sessions from 1Password"
     echo "  op_accounts_edit        - Edit 1Password account aliases"
     echo "  op_accounts_set_alias   - Set alias in op-accounts.env"
     echo "  op_accounts_seed        - Prompt to seed aliases from op CLI"

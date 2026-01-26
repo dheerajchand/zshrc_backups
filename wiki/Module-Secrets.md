@@ -56,6 +56,8 @@ Secrets loading, 1Password integration, profiles, and rsync fallbacks.
 | `secrets_init_map` | Create secrets.1p | File IO | Example exists |
 | `secrets_sync_to_1p` | Sync file to 1Password | `op` | Logged in |
 | `secrets_pull_from_1p` | Pull file from 1Password | `op` | Logged in |
+| `secrets_sync_codex_sessions_to_1p` | Sync codex sessions | `op` | Logged in |
+| `secrets_pull_codex_sessions_from_1p` | Pull codex sessions | `op` | Logged in |
 | `secrets_profile_switch` | Set profile + reload | `load_secrets` | Valid profile |
 | `op_list_items` | List items in vault | `op` | Logged in |
 | `op_signin_account` | Sign in by alias | `op` | Alias configured |
