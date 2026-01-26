@@ -119,6 +119,12 @@ test_jar_matrix_defaults_spark4() {
     assert_contains "$out" "spark-sql-kafka-0-10_2.13:4.1.1" "spark 4.x should default scala 2.13"
 }
 
+test_scala_version_sanitized() {
+    local out
+    out="$(SPARK_VERSION=4.1.1 SPARK_SCALA_VERSION='2.13.17, OpenJDK' ZSH_TEST_MODE=1 zsh -fc "source $ROOT_DIR/modules/spark.zsh; jar_matrix_resolve")"
+    assert_contains "$out" "spark-sql-kafka-0-10_2.13:4.1.1" "scala version should be sanitized to binary 2.13"
+}
+
 test_jar_matrix_status_defined() {
     source "$ROOT_DIR/modules/spark.zsh"
     assert_true "typeset -f jar_matrix_status >/dev/null 2>&1" "jar_matrix_status should be defined"
@@ -132,6 +138,7 @@ register_test "test_jar_matrix_resolve_basic" "test_jar_matrix_resolve_basic"
 register_test "test_jar_matrix_defaults_spark22" "test_jar_matrix_defaults_spark22"
 register_test "test_jar_matrix_defaults_spark24" "test_jar_matrix_defaults_spark24"
 register_test "test_jar_matrix_defaults_spark4" "test_jar_matrix_defaults_spark4"
+register_test "test_scala_version_sanitized" "test_scala_version_sanitized"
 register_test "test_jar_matrix_status_defined" "test_jar_matrix_status_defined"
 register_test "test_hadoop_home_sdkman_preferred" "test_hadoop_home_sdkman_preferred"
 register_test "test_start_hadoop_usage" "test_start_hadoop_usage"

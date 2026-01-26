@@ -428,7 +428,13 @@ zsh_status_banner() {
         scala_state="available"
     fi
     printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "⚡ Spark:" "$reset_color" "$spark_state  🐘 Hadoop: $hadoop_state  🧠 Scala: $scala_state"
-    [[ -n "${JAVA_HOME:-}" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "☕ Java:" "$reset_color" "$JAVA_HOME"
+    if command -v java >/dev/null 2>&1; then
+        local java_version
+        java_version="$(java -version 2>&1 | head -n 1)"
+        printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "☕ Java:" "$reset_color" "${java_version:-$JAVA_HOME}"
+    elif [[ -n "${JAVA_HOME:-}" ]]; then
+        printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "☕ Java:" "$reset_color" "$JAVA_HOME"
+    fi
     local spark_version=""
     local scala_version=""
     local hadoop_version=""
@@ -438,6 +444,8 @@ zsh_status_banner() {
         spark_version="${detected%% *}"
         scala_version="${detected#* }"
     fi
+    scala_version="${scala_version%%,*}"
+    scala_version="${scala_version%% *}"
     if [[ -z "$scala_version" ]] && typeset -f _spark_detect_scala_version >/dev/null 2>&1; then
         scala_version="$(_spark_detect_scala_version 2>/dev/null || true)"
     fi

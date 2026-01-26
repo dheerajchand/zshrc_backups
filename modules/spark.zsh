@@ -40,6 +40,8 @@ _spark_detect_versions() {
         output="$(spark-submit --version 2>&1 || true)"
         spark_version="$(printf '%s' "$output" | awk '/version/{print $NF; exit}')"
         scala_version="$(printf '%s' "$output" | awk -F'version ' '/Scala/{print $2; exit}')"
+        scala_version="${scala_version%%,*}"
+        scala_version="${scala_version%% *}"
     fi
     if [[ -n "$spark_version" ]]; then
         echo "$spark_version" "${scala_version:-}"
@@ -79,6 +81,8 @@ _spark_default_scala_for_spark() {
 
 _spark_scala_binary() {
     local v="$1"
+    v="${v%%,*}"
+    v="${v%% *}"
     if [[ -z "$v" ]]; then
         echo ""
         return 0
@@ -199,7 +203,7 @@ spark_validate_versions() {
     local hadoop_version
     hadoop_version="$(_spark_detect_hadoop_version 2>/dev/null || true)"
     local hadoop_mm=""
-    [[ -n "$hadoop_version" ]] && hadoop_mm="${hadoop_version%.*}"
+    [[ -n "$hadoop_version" ]] && hadoop_mm="${hadoop_version%%.*}"
     local ok=0
     if [[ -n "$spark_version" && -n "$expected_binary" && -n "$scala_binary" && "$expected_binary" != "$scala_binary" ]]; then
         echo "⚠️  Spark $spark_version expects Scala $expected_binary but found $scala_binary" >&2
