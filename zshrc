@@ -123,6 +123,7 @@ if detect_ide; then
     
     # Tier 1: Essential (load immediately - IDE needs Python right away)
     load_module utils       # Provides is_online, mkcd, extract, path_add
+    load_module settings    # vars/aliases/paths
     load_module secrets     # Local + 1Password env vars
     load_module python      # Python environment (geo31111 auto-activated)
     load_module system_diagnostics  # iCloud/Dropbox helpers
@@ -160,6 +161,7 @@ else
     echo "🚀 Loading modules..."
     
     load_module utils
+    load_module settings
     load_module secrets
     load_module python
     load_module system_diagnostics
@@ -321,6 +323,13 @@ help() {
     echo "  paths_edit             - Edit custom paths"
     echo "  paths_list             - List custom paths"
     echo ""
+    echo "⚙️  Settings:"
+    echo "  settings_init          - Create vars/aliases/paths files"
+    echo "  settings_edit_vars     - Edit vars.env"
+    echo "  settings_edit_aliases  - Edit aliases.zsh"
+    echo "  settings_edit_paths    - Edit paths.env"
+    echo "  settings_status        - Show settings file locations"
+    echo ""
     echo "🤖 Codex:"
     echo "  codex_session [name]   - Print resume command (select if empty)"
     echo "  codex_session_list     - List saved sessions"
@@ -347,6 +356,7 @@ modules() {
     echo "✅ system_diagnostics - iCloud/Dropbox/Linux diagnostics"
     echo "✅ agents      - Codex session helpers"
     echo "✅ paths       - Custom path aliases"
+    echo "✅ settings    - Vars/Aliases/Paths"
     echo "✅ backup      - Git self-backup system"
 }
 

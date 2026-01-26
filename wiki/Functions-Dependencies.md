@@ -22,6 +22,7 @@ Your zsh configuration system provides **78+ functions** across **8 functional c
 - [Module: Screen](Module-Screen)
 - [Module: Agents](Module-Agents)
 - [Module: Paths](Module-Paths)
+- [Module: Settings](Module-Settings)
 
 ## 📊 **Function Categories & Counts**
 
