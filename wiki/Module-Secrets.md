@@ -11,6 +11,26 @@ Secrets loading, 1Password integration, profiles, and rsync fallbacks.
 - `OP_ACCOUNT`, `OP_VAULT`
 - `OP_ACCOUNTS_FILE`
 
+## Mapping formats (`secrets.1p`)
+Two formats are supported:
+
+1) **Legacy (space-delimited)**  
+`ENVVAR service user field`
+
+Example:
+```
+FEC_API_KEY fec-api dheeraj password
+SERVICE_TOKEN svc - token
+```
+
+2) **op:// URL mapping**  
+`ENVVAR=op://<vault>/<item>/<field>`
+
+Example:
+```
+GITLAB_TOKEN=op://Private/gitlab-access-token/password
+```
+
 ## Functions
 
 | Function | Purpose | Dependencies | Assumptions |
@@ -25,6 +45,7 @@ Secrets loading, 1Password integration, profiles, and rsync fallbacks.
 | `_op_accounts_write_kv` | Write alias line | `mktemp` | File writable |
 | `_op_account_uuid_configured` | UUID present on device | `python` | `op account list` JSON |
 | `_op_account_shorthand_configured` | Shorthand present on device | `python` | `op account list` JSON |
+| `_op_cmd` | Wrapper for op CLI (testable) | `op` | `OP_BIN` optional |
 | `_op_resolve_account_arg` | Resolve alias→UUID if possible | `op` | Alias file configured |
 | `op_accounts_set_alias` | Set alias entry | `_op_accounts_write_kv` | Valid alias |
 | `op_accounts_seed` | Prompt to seed aliases | `op`, `python` | Interactive shell |

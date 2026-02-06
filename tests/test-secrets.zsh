@@ -92,8 +92,10 @@ OP
     old_path="$PATH"
     old_file="$OP_ACCOUNTS_FILE"
     PATH="$bin:/usr/bin:/bin"
-    export OP_ACCOUNTS_FILE="$file"
+    hash -r
+    unalias op 2>/dev/null || true
     unfunction op 2>/dev/null || true
+    export OP_ACCOUNTS_FILE="$file"
     out="$(zsh -fc "source $ROOT_DIR/modules/secrets.zsh; op item create --account Dheeraj_Chand_Family test")"
     assert_contains "$out" "--account UUID1" "alias shim should replace account with uuid"
     PATH="$old_path"
@@ -156,6 +158,38 @@ EOF
     export ZSH_SECRETS_MODE="$old_mode"
     unset OP_ACCOUNT OP_VAULT
     unset -f op 2>/dev/null || true
+    rm -rf "$tmp"
+}
+
+test_secrets_load_op_supports_op_url_mapping() {
+    local tmp map old_map old_mode old_account old_vault orig_op_cmd
+    tmp="$(mktemp -d)"
+    map="$tmp/secrets.1p"
+    cat > "$map" <<'EOF'
+GITLAB_TOKEN=op://Private/gitlab-access-token/password
+EOF
+    old_map="$ZSH_SECRETS_MAP"
+    old_mode="$ZSH_SECRETS_MODE"
+    old_account="${OP_ACCOUNT-}"
+    old_vault="${OP_VAULT-}"
+    orig_op_cmd="$(typeset -f _op_cmd 2>/dev/null || true)"
+    _op_cmd() { echo "token-value"; }
+    export ZSH_SECRETS_MAP="$map"
+    export ZSH_SECRETS_MODE="op"
+    export OP_ACCOUNT="uuid1"
+    export OP_VAULT="Private"
+    GITLAB_TOKEN=""
+    secrets_load_op
+    assert_equal "token-value" "${GITLAB_TOKEN-}" "op:// mapping should set env var"
+    if [[ -n "$orig_op_cmd" ]]; then
+        eval "$orig_op_cmd"
+    else
+        unset -f _op_cmd 2>/dev/null || true
+    fi
+    export ZSH_SECRETS_MAP="$old_map"
+    export ZSH_SECRETS_MODE="$old_mode"
+    export OP_ACCOUNT="$old_account"
+    export OP_VAULT="$old_vault"
     rm -rf "$tmp"
 }
 
@@ -778,6 +812,7 @@ test_vault_without_account_warns() {
 
 register_test "test_secrets_load_file" "test_secrets_load_file"
 register_test "test_secrets_load_op" "test_secrets_load_op"
+register_test "test_secrets_load_op_supports_op_url_mapping" "test_secrets_load_op_supports_op_url_mapping"
 register_test "test_machine_profile_default" "test_machine_profile_default"
 register_test "test_secrets_edit_creates_file" "test_secrets_edit_creates_file"
 register_test "test_secrets_sync_to_1p_requires_op" "test_secrets_sync_to_1p_requires_op"
