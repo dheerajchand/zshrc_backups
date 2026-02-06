@@ -829,7 +829,23 @@ op_set_default() {
     if [[ -n "$account" ]]; then
         local resolved
         resolved="$(_op_account_alias "$account" 2>/dev/null || true)"
-        export OP_ACCOUNT="${resolved:-$account}"
+        local account_arg="${resolved:-$account}"
+        if command -v op >/dev/null 2>&1 && op account list >/dev/null 2>&1; then
+            local accounts_json
+            accounts_json="$(op account list --format=json 2>/dev/null || true)"
+            if _op_account_shorthand_configured "$account" "$accounts_json"; then
+                account_arg="$account"
+            elif [[ -n "$resolved" ]] && _op_account_uuid_configured "$resolved" "$accounts_json"; then
+                account_arg="$resolved"
+            elif _op_account_uuid_configured "$account" "$accounts_json"; then
+                account_arg="$account"
+            else
+                _secrets_warn "Account not configured on this device: $account${resolved:+ ($resolved)}"
+                _secrets_info "Run: op account add --shorthand $account"
+                account_arg="${resolved:-$account}"
+            fi
+        fi
+        export OP_ACCOUNT="$account_arg"
         if [[ -z "$vault" ]]; then
             unset OP_VAULT
         fi
