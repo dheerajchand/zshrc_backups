@@ -45,6 +45,25 @@ OP
     chmod +x "$bin_dir/op"
 }
 
+_make_stub_op_accounts_json() {
+    local bin_dir="$1"
+    local json="$2"
+    cat > "$bin_dir/op" <<OP
+#!/usr/bin/env zsh
+if [[ "\$1 \$2" == "account list" ]]; then
+  if [[ "\$3" == "--format=json" ]]; then
+    cat <<'JSON'
+$json
+JSON
+    exit 0
+  fi
+  exit 0
+fi
+exit 1
+OP
+    chmod +x "$bin_dir/op"
+}
+
 test_secrets_load_file() {
     local tmp file old_file old_mode
     tmp="$(mktemp -d)"
@@ -327,6 +346,48 @@ test_op_set_default_clears_vault() {
     assert_equal "" "${OP_VAULT-}" "should clear vault when not provided"
     export OP_ACCOUNT="$old_account"
     export OP_VAULT="$old_vault"
+}
+
+test_op_set_default_prefers_shorthand() {
+    local tmp bin file old_path old_file
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    file="$tmp/op-accounts.env"
+    cat > "$file" <<'EOF'
+Dheeraj_Chand_Family=UUID1
+EOF
+    _make_stub_op_accounts_json "$bin" '[{"account_uuid":"UUID1","shorthand":"Dheeraj_Chand_Family"}]'
+    old_path="$PATH"
+    old_file="$OP_ACCOUNTS_FILE"
+    PATH="$bin:/usr/bin:/bin"
+    export OP_ACCOUNTS_FILE="$file"
+    op_set_default Dheeraj_Chand_Family Private
+    assert_equal "Dheeraj_Chand_Family" "$OP_ACCOUNT" "should prefer shorthand when configured"
+    PATH="$old_path"
+    export OP_ACCOUNTS_FILE="$old_file"
+    rm -rf "$tmp"
+}
+
+test_op_set_default_uses_uuid_when_no_shorthand() {
+    local tmp bin file old_path old_file
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    file="$tmp/op-accounts.env"
+    cat > "$file" <<'EOF'
+Dheeraj_Chand_Family=UUID1
+EOF
+    _make_stub_op_accounts_json "$bin" '[{"account_uuid":"UUID1","shorthand":""}]'
+    old_path="$PATH"
+    old_file="$OP_ACCOUNTS_FILE"
+    PATH="$bin:/usr/bin:/bin"
+    export OP_ACCOUNTS_FILE="$file"
+    op_set_default Dheeraj_Chand_Family Private
+    assert_equal "UUID1" "$OP_ACCOUNT" "should use uuid when shorthand missing"
+    PATH="$old_path"
+    export OP_ACCOUNTS_FILE="$old_file"
+    rm -rf "$tmp"
 }
 
 test_op_list_accounts_vaults_empty() {
@@ -690,6 +751,8 @@ register_test "test_op_list_accounts_vaults_requires_op" "test_op_list_accounts_
 register_test "test_op_account_alias_lookup" "test_op_account_alias_lookup"
 register_test "test_op_account_uuid_configured" "test_op_account_uuid_configured"
 register_test "test_op_set_default_clears_vault" "test_op_set_default_clears_vault"
+register_test "test_op_set_default_prefers_shorthand" "test_op_set_default_prefers_shorthand"
+register_test "test_op_set_default_uses_uuid_when_no_shorthand" "test_op_set_default_uses_uuid_when_no_shorthand"
 register_test "test_op_list_accounts_vaults_empty" "test_op_list_accounts_vaults_empty"
 register_test "test_op_list_items_requires_op" "test_op_list_items_requires_op"
 register_test "test_secrets_pull_requires_op" "test_secrets_pull_requires_op"
