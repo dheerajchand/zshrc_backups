@@ -431,8 +431,13 @@ zsh_status_banner() {
     if [[ -n "$repo_root" ]]; then
         branch="$(git -C "$repo_root" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
         last_commit="$(git -C "$repo_root" log -1 --pretty='%h %s' 2>/dev/null || true)"
-        [[ -n "$branch" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🌿 Branch:" "$reset_color" "$branch"
-        [[ -n "$last_commit" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🧾 Last commit:" "$reset_color" "$last_commit"
+        if [[ -n "$branch" && -n "$last_commit" ]]; then
+            printf "\033[%sm%s\033[%sm (%s): %s\n" "$accent_color" "🌿 Git:" "$reset_color" "$branch" "$last_commit"
+        elif [[ -n "$branch" ]]; then
+            printf "\033[%sm%s\033[%sm (%s)\n" "$accent_color" "🌿 Git:" "$reset_color" "$branch"
+        elif [[ -n "$last_commit" ]]; then
+            printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🌿 Git:" "$reset_color" "$last_commit"
+        fi
     fi
 
     # Python environment
