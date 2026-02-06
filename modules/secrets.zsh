@@ -196,6 +196,11 @@ _op_account_shorthand_configured() {
 print("1" if any((a.get("shorthand") or "")==s for a in data) else "0")' "$shorthand" 2>/dev/null | grep -q '^1$'
 }
 
+_op_cmd() {
+    local bin="${OP_BIN:-op}"
+    command "$bin" "$@"
+}
+
 _op_resolve_account_arg() {
     local account="$1"
     [[ -z "$account" ]] && { echo ""; return 0; }
@@ -568,30 +573,66 @@ secrets_load_op() {
         return 1
     fi
     [[ -f "$ZSH_SECRETS_MAP" ]] || return 1
-    if ! command -v op >/dev/null 2>&1; then
+    local op_bin="${OP_BIN:-op}"
+    if ! command -v "$op_bin" >/dev/null 2>&1; then
         _secrets_warn "op not found; cannot load 1Password secrets"
         return 1
     fi
-    if ! op account list >/dev/null 2>&1; then
+    if ! _op_cmd account list >/dev/null 2>&1; then
         _secrets_warn "1Password auth required (run: op signin)"
         return 1
     fi
+    if [[ -n "$account_arg" ]]; then
+        account_arg="$(_op_resolve_account_arg "$account_arg")"
+    fi
 
-    local envvar service user field
-    while read -r envvar service user field; do
+    local line envvar service user field vault_override
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" ]] && continue
+        [[ "$line" == \#* ]] && continue
+        vault_override=""
+
+        # Support op:// mapping: KEY=op://vault/item/field
+        if [[ "$line" == *"="* ]]; then
+            envvar="${line%%=*}"
+            local rhs="${line#*=}"
+            envvar="${envvar## }"
+            envvar="${envvar%% }"
+            rhs="${rhs## }"
+            rhs="${rhs%% }"
+            if [[ -n "$envvar" && "$rhs" == op://* ]]; then
+                local path="${rhs#op://}"
+                local vault="${path%%/*}"
+                local rest="${path#*/}"
+                local item="${rest%%/*}"
+                local fld="${rest#*/}"
+                if [[ -n "$item" && -n "$fld" ]]; then
+                    service="$item"
+                    user="-"
+                    field="$fld"
+                    vault_override="$vault"
+                else
+                    continue
+                fi
+            else
+                read -r envvar service user field <<<"$line"
+            fi
+        else
+            read -r envvar service user field <<<"$line"
+        fi
         [[ -z "$envvar" ]] && continue
-        [[ "$envvar" == \#* ]] && continue
         [[ -z "$service" || -z "$field" ]] && continue
         local value=""
+        local vault_to_use="${vault_override:-$vault_arg}"
         if [[ "$user" == "-" || -z "$user" ]]; then
-            value="$(op item get "$service" \
+            value="$(_op_cmd item get "$service" \
                 ${account_arg:+--account="$account_arg"} \
-                ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+                ${account_arg:+${vault_to_use:+--vault="$vault_to_use"}} \
                 --field="$field" --reveal 2>/dev/null || true)"
         else
-            value="$(op item get "$service-$user" \
+            value="$(_op_cmd item get "$service-$user" \
                 ${account_arg:+--account="$account_arg"} \
-                ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+                ${account_arg:+${vault_to_use:+--vault="$vault_to_use"}} \
                 --field="$field" --reveal 2>/dev/null || true)"
         fi
         [[ -n "$value" ]] && export "$envvar=$value"
