@@ -601,6 +601,19 @@ secrets_load_op() {
             rhs="${rhs## }"
             rhs="${rhs%% }"
             if [[ -n "$envvar" && "$rhs" == op://* ]]; then
+                local value=""
+                value="$(_op_cmd read "$rhs" \
+                    ${account_arg:+--account="$account_arg"} \
+                    2>/dev/null || true)"
+                if [[ -z "$value" ]]; then
+                    value="$(_op_cmd read "$rhs" 2>/dev/null || true)"
+                fi
+                if [[ -n "$value" ]]; then
+                    export "$envvar=$value"
+                    continue
+                fi
+
+                # Fallback: parse op://vault/item/field and use item get.
                 local path="${rhs#op://}"
                 local vault="${path%%/*}"
                 local rest="${path#*/}"
