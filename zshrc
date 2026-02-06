@@ -431,6 +431,9 @@ zsh_status_banner() {
     if [[ -n "$repo_root" ]]; then
         branch="$(git -C "$repo_root" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
         last_commit="$(git -C "$repo_root" log -1 --pretty='%h %s' 2>/dev/null || true)"
+        if [[ -n "$last_commit" && ${#last_commit} -gt 180 ]]; then
+            last_commit="${last_commit:0:180}…"
+        fi
         if [[ -n "$branch" && -n "$last_commit" ]]; then
             printf "\033[%sm%s\033[%sm (%s): %s\n" "$accent_color" "🌿 Git:" "$reset_color" "$branch" "$last_commit"
         elif [[ -n "$branch" ]]; then
