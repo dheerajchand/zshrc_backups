@@ -13,6 +13,7 @@ Minimal zsh test framework and test suites for this repo.
 - `test-docs.zsh`
 - `test-paths.zsh`
 - `test-settings.zsh`
+- `test-banner.zsh`
 - `test-utils.zsh`
 - `test-backup.zsh`
 - `test-database.zsh`
