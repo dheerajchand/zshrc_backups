@@ -425,6 +425,16 @@ zsh_status_banner() {
     printf "\033[%sm%s\033[%sm\n" "$header_color" "🚀 ZSH Configuration Loaded" "$reset_color"
     printf "\033[%sm%s\033[%sm\n" "$header_color" "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "$reset_color"
 
+    # Git status (branch + last commit) for config repo
+    local repo_root branch last_commit
+    repo_root="$(git -C "$HOME/.config/zsh" rev-parse --show-toplevel 2>/dev/null || true)"
+    if [[ -n "$repo_root" ]]; then
+        branch="$(git -C "$repo_root" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+        last_commit="$(git -C "$repo_root" log -1 --pretty='%h %s' 2>/dev/null || true)"
+        [[ -n "$branch" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🌿 Branch:" "$reset_color" "$branch"
+        [[ -n "$last_commit" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🧾 Last commit:" "$reset_color" "$last_commit"
+    fi
+
     # Python environment
     local pyenv_version="system"
     if command -v pyenv >/dev/null 2>&1; then

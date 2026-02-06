@@ -99,6 +99,14 @@ backup_zsh_config          # Create configuration backup
 secrets_profiles           # List available profiles and colors
 ```
 
+### **Welcome Banner**
+On shell startup, the banner includes:
+- Git branch + last commit for this config
+- Python version + active venv
+- Profile and stack availability
+- Spark/Scala/Hadoop versions
+- Secrets status
+
 ### **macOS Management**
 ```bash
 toggle_hidden_files         # Toggle Finder hidden files
