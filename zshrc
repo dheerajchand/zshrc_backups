@@ -461,6 +461,11 @@ zsh_status_banner() {
         scala_state="available"
     fi
     printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "⚡ Spark:" "$reset_color" "$spark_state  🐘 Hadoop: $hadoop_state  🧠 Scala: $scala_state"
+    if command -v spark-submit >/dev/null 2>&1; then
+        local spark_ver
+        spark_ver="$(spark-submit --version 2>&1 | awk '/version/{print $NF; exit}')"
+        [[ -n "$spark_ver" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🔧 Spark version:" "$reset_color" "$spark_ver"
+    fi
     if command -v java >/dev/null 2>&1; then
         local java_version
         java_version="$(java -version 2>&1 | head -n 1)"
@@ -503,6 +508,21 @@ zsh_status_banner() {
     if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
         printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🐳 Docker:" "$reset_color" "running"
     fi
+
+    # Secrets status (lightweight)
+    local secrets_status="unknown"
+    if [[ "${ZSH_SECRETS_MODE:-}" == "off" ]]; then
+        secrets_status="off"
+    else
+        local file_ok="no"
+        local op_ok="no"
+        [[ -n "${ZSH_SECRETS_FILE:-}" && -f "$ZSH_SECRETS_FILE" ]] && file_ok="yes"
+        if command -v op >/dev/null 2>&1; then
+            op account list >/dev/null 2>&1 && op_ok="yes"
+        fi
+        secrets_status="file:${file_ok} op:${op_ok} mode:${ZSH_SECRETS_MODE:-unset}"
+    fi
+    printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🔐 Secrets:" "$reset_color" "$secrets_status"
 
     # Quick tips
     echo ""
