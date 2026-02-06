@@ -64,6 +64,43 @@ OP
     chmod +x "$bin_dir/op"
 }
 
+test_op_alias_shim_resolves_account() {
+    local tmp bin file old_path old_file out
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    file="$tmp/op-accounts.env"
+    cat > "$file" <<'EOF'
+Dheeraj_Chand_Family=UUID1
+EOF
+    cat > "$bin/op" <<'OP'
+#!/usr/bin/env zsh
+if [[ "$1 $2" == "account list" ]]; then
+  if [[ "$3" == "--format=json" ]]; then
+    echo '[{"account_uuid":"UUID1","shorthand":""}]'
+    exit 0
+  fi
+  exit 0
+fi
+if [[ "$1" == "item" && "$2" == "create" ]]; then
+  echo "$@"
+  exit 0
+fi
+exit 0
+OP
+    chmod +x "$bin/op"
+    old_path="$PATH"
+    old_file="$OP_ACCOUNTS_FILE"
+    PATH="$bin:/usr/bin:/bin"
+    export OP_ACCOUNTS_FILE="$file"
+    unfunction op 2>/dev/null || true
+    out="$(zsh -fc "source $ROOT_DIR/modules/secrets.zsh; op item create --account Dheeraj_Chand_Family test")"
+    assert_contains "$out" "--account UUID1" "alias shim should replace account with uuid"
+    PATH="$old_path"
+    export OP_ACCOUNTS_FILE="$old_file"
+    rm -rf "$tmp"
+}
+
 test_secrets_load_file() {
     local tmp file old_file old_mode
     tmp="$(mktemp -d)"
@@ -753,6 +790,7 @@ register_test "test_op_account_uuid_configured" "test_op_account_uuid_configured
 register_test "test_op_set_default_clears_vault" "test_op_set_default_clears_vault"
 register_test "test_op_set_default_prefers_shorthand" "test_op_set_default_prefers_shorthand"
 register_test "test_op_set_default_uses_uuid_when_no_shorthand" "test_op_set_default_uses_uuid_when_no_shorthand"
+register_test "test_op_alias_shim_resolves_account" "test_op_alias_shim_resolves_account"
 register_test "test_op_list_accounts_vaults_empty" "test_op_list_accounts_vaults_empty"
 register_test "test_op_list_items_requires_op" "test_op_list_items_requires_op"
 register_test "test_secrets_pull_requires_op" "test_secrets_pull_requires_op"
