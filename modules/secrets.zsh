@@ -196,6 +196,30 @@ _op_account_shorthand_configured() {
 print("1" if any((a.get("shorthand") or "")==s for a in data) else "0")' "$shorthand" 2>/dev/null | grep -q '^1$'
 }
 
+_op_resolve_account_arg() {
+    local account="$1"
+    [[ -z "$account" ]] && { echo ""; return 0; }
+    local accounts_json=""
+    if command -v op >/dev/null 2>&1; then
+        accounts_json="$(command op account list --format=json 2>/dev/null || true)"
+    fi
+    if [[ -n "$accounts_json" ]]; then
+        if _op_account_shorthand_configured "$account" "$accounts_json"; then
+            echo "$account"
+            return 0
+        fi
+    fi
+    local resolved
+    resolved="$(_op_account_alias "$account" 2>/dev/null || true)"
+    if [[ -n "$resolved" ]]; then
+        if [[ -n "$accounts_json" ]] && _op_account_uuid_configured "$resolved" "$accounts_json"; then
+            echo "$resolved"
+            return 0
+        fi
+    fi
+    echo "$account"
+}
+
 op_accounts_set_alias() {
     local alias_name="${1:-}"
     local uuid="${2:-}"
@@ -827,22 +851,17 @@ op_set_default() {
         return 1
     fi
     if [[ -n "$account" ]]; then
-        local resolved
-        resolved="$(_op_account_alias "$account" 2>/dev/null || true)"
-        local account_arg="${resolved:-$account}"
+        local account_arg
+        account_arg="$(_op_resolve_account_arg "$account")"
         if command -v op >/dev/null 2>&1 && op account list >/dev/null 2>&1; then
             local accounts_json
             accounts_json="$(op account list --format=json 2>/dev/null || true)"
-            if _op_account_shorthand_configured "$account" "$accounts_json"; then
-                account_arg="$account"
-            elif [[ -n "$resolved" ]] && _op_account_uuid_configured "$resolved" "$accounts_json"; then
-                account_arg="$resolved"
-            elif _op_account_uuid_configured "$account" "$accounts_json"; then
-                account_arg="$account"
-            else
+            if ! _op_account_shorthand_configured "$account_arg" "$accounts_json" && \
+               ! _op_account_uuid_configured "$account_arg" "$accounts_json"; then
+                local resolved
+                resolved="$(_op_account_alias "$account" 2>/dev/null || true)"
                 _secrets_warn "Account not configured on this device: $account${resolved:+ ($resolved)}"
                 _secrets_info "Run: op account add --shorthand $account"
-                account_arg="${resolved:-$account}"
             fi
         fi
         export OP_ACCOUNT="$account_arg"
@@ -855,6 +874,41 @@ op_set_default() {
     fi
     _secrets_info "1Password defaults: account=${OP_ACCOUNT:-default} vault=${OP_VAULT:-default}"
 }
+
+if [[ -z "${OP_ALIAS_SHIM_DISABLE:-}" ]]; then
+    if command -v op >/dev/null 2>&1 && ! typeset -f op >/dev/null 2>&1; then
+        op() {
+            local -a args=("$@")
+            local -a out=()
+            local account=""
+            local i=1
+            while [[ $i -le ${#args[@]} ]]; do
+                case "${args[$i]}" in
+                    --account)
+                        account="${args[$((i+1))]}"
+                        out+=("--account")
+                        local resolved
+                        resolved="$(_op_resolve_account_arg "$account")"
+                        out+=("$resolved")
+                        i=$((i+2))
+                        continue
+                        ;;
+                    --account=*)
+                        account="${args[$i]#--account=}"
+                        local resolved2
+                        resolved2="$(_op_resolve_account_arg "$account")"
+                        out+=("--account=${resolved2}")
+                        i=$((i+1))
+                        continue
+                        ;;
+                esac
+                out+=("${args[$i]}")
+                i=$((i+1))
+            done
+            command op "${out[@]}"
+        }
+    fi
+fi
 
 op_list_accounts_vaults() {
     if ! command -v op >/dev/null 2>&1; then
