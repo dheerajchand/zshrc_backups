@@ -25,6 +25,7 @@ Secrets loading, 1Password integration, profiles, and rsync fallbacks.
 | `_op_accounts_write_kv` | Write alias line | `mktemp` | File writable |
 | `_op_account_uuid_configured` | UUID present on device | `python` | `op account list` JSON |
 | `_op_account_shorthand_configured` | Shorthand present on device | `python` | `op account list` JSON |
+| `_op_resolve_account_arg` | Resolve alias→UUID if possible | `op` | Alias file configured |
 | `op_accounts_set_alias` | Set alias entry | `_op_accounts_write_kv` | Valid alias |
 | `op_accounts_seed` | Prompt to seed aliases | `op`, `python` | Interactive shell |
 | `_secrets_safe_title` | Redact titles | None | Used by verify |
@@ -73,4 +74,5 @@ Secrets loading, 1Password integration, profiles, and rsync fallbacks.
 
 ## Notes
 - `op_login_headless` sets `OP_SESSION_<alias>` tokens.
+- `op` CLI wrapper rewrites `--account` aliases to UUIDs. Disable with `OP_ALIAS_SHIM_DISABLE=1`.
 - `secrets_rsync_*` is the supported fallback for headless servers without op GUI.
