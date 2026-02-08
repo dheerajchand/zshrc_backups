@@ -269,6 +269,21 @@ EOF
     rm -rf "$tmp"
 }
 
+test_secrets_map_sanitize_fixes_trailing_quote() {
+    local tmp map old_map
+    tmp="$(mktemp -d)"
+    map="$tmp/secrets.1p"
+    cat > "$map" <<'EOF'
+GITLAB_TOKEN=op://Private/gitlab-access-token/password"
+EOF
+    old_map="$ZSH_SECRETS_MAP"
+    export ZSH_SECRETS_MAP="$map"
+    secrets_map_sanitize --fix
+    assert_contains "$(cat "$map")" "GITLAB_TOKEN=op://Private/gitlab-access-token/password" "should strip trailing quote"
+    export ZSH_SECRETS_MAP="$old_map"
+    rm -rf "$tmp"
+}
+
 test_op_list_accounts_vaults_requires_op() {
     local old_path="$PATH"
     local tmp bin out
@@ -819,6 +834,7 @@ register_test "test_secrets_sync_to_1p_requires_op" "test_secrets_sync_to_1p_req
 register_test "test_secrets_sync_to_1p_with_account_vault" "test_secrets_sync_to_1p_with_account_vault"
 register_test "test_secrets_init_from_example" "test_secrets_init_from_example"
 register_test "test_secrets_init_map_from_example" "test_secrets_init_map_from_example"
+register_test "test_secrets_map_sanitize_fixes_trailing_quote" "test_secrets_map_sanitize_fixes_trailing_quote"
 register_test "test_op_list_accounts_vaults_requires_op" "test_op_list_accounts_vaults_requires_op"
 register_test "test_op_account_alias_lookup" "test_op_account_alias_lookup"
 register_test "test_op_account_uuid_configured" "test_op_account_uuid_configured"

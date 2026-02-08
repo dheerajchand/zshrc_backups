@@ -1081,6 +1081,49 @@ secrets_init_map() {
     _secrets_info "Created empty secrets map"
 }
 
+secrets_map_sanitize() {
+    local mode="check"
+    local file="${ZSH_SECRETS_MAP:-}"
+    if [[ "${1:-}" == "--fix" ]]; then
+        mode="fix"
+        shift
+    fi
+    [[ -z "$file" || ! -f "$file" ]] && { _secrets_warn "secrets map not found: $file"; return 1; }
+
+    local tmp
+    tmp="$(mktemp)"
+    local issues=0
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        local original="$line"
+        # Strip CRLF
+        line="${line%$'\r'}"
+        # Remove trailing quote on op:// mapping lines
+        if [[ "$line" == *"op://"* && "$line" == *\" ]]; then
+            line="${line%\"}"
+        fi
+        if [[ "$line" != "$original" ]]; then
+            issues=1
+        fi
+        printf "%s\n" "$line" >> "$tmp"
+    done < "$file"
+
+    if [[ "$issues" -eq 0 ]]; then
+        rm -f "$tmp"
+        _secrets_info "secrets map looks clean"
+        return 0
+    fi
+
+    if [[ "$mode" == "fix" ]]; then
+        mv "$tmp" "$file"
+        _secrets_info "secrets map cleaned: $file"
+        return 0
+    fi
+
+    rm -f "$tmp"
+    _secrets_warn "secrets map has formatting issues (run: secrets_map_sanitize --fix)"
+    return 1
+}
+
 secrets_sync_to_1p() {
     local title="${1:-zsh-secrets}"
     local account_arg="${2:-${OP_ACCOUNT-}}"
