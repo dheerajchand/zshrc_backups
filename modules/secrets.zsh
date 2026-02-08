@@ -222,6 +222,53 @@ _op_cmd() {
     command "$bin" "$@"
 }
 
+secrets_find_account_for_item() {
+    local title="${1:-}"
+    local vault="${2:-${ZSH_OP_SOURCE_VAULT:-}}"
+    local op_bin="${OP_BIN:-op}"
+    if [[ -z "$title" ]]; then
+        _secrets_warn "Usage: secrets_find_account_for_item <title> [vault]"
+        return 1
+    fi
+    if ! command -v "$op_bin" >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot search accounts"
+        return 1
+    fi
+    if ! _op_cmd account list >/dev/null 2>&1; then
+        _secrets_warn "1Password auth required (run: op signin)"
+        return 1
+    fi
+    local accounts_json
+    accounts_json="$(_op_cmd account list --format=json 2>/dev/null || true)"
+    if [[ -z "$accounts_json" ]]; then
+        _secrets_warn "No accounts configured on this device"
+        return 1
+    fi
+    local uuids="${OP_ACCOUNT_UUIDS:-}"
+    if [[ -z "$uuids" ]]; then
+        uuids="$(printf '%s' "$accounts_json" | python -c 'import json,sys; data=json.load(sys.stdin); print(\" \".join([a.get(\"account_uuid\",\"\") for a in data if a.get(\"account_uuid\")]))' 2>/dev/null || true)"
+    fi
+    local matches=()
+    for uuid in $uuids; do
+        local items_list
+        if [[ -n "$vault" ]]; then
+            items_list="$(_op_cmd item list --account "$uuid" --vault "$vault" 2>/dev/null || true)"
+        else
+            items_list="$(_op_cmd item list --account "$uuid" 2>/dev/null || true)"
+        fi
+        if [[ -z "$items_list" ]]; then
+            continue
+        fi
+        if printf '%s\n' "$items_list" | grep -Fq "$title"; then
+            matches+=("$uuid")
+        fi
+    done
+    if (( ${#matches[@]} == 0 )); then
+        return 1
+    fi
+    printf "%s\n" "${matches[@]}"
+}
+
 _op_source_account() {
     local account="${ZSH_OP_SOURCE_ACCOUNT:-}"
     [[ -z "$account" ]] && { echo ""; return 0; }

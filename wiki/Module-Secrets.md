@@ -47,6 +47,7 @@ GITLAB_TOKEN=op://Private/gitlab-access-token/password
 | `_op_account_uuid_configured` | UUID present on device | `python` | `op account list` JSON |
 | `_op_account_shorthand_configured` | Shorthand present on device | `python` | `op account list` JSON |
 | `_op_cmd` | Wrapper for op CLI (testable) | `op` | `OP_BIN` optional |
+| `secrets_find_account_for_item` | Find account containing item | `op`, `python` | Logged in |
 | `_op_source_account` | Resolve source account | `op` | Alias configured |
 | `_op_source_vault` | Resolve source vault | None | Configured |
 | `_op_resolve_account_arg` | Resolve alias→UUID if possible | `op` | Alias file configured |
