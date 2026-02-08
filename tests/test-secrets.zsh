@@ -134,6 +134,12 @@ test_secrets_normalize_mode_strips_quote() {
     export ZSH_SECRETS_MODE="$old_mode"
 }
 
+test_secrets_trim_value_strips_space_quote() {
+    local out
+    out="$(_secrets_trim_value 'both"   ')"
+    assert_equal "both" "$out" "should trim whitespace and trailing quote"
+}
+
 test_secrets_load_op() {
     local tmp bin map old_path old_map old_mode
     tmp="$(mktemp -d)"
@@ -851,6 +857,7 @@ register_test "test_secrets_load_file" "test_secrets_load_file"
 register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_secrets_load_op_supports_op_url_mapping" "test_secrets_load_op_supports_op_url_mapping"
 register_test "test_secrets_normalize_mode_strips_quote" "test_secrets_normalize_mode_strips_quote"
+register_test "test_secrets_trim_value_strips_space_quote" "test_secrets_trim_value_strips_space_quote"
 register_test "test_machine_profile_default" "test_machine_profile_default"
 register_test "test_secrets_edit_creates_file" "test_secrets_edit_creates_file"
 register_test "test_secrets_sync_to_1p_requires_op" "test_secrets_sync_to_1p_requires_op"
