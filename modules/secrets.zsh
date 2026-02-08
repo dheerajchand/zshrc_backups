@@ -582,6 +582,7 @@ secrets_load_op() {
         _secrets_warn "1Password auth required (run: op signin)"
         return 1
     fi
+    secrets_map_sanitize --fix >/dev/null 2>&1 || true
     if [[ -n "$account_arg" ]]; then
         account_arg="$(_op_resolve_account_arg "$account_arg")"
     fi
