@@ -85,7 +85,26 @@ _secrets_export_kv() {
         local key="${line%%=*}"
         local val="${line#*=}"
         key="${key## }"; key="${key%% }"
+        if [[ "$key" == "ZSH_SECRETS_MODE" ]]; then
+            val="${val%$'\r'}"
+            while [[ "$val" == *[[:space:]] ]]; do
+                val="${val%[[:space:]]}"
+            done
+            val="${val%\"}"
+        fi
         export "$key=$val"
+    fi
+}
+
+_secrets_normalize_mode() {
+    if [[ -n "${ZSH_SECRETS_MODE:-}" ]]; then
+        local mode="$ZSH_SECRETS_MODE"
+        mode="${mode%$'\r'}"
+        while [[ "$mode" == *[[:space:]] ]]; do
+            mode="${mode%[[:space:]]}"
+        done
+        mode="${mode%\"}"
+        export ZSH_SECRETS_MODE="$mode"
     fi
 }
 
@@ -712,6 +731,7 @@ secrets_load_op() {
 }
 
 load_secrets() {
+    _secrets_normalize_mode
     case "$ZSH_SECRETS_MODE" in
         off) return 0 ;;
         file) secrets_load_file ;;
