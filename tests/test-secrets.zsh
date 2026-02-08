@@ -274,7 +274,7 @@ test_secrets_map_sanitize_fixes_trailing_quote() {
     tmp="$(mktemp -d)"
     map="$tmp/secrets.1p"
     cat > "$map" <<'EOF'
-GITLAB_TOKEN=op://Private/gitlab-access-token/password"
+GITLAB_TOKEN=op://Private/gitlab-access-token/password"   
 EOF
     old_map="$ZSH_SECRETS_MAP"
     export ZSH_SECRETS_MAP="$map"

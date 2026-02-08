@@ -1101,9 +1101,13 @@ secrets_map_sanitize() {
         local original="$line"
         # Strip CRLF
         line="${line%$'\r'}"
-        # Remove trailing quote on op:// mapping lines
-        if [[ "$line" == *"op://"* && "$line" == *\" ]]; then
-            line="${line%\"}"
+        # Remove trailing quote on op:// mapping lines (allow trailing spaces)
+        local trimmed="$line"
+        while [[ "$trimmed" == *[[:space:]] ]]; do
+            trimmed="${trimmed%[[:space:]]}"
+        done
+        if [[ "$trimmed" == *"op://"* && "$trimmed" == *\" ]]; then
+            line="${trimmed%\"}"
         fi
         if [[ "$line" != "$original" ]]; then
             issues=1
