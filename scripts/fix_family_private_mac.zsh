@@ -14,12 +14,50 @@ fi
 
 source "${ROOT_DIR}/modules/secrets.zsh"
 
-echo "🔐 Locating account that contains '${ITEM_TITLE}' in ${VAULT_NAME}..."
-ACCOUNT_UUID="$(secrets_find_account_for_item "${ITEM_TITLE}" "${VAULT_NAME}" | head -n 1 || true)"
+echo "🔐 Selecting account for '${ITEM_TITLE}' in ${VAULT_NAME}..."
+ACCOUNT_UUID="${OP_FIX_ACCOUNT_UUID:-}"
+if [[ -z "$ACCOUNT_UUID" ]]; then
+  ACCOUNTS_JSON="$(op account list --format=json 2>/dev/null || true)"
+  if [[ -z "$ACCOUNTS_JSON" ]]; then
+    echo "No 1Password accounts available. Run: eval \"\$(op signin)\"" >&2
+    exit 1
+  fi
+  python - <<'PY' "$ACCOUNTS_JSON"
+import json,sys
+data=json.loads(sys.argv[1])
+for idx,a in enumerate(data,1):
+    print(f"{idx}) {a.get('account_uuid','')}  {a.get('email','')}  {a.get('url','')}")
+PY
+  printf "Select account number for '%s' in %s [1]: " "$ITEM_TITLE" "$VAULT_NAME"
+  read -r choice
+  [[ -z "$choice" ]] && choice="1"
+  ACCOUNT_UUID="$(python - <<'PY' "$ACCOUNTS_JSON" "$choice"
+import json,sys
+data=json.loads(sys.argv[1])
+idx=int(sys.argv[2])-1
+if idx<0 or idx>=len(data):
+    raise SystemExit(1)
+print(data[idx].get("account_uuid",""))
+PY
+)"
+fi
+
+if [[ -z "$ACCOUNT_UUID" ]]; then
+  echo "No account selected." >&2
+  exit 1
+fi
+
+echo "🔎 Verifying item exists in account ${ACCOUNT_UUID}..."
+if ! op item get "${ITEM_TITLE}" --account "${ACCOUNT_UUID}" --vault "${VAULT_NAME}" >/dev/null 2>&1; then
+  echo "Missing item '${ITEM_TITLE}' in ${VAULT_NAME} for account ${ACCOUNT_UUID}." >&2
+  exit 1
+fi
+
 if [[ -z "$ACCOUNT_UUID" ]]; then
   echo "Could not find '${ITEM_TITLE}' in any account vault '${VAULT_NAME}'." >&2
   exit 1
 fi
+
 echo "🔐 Ensuring source of truth is account ${ACCOUNT_UUID} / ${VAULT_NAME}"
 secrets_source_set "${ACCOUNT_UUID}" "${VAULT_NAME}"
 op_set_default "${ACCOUNT_UUID}" "${VAULT_NAME}"
@@ -34,11 +72,7 @@ if ! op account list >/dev/null 2>&1; then
   eval "$(op signin --account "${ACCOUNT_UUID}")"
 fi
 
-echo "🔎 Verifying GitLab token item exists..."
-if ! op item get "${ITEM_TITLE}" --account "${ACCOUNT_UUID}" --vault "${VAULT_NAME}" >/dev/null 2>&1; then
-  echo "Missing item '${ITEM_TITLE}' in ${VAULT_NAME} for account ${ACCOUNT_UUID}." >&2
-  exit 1
-fi
+echo "🔎 Verified GitLab token item exists."
 
 if [[ ! -f "${SECRETS_MAP}" ]]; then
   echo "Missing ${SECRETS_MAP}" >&2
