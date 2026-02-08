@@ -126,6 +126,14 @@ EOF
     rm -rf "$tmp"
 }
 
+test_secrets_normalize_mode_strips_quote() {
+    local old_mode="${ZSH_SECRETS_MODE-}"
+    export ZSH_SECRETS_MODE='both"'
+    _secrets_normalize_mode
+    assert_equal "both" "$ZSH_SECRETS_MODE" "should strip trailing quote"
+    export ZSH_SECRETS_MODE="$old_mode"
+}
+
 test_secrets_load_op() {
     local tmp bin map old_path old_map old_mode
     tmp="$(mktemp -d)"
@@ -842,6 +850,7 @@ test_vault_without_account_warns() {
 register_test "test_secrets_load_file" "test_secrets_load_file"
 register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_secrets_load_op_supports_op_url_mapping" "test_secrets_load_op_supports_op_url_mapping"
+register_test "test_secrets_normalize_mode_strips_quote" "test_secrets_normalize_mode_strips_quote"
 register_test "test_machine_profile_default" "test_machine_profile_default"
 register_test "test_secrets_edit_creates_file" "test_secrets_edit_creates_file"
 register_test "test_secrets_sync_to_1p_requires_op" "test_secrets_sync_to_1p_requires_op"
