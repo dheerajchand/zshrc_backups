@@ -435,6 +435,19 @@ test_op_set_default_clears_vault() {
     export OP_VAULT="$old_vault"
 }
 
+test_secrets_require_source_blocks_mismatch() {
+    local old_source_account old_source_vault
+    old_source_account="${ZSH_OP_SOURCE_ACCOUNT-}"
+    old_source_vault="${ZSH_OP_SOURCE_VAULT-}"
+    export ZSH_OP_SOURCE_ACCOUNT="acct-source"
+    export ZSH_OP_SOURCE_VAULT="Private"
+    assert_false "_secrets_require_source acct-other Private" "should block non-source account"
+    assert_false "_secrets_require_source acct-source Other" "should block non-source vault"
+    assert_true "_secrets_require_source acct-source Private" "should allow source"
+    export ZSH_OP_SOURCE_ACCOUNT="$old_source_account"
+    export ZSH_OP_SOURCE_VAULT="$old_source_vault"
+}
+
 test_op_set_default_prefers_shorthand() {
     local tmp bin file old_path old_file
     tmp="$(mktemp -d)"
@@ -842,6 +855,7 @@ register_test "test_op_account_uuid_configured" "test_op_account_uuid_configured
 register_test "test_op_set_default_clears_vault" "test_op_set_default_clears_vault"
 register_test "test_op_set_default_prefers_shorthand" "test_op_set_default_prefers_shorthand"
 register_test "test_op_set_default_uses_uuid_when_no_shorthand" "test_op_set_default_uses_uuid_when_no_shorthand"
+register_test "test_secrets_require_source_blocks_mismatch" "test_secrets_require_source_blocks_mismatch"
 register_test "test_op_alias_shim_resolves_account" "test_op_alias_shim_resolves_account"
 register_test "test_op_list_accounts_vaults_empty" "test_op_list_accounts_vaults_empty"
 register_test "test_op_list_items_requires_op" "test_op_list_items_requires_op"

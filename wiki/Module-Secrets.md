@@ -10,6 +10,7 @@ Secrets loading, 1Password integration, profiles, and rsync fallbacks.
 - `ZSH_SECRETS_FILE`, `ZSH_SECRETS_MAP`
 - `OP_ACCOUNT`, `OP_VAULT`
 - `OP_ACCOUNTS_FILE`
+- `ZSH_OP_SOURCE_ACCOUNT`, `ZSH_OP_SOURCE_VAULT` (source of truth)
 
 ## Mapping formats (`secrets.1p`)
 Two formats are supported:
@@ -46,7 +47,12 @@ GITLAB_TOKEN=op://Private/gitlab-access-token/password
 | `_op_account_uuid_configured` | UUID present on device | `python` | `op account list` JSON |
 | `_op_account_shorthand_configured` | Shorthand present on device | `python` | `op account list` JSON |
 | `_op_cmd` | Wrapper for op CLI (testable) | `op` | `OP_BIN` optional |
+| `_op_source_account` | Resolve source account | `op` | Alias configured |
+| `_op_source_vault` | Resolve source vault | None | Configured |
 | `_op_resolve_account_arg` | Resolve alias→UUID if possible | `op` | Alias file configured |
+| `secrets_source_set` | Persist source account/vault | `mktemp` | File writable |
+| `secrets_source_status` | Show source of truth | None | Configured |
+| `_secrets_require_source` | Guard sync/pull | None | Source configured |
 | `op_accounts_set_alias` | Set alias entry | `_op_accounts_write_kv` | Valid alias |
 | `op_accounts_seed` | Prompt to seed aliases | `op`, `python` | Interactive shell |
 | `_secrets_safe_title` | Redact titles | None | Used by verify |
@@ -83,6 +89,7 @@ GITLAB_TOKEN=op://Private/gitlab-access-token/password
 | `secrets_pull_codex_sessions_from_1p` | Pull codex sessions | `op` | Logged in |
 | `secrets_sync_all_to_1p` | Sync all secrets files | `op` | Logged in |
 | `secrets_pull_all_from_1p` | Pull all secrets files | `op` | Logged in |
+| `op_find_item_across_accounts` | Find item title across accounts | `op`, `python` | Logged in |
 | `secrets_profile_switch` | Set profile + reload | `load_secrets` | Valid profile |
 | `op_list_items` | List items in vault | `op` | Logged in |
 | `op_signin_account` | Sign in by alias | `op` | Alias configured |

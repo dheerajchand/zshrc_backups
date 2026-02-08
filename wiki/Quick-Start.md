@@ -79,6 +79,12 @@ op_accounts_set_alias Dheeraj_Chand_Family I3C75JBKZJGSLMVQDGRKCVNHIM
 op_accounts_seed
 ```
 
+### **Set 1Password Source of Truth**
+```bash
+secrets_source_set Dheeraj_Chand_Family Private
+secrets_source_status
+```
+
 ### **3. Enable Auto-Setup (Optional)**
 ```bash
 # Enable automatic environment setup
