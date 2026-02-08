@@ -140,6 +140,46 @@ test_secrets_trim_value_strips_space_quote() {
     assert_equal "both" "$out" "should trim whitespace and trailing quote"
 }
 
+test_secrets_find_account_for_item() {
+    local tmp bin out
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    cat > "$bin/op" <<'OP'
+#!/usr/bin/env zsh
+case "$1 $2" in
+  "account list")
+    if [[ "$3" == "--format=json" ]]; then
+      echo '[{"account_uuid":"A1"},{"account_uuid":"A2"}]'
+      exit 0
+    fi
+    exit 0
+    ;;
+  "item list")
+    echo 'id title vault'
+    echo 'x1 gitlab-token Private'
+    exit 0
+    ;;
+  *)
+    exit 1
+    ;;
+esac
+OP
+    chmod +x "$bin/op"
+    local old_bin="${OP_BIN-}"
+    local old_path="$PATH"
+    PATH="$bin:$PATH"
+    unset OP_BIN
+    hash -r
+    export OP_ACCOUNT_UUIDS="A2"
+    out="$(secrets_find_account_for_item "gitlab-token" "Private" 2>/dev/null || true)"
+    assert_contains "$out" "A2" "should return account containing item"
+    PATH="$old_path"
+    OP_BIN="$old_bin"
+    unset OP_ACCOUNT_UUIDS
+    rm -rf "$tmp"
+}
+
 test_secrets_load_op() {
     local tmp bin map old_path old_map old_mode
     tmp="$(mktemp -d)"
@@ -858,6 +898,7 @@ register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_secrets_load_op_supports_op_url_mapping" "test_secrets_load_op_supports_op_url_mapping"
 register_test "test_secrets_normalize_mode_strips_quote" "test_secrets_normalize_mode_strips_quote"
 register_test "test_secrets_trim_value_strips_space_quote" "test_secrets_trim_value_strips_space_quote"
+register_test "test_secrets_find_account_for_item" "test_secrets_find_account_for_item"
 register_test "test_machine_profile_default" "test_machine_profile_default"
 register_test "test_secrets_edit_creates_file" "test_secrets_edit_creates_file"
 register_test "test_secrets_sync_to_1p_requires_op" "test_secrets_sync_to_1p_requires_op"

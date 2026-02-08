@@ -280,6 +280,7 @@ help() {
     echo "  op_list_accounts_vaults - List accounts and vaults"
     echo "  op_list_items           - List items in account/vault"
     echo "  op_find_item_across_accounts - Find item title across accounts"
+    echo "  secrets_find_account_for_item - Find account containing item title"
     echo "  secrets_source_set      - Set 1Password source account/vault"
     echo "  secrets_source_status   - Show 1Password source of truth"
     echo "  op_signin_account       - Sign in to an account alias"
