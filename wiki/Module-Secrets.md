@@ -76,6 +76,7 @@ GITLAB_TOKEN=op://Private/gitlab-access-token/password
 | `secrets_edit` | Edit secrets.env | `$EDITOR` | File writable |
 | `secrets_init` | Create secrets.env | File IO | Example exists |
 | `secrets_init_map` | Create secrets.1p | File IO | Example exists |
+| `secrets_map_sanitize` | Validate/clean secrets.1p | `mktemp` | File writable |
 | `secrets_sync_to_1p` | Sync file to 1Password | `op` | Logged in |
 | `secrets_pull_from_1p` | Pull file from 1Password | `op` | Logged in |
 | `secrets_sync_codex_sessions_to_1p` | Sync codex sessions | `op` | Logged in |
