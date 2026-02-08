@@ -11,6 +11,8 @@
 : "${OP_ACCOUNTS_FILE_EXAMPLE:=$HOME/.config/zsh/op-accounts.env.example}"
 : "${OP_VAULT:=}"
 : "${OP_ACCOUNT:=}"
+: "${ZSH_OP_SOURCE_ACCOUNT:=Dheeraj_Chand_Family}"
+: "${ZSH_OP_SOURCE_VAULT:=Private}"
 
 _secrets_warn() {
     echo "⚠️  $*" >&2
@@ -199,6 +201,61 @@ print("1" if any((a.get("shorthand") or "")==s for a in data) else "0")' "$short
 _op_cmd() {
     local bin="${OP_BIN:-op}"
     command "$bin" "$@"
+}
+
+_op_source_account() {
+    local account="${ZSH_OP_SOURCE_ACCOUNT:-}"
+    [[ -z "$account" ]] && { echo ""; return 0; }
+    echo "$(_op_resolve_account_arg "$account")"
+}
+
+_op_source_vault() {
+    echo "${ZSH_OP_SOURCE_VAULT:-}"
+}
+
+secrets_source_set() {
+    local account="${1:-}"
+    local vault="${2:-}"
+    if [[ -z "$account" ]]; then
+        _secrets_warn "Usage: secrets_source_set <account> [vault]"
+        return 1
+    fi
+    export ZSH_OP_SOURCE_ACCOUNT="$account"
+    if [[ -n "$vault" ]]; then
+        export ZSH_OP_SOURCE_VAULT="$vault"
+    fi
+    _secrets_update_env_file "ZSH_OP_SOURCE_ACCOUNT" "$ZSH_OP_SOURCE_ACCOUNT" || true
+    _secrets_update_env_file "ZSH_OP_SOURCE_VAULT" "$ZSH_OP_SOURCE_VAULT" || true
+    _secrets_info "1Password source set: account=$ZSH_OP_SOURCE_ACCOUNT vault=$ZSH_OP_SOURCE_VAULT"
+}
+
+secrets_source_status() {
+    echo "🔐 1Password Source"
+    echo "==================="
+    echo "Account: ${ZSH_OP_SOURCE_ACCOUNT:-unset}"
+    echo "Vault: ${ZSH_OP_SOURCE_VAULT:-unset}"
+}
+
+_secrets_require_source() {
+    local account="${1:-${OP_ACCOUNT-}}"
+    local vault="${2:-${OP_VAULT-}}"
+    local source_account
+    local source_vault
+    source_account="$(_op_source_account)"
+    source_vault="$(_op_source_vault)"
+    if [[ -z "$source_account" || -z "$source_vault" ]]; then
+        _secrets_warn "Source of truth not configured (set ZSH_OP_SOURCE_ACCOUNT/Vault)"
+        return 1
+    fi
+    if [[ -n "$account" && "$account" != "$source_account" ]]; then
+        _secrets_warn "Refusing to use non-source account: $account (source: $source_account)"
+        return 1
+    fi
+    if [[ -n "$vault" && "$vault" != "$source_vault" ]]; then
+        _secrets_warn "Refusing to use non-source vault: $vault (source: $source_vault)"
+        return 1
+    fi
+    return 0
 }
 
 _op_resolve_account_arg() {
@@ -888,6 +945,7 @@ secrets_status() {
     if [[ -n "${SECRETS_MAP_STATUS:-}" ]]; then
         echo "1Password map status: $SECRETS_MAP_STATUS"
     fi
+    echo "1Password source: ${ZSH_OP_SOURCE_ACCOUNT:-unset} / ${ZSH_OP_SOURCE_VAULT:-unset}"
     echo "1Password account: ${OP_ACCOUNT:-default}"
     echo "1Password vault: ${OP_VAULT:-default}"
     if command -v op >/dev/null 2>&1; then
@@ -1263,6 +1321,10 @@ secrets_pull_codex_sessions_from_1p() {
 secrets_sync_all_to_1p() {
     local account_arg="${1:-${OP_ACCOUNT-}}"
     local vault_arg="${2:-${OP_VAULT-}}"
+    if ! _secrets_require_source "$account_arg" "$vault_arg"; then
+        _secrets_info "Run: secrets_source_set <account> <vault> to set source of truth"
+        return 1
+    fi
     local ok=0
     local old_file="$ZSH_SECRETS_FILE"
     ZSH_SECRETS_FILE="$OP_ACCOUNTS_FILE" \
@@ -1280,6 +1342,10 @@ secrets_sync_all_to_1p() {
 secrets_pull_all_from_1p() {
     local account_arg="${1:-${OP_ACCOUNT-}}"
     local vault_arg="${2:-${OP_VAULT-}}"
+    if ! _secrets_require_source "$account_arg" "$vault_arg"; then
+        _secrets_info "Run: secrets_source_set <account> <vault> to set source of truth"
+        return 1
+    fi
     local ok=0
     local old_file="$ZSH_SECRETS_FILE"
     ZSH_SECRETS_FILE="$OP_ACCOUNTS_FILE" \
@@ -1383,6 +1449,47 @@ PY
         fi
         echo "$titles"
     fi
+}
+
+op_find_item_across_accounts() {
+    local title="${1:-}"
+    if [[ -z "$title" ]]; then
+        _secrets_warn "Usage: op_find_item_across_accounts <title>"
+        return 1
+    fi
+    if ! command -v op >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot search items"
+        return 1
+    fi
+    if ! op account list >/dev/null 2>&1; then
+        _secrets_warn "1Password auth required (run: op signin)"
+        return 1
+    fi
+    local accounts_json
+    accounts_json="$(op account list --format=json 2>/dev/null || true)"
+    if [[ -z "$accounts_json" ]]; then
+        _secrets_warn "No accounts configured on this device"
+        return 1
+    fi
+    local uuids
+    uuids="$(printf '%s' "$accounts_json" | python -c 'import json,sys; data=json.load(sys.stdin); print(\" \".join([a.get(\"account_uuid\",\"\") for a in data if a.get(\"account_uuid\")]))' 2>/dev/null || true)"
+    for uuid in $uuids; do
+        local items_json
+        items_json="$(op item list --account "$uuid" --format=json 2>/dev/null || true)"
+        if [[ -z "$items_json" ]]; then
+            continue
+        fi
+        local matches
+        matches="$(printf '%s' "$items_json" | python -c 'import json,sys; data=json.load(sys.stdin); 
+for i in data:
+    if i.get(\"title\") == sys.argv[1]:
+        vault=i.get(\"vault\",{}).get(\"name\",\"?\")
+        print(f\"{i.get('id','')}\\t{i.get('title','')}\\t{vault}\")' "$title" 2>/dev/null || true)"
+        if [[ -n "$matches" ]]; then
+            printf "Account %s:\n" "$uuid"
+            printf "%s\n" "$matches"
+        fi
+    done
 }
 
 op_signin_account() {
