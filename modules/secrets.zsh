@@ -885,6 +885,9 @@ secrets_status() {
     echo "Mode: $ZSH_SECRETS_MODE"
     echo "File: $ZSH_SECRETS_FILE"
     echo "1Password map: $ZSH_SECRETS_MAP"
+    if [[ -n "${SECRETS_MAP_STATUS:-}" ]]; then
+        echo "1Password map status: $SECRETS_MAP_STATUS"
+    fi
     echo "1Password account: ${OP_ACCOUNT:-default}"
     echo "1Password vault: ${OP_VAULT:-default}"
     if command -v op >/dev/null 2>&1; then
@@ -1110,17 +1113,20 @@ secrets_map_sanitize() {
 
     if [[ "$issues" -eq 0 ]]; then
         rm -f "$tmp"
+        export SECRETS_MAP_STATUS="clean"
         _secrets_info "secrets map looks clean"
         return 0
     fi
 
     if [[ "$mode" == "fix" ]]; then
         mv "$tmp" "$file"
+        export SECRETS_MAP_STATUS="fixed"
         _secrets_info "secrets map cleaned: $file"
         return 0
     fi
 
     rm -f "$tmp"
+    export SECRETS_MAP_STATUS="dirty"
     _secrets_warn "secrets map has formatting issues (run: secrets_map_sanitize --fix)"
     return 1
 }
