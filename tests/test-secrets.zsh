@@ -280,6 +280,7 @@ EOF
     export ZSH_SECRETS_MAP="$map"
     secrets_map_sanitize --fix
     assert_contains "$(cat "$map")" "GITLAB_TOKEN=op://Private/gitlab-access-token/password" "should strip trailing quote"
+    assert_equal "fixed" "${SECRETS_MAP_STATUS-}" "should set map status to fixed"
     export ZSH_SECRETS_MAP="$old_map"
     rm -rf "$tmp"
 }
