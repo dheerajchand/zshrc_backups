@@ -86,11 +86,7 @@ _secrets_export_kv() {
         local val="${line#*=}"
         key="${key## }"; key="${key%% }"
         if [[ "$key" == "ZSH_SECRETS_MODE" ]]; then
-            val="${val%$'\r'}"
-            while [[ "$val" == *[[:space:]] ]]; do
-                val="${val%[[:space:]]}"
-            done
-            val="${val%\"}"
+            val="$(_secrets_trim_value "$val")"
         fi
         export "$key=$val"
     fi
@@ -98,14 +94,18 @@ _secrets_export_kv() {
 
 _secrets_normalize_mode() {
     if [[ -n "${ZSH_SECRETS_MODE:-}" ]]; then
-        local mode="$ZSH_SECRETS_MODE"
-        mode="${mode%$'\r'}"
-        while [[ "$mode" == *[[:space:]] ]]; do
-            mode="${mode%[[:space:]]}"
-        done
-        mode="${mode%\"}"
-        export ZSH_SECRETS_MODE="$mode"
+        export ZSH_SECRETS_MODE="$(_secrets_trim_value "$ZSH_SECRETS_MODE")"
     fi
+}
+
+_secrets_trim_value() {
+    local val="$1"
+    val="${val%$'\r'}"
+    while [[ "$val" == *[[:space:]] ]]; do
+        val="${val%[[:space:]]}"
+    done
+    val="${val%\"}"
+    echo "$val"
 }
 
 _op_account_alias() {
