@@ -388,7 +388,7 @@ _op_resolve_account_uuid() {
     fi
     local accounts_json=""
     if command -v op >/dev/null 2>&1; then
-        accounts_json="$(command op account list --format=json 2>/dev/null || true)"
+        accounts_json="$(_op_cmd account list --format=json 2>/dev/null || true)"
     fi
     if [[ -n "$accounts_json" ]]; then
         if command -v python3 >/dev/null 2>&1; then
@@ -953,7 +953,7 @@ _op_latest_item_id_by_title() {
     local account_arg="${2:-${OP_ACCOUNT-}}"
     local vault_arg="${3:-${OP_VAULT-}}"
     local items_json
-    items_json="$(OP_CLI_NO_COLOR=1 op item list \
+    items_json="$(OP_CLI_NO_COLOR=1 _op_cmd item list \
         ${account_arg:+--account="$account_arg"} \
         ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
         --format=json 2>/dev/null || true)"
@@ -996,7 +996,7 @@ _op_group_item_ids_by_title() {
     local account_arg="${2:-${OP_ACCOUNT-}}"
     local vault_arg="${3:-${OP_VAULT-}}"
     local items_json
-    items_json="$(OP_CLI_NO_COLOR=1 op item list \
+    items_json="$(OP_CLI_NO_COLOR=1 _op_cmd item list \
         ${account_arg:+--account="$account_arg"} \
         ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
         --format=json 2>/dev/null || true)"
@@ -1474,16 +1474,16 @@ secrets_sync_to_1p() {
     local item_id
     item_id="$(_op_latest_item_id_by_title "$title" "$account_arg" "$vault_arg")"
     if [[ -n "$item_id" ]]; then
-        if op item edit "$item_id" \
-            ${account_arg:+--account="$account_arg"} \
-            ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
-            "secrets_file[text]=$content" \
-            "notesPlain=$content" >/dev/null 2>"$err_file"; then
+    if _op_cmd item edit "$item_id" \
+        ${account_arg:+--account="$account_arg"} \
+        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+        "secrets_file[text]=$content" \
+        "notesPlain=$content" >/dev/null 2>"$err_file"; then
             rm -f "$err_file"
             _secrets_info "Synced secrets file to 1Password item: $title"
             return 0
         fi
-        if op item edit "$item_id" \
+        if _op_cmd item edit "$item_id" \
             ${account_arg:+--account="$account_arg"} \
             ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
             --notes "$content" >/dev/null 2>"$err_file"; then
@@ -1492,7 +1492,7 @@ secrets_sync_to_1p() {
             return 0
         fi
     fi
-    if op item create \
+    if _op_cmd item create \
         --category="Secure Note" \
         --title="$title" \
         ${account_arg:+--account="$account_arg"} \
@@ -1538,12 +1538,12 @@ secrets_pull_from_1p() {
     local -a tried_ids
     for item_id in "${item_ids[@]}"; do
         tried_ids+=("$item_id")
-        value="$(op item get "$item_id" \
-            ${account_arg:+--account="$account_arg"} \
-            ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
-            --field="secrets_file" --reveal 2>/dev/null || true)"
+    value="$(_op_cmd item get "$item_id" \
+        ${account_arg:+--account="$account_arg"} \
+        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+        --field="secrets_file" --reveal 2>/dev/null || true)"
         if [[ -z "$value" ]]; then
-            item_json="$(op item get "$item_id" \
+            item_json="$(_op_cmd item get "$item_id" \
                 ${account_arg:+--account="$account_arg"} \
                 ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
                 --format=json 2>/dev/null || true)"
