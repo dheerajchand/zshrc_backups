@@ -339,6 +339,21 @@ EOF
     rm -rf "$tmp"
 }
 
+test_op_accounts_sanitize_fixes_trailing_quote() {
+    local tmp file old_file
+    tmp="$(mktemp -d)"
+    file="$tmp/op-accounts.env"
+    cat > "$file" <<'EOF'
+Dheeraj_Chand_Family=I3C75JBKZJGSLMVQDGRKCVNHIM"   
+EOF
+    old_file="$OP_ACCOUNTS_FILE"
+    export OP_ACCOUNTS_FILE="$file"
+    op_accounts_sanitize --fix
+    assert_contains "$(cat "$file")" "Dheeraj_Chand_Family=I3C75JBKZJGSLMVQDGRKCVNHIM" "should strip trailing quote"
+    export OP_ACCOUNTS_FILE="$old_file"
+    rm -rf "$tmp"
+}
+
 test_op_list_accounts_vaults_requires_op() {
     local old_path="$PATH"
     local tmp bin out
@@ -906,6 +921,7 @@ register_test "test_secrets_sync_to_1p_with_account_vault" "test_secrets_sync_to
 register_test "test_secrets_init_from_example" "test_secrets_init_from_example"
 register_test "test_secrets_init_map_from_example" "test_secrets_init_map_from_example"
 register_test "test_secrets_map_sanitize_fixes_trailing_quote" "test_secrets_map_sanitize_fixes_trailing_quote"
+register_test "test_op_accounts_sanitize_fixes_trailing_quote" "test_op_accounts_sanitize_fixes_trailing_quote"
 register_test "test_op_list_accounts_vaults_requires_op" "test_op_list_accounts_vaults_requires_op"
 register_test "test_op_account_alias_lookup" "test_op_account_alias_lookup"
 register_test "test_op_account_uuid_configured" "test_op_account_uuid_configured"

@@ -56,6 +56,7 @@ GITLAB_TOKEN=op://Private/gitlab-access-token/password
 | `_secrets_require_source` | Guard sync/pull | None | Source configured |
 | `op_accounts_set_alias` | Set alias entry | `_op_accounts_write_kv` | Valid alias |
 | `op_accounts_seed` | Prompt to seed aliases | `op`, `python` | Interactive shell |
+| `op_accounts_sanitize` | Validate/clean op-accounts.env | `mktemp` | File writable |
 | `_secrets_safe_title` | Redact titles | None | Used by verify |
 | `_secrets_truncate` | Truncate string | None | Max length int |
 | `op_verify_accounts` | Verify accounts + items | `op`, `python` | Sessions active |
