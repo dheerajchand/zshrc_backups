@@ -941,6 +941,74 @@ PY
     return 1
 }
 
+_op_group_item_ids_by_title() {
+    local title="$1"
+    local account_arg="${2:-${OP_ACCOUNT-}}"
+    local vault_arg="${3:-${OP_VAULT-}}"
+    local items_json
+    items_json="$(OP_CLI_NO_COLOR=1 op item list \
+        ${account_arg:+--account="$account_arg"} \
+        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+        --format=json 2>/dev/null || true)"
+    [[ -z "$items_json" ]] && return 1
+    if command -v jq >/dev/null 2>&1; then
+        echo "$items_json" | jq -r --arg t "$title" '
+            [ .[] | select(.title == $t) ] | sort_by(.updatedAt // .updated_at // .createdAt // .created_at) | .[].id // empty
+        ' 2>/dev/null
+        return 0
+    fi
+    python - <<'PY' "$items_json" "$title" 2>/dev/null
+import json,sys
+data=json.loads(sys.argv[1])
+title=sys.argv[2]
+matches=[i for i in data if i.get("title")==title]
+def ts(i):
+    return i.get("updatedAt") or i.get("updated_at") or i.get("createdAt") or i.get("created_at") or ""
+matches.sort(key=ts)
+for item in matches:
+    print(item.get("id",""))
+PY
+}
+
+secrets_prune_duplicates_1p() {
+    local account_arg="${1:-${OP_ACCOUNT-}}"
+    local vault_arg="${2:-${OP_VAULT-}}"
+    shift 2 || true
+    if [[ -n "$vault_arg" && -z "$account_arg" ]]; then
+        _secrets_warn "Vault specified without account; refusing to prune"
+        return 1
+    fi
+    if ! command -v op >/dev/null 2>&1; then
+        _secrets_warn "op not found; cannot prune duplicates"
+        return 1
+    fi
+    if ! op account list >/dev/null 2>&1; then
+        _secrets_warn "1Password auth required (run: op signin)"
+        return 1
+    fi
+    local -a titles
+    if [[ "$#" -gt 0 ]]; then
+        titles=("$@")
+    else
+        titles=(op-accounts-env zsh-secrets-env zsh-secrets-map codex-sessions-env)
+    fi
+    local title ids keep_id id
+    for title in "${titles[@]}"; do
+        ids=($(_op_group_item_ids_by_title "$title" "$account_arg" "$vault_arg" 2>/dev/null))
+        if [[ "${#ids[@]}" -le 1 ]]; then
+            continue
+        fi
+        keep_id="${ids[-1]}"
+        for id in "${ids[@]}"; do
+            [[ "$id" == "$keep_id" ]] && continue
+            op item delete "$id" \
+                ${account_arg:+--account="$account_arg"} \
+                ${account_arg:+${vault_arg:+--vault="$vault_arg"}} >/dev/null 2>&1 || true
+        done
+        _secrets_info "Pruned duplicates for $title (kept: $keep_id)"
+    done
+}
+
 secrets_validate_setup() {
     local errors=0
     if [[ "$ZSH_SECRETS_MODE" == "op" || "$ZSH_SECRETS_MODE" == "both" ]]; then

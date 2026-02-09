@@ -152,6 +152,33 @@ test_secrets_extract_item_value_field() {
     assert_equal "from_field" "$value" "should read secrets_file field value"
 }
 
+test_op_group_item_ids_by_title_orders() {
+    local tmp bin out
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    cat > "$bin/op" <<'OP'
+#!/usr/bin/env zsh
+if [[ "$1 $2" == "item list" && "$3" == "--format=json" ]]; then
+  echo '[{"id":"a","title":"t","updatedAt":"2024-01-01"},{"id":"b","title":"t","updatedAt":"2025-01-01"}]'
+  exit 0
+fi
+if [[ "$1 $2" == "account list" ]]; then
+  exit 0
+fi
+exit 1
+OP
+    chmod +x "$bin/op"
+    local old_path="$PATH"
+    PATH="$bin:/usr/bin:/bin"
+    unalias op 2>/dev/null || true
+    unfunction op 2>/dev/null || true
+    out="$(_op_group_item_ids_by_title "t")"
+    assert_equal $'a\nb' "$out" "should return ids in ascending updatedAt order"
+    PATH="$old_path"
+    rm -rf "$tmp"
+}
+
 test_secrets_find_account_for_item() {
     local tmp bin out
     tmp="$(mktemp -d)"
@@ -925,6 +952,7 @@ register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_secrets_load_op_supports_op_url_mapping" "test_secrets_load_op_supports_op_url_mapping"
 register_test "test_secrets_normalize_mode_strips_quote" "test_secrets_normalize_mode_strips_quote"
 register_test "test_secrets_trim_value_strips_space_quote" "test_secrets_trim_value_strips_space_quote"
+register_test "test_op_group_item_ids_by_title_orders" "test_op_group_item_ids_by_title_orders"
 register_test "test_secrets_extract_item_value_notes_plain" "test_secrets_extract_item_value_notes_plain"
 register_test "test_secrets_extract_item_value_field" "test_secrets_extract_item_value_field"
 register_test "test_secrets_find_account_for_item" "test_secrets_find_account_for_item"
