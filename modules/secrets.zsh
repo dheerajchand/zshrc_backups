@@ -314,7 +314,7 @@ secrets_find_account_for_item() {
 _op_source_account() {
     local account="${ZSH_OP_SOURCE_ACCOUNT:-}"
     [[ -z "$account" ]] && { echo ""; return 0; }
-    echo "$(_op_resolve_account_arg "$account")"
+    echo "$(_op_resolve_account_uuid "$account")"
 }
 
 _op_source_vault() {
@@ -328,7 +328,9 @@ secrets_source_set() {
         _secrets_warn "Usage: secrets_source_set <account> [vault]"
         return 1
     fi
-    export ZSH_OP_SOURCE_ACCOUNT="$account"
+    local resolved
+    resolved="$(_op_resolve_account_uuid "$account")"
+    export ZSH_OP_SOURCE_ACCOUNT="${resolved:-$account}"
     if [[ -n "$vault" ]]; then
         export ZSH_OP_SOURCE_VAULT="$vault"
     fi
@@ -355,8 +357,12 @@ _secrets_require_source() {
         _secrets_warn "Source of truth not configured (set ZSH_OP_SOURCE_ACCOUNT/Vault)"
         return 1
     fi
-    if [[ -n "$account" && "$account" != "$source_account" ]]; then
-        _secrets_warn "Refusing to use non-source account: $account (source: $source_account)"
+    local resolved_account="$account"
+    if [[ -n "$account" ]]; then
+        resolved_account="$(_op_resolve_account_uuid "$account")"
+    fi
+    if [[ -n "$resolved_account" && "$resolved_account" != "$source_account" ]]; then
+        _secrets_warn "Refusing to use non-source account: $resolved_account (source: $source_account)"
         return 1
     fi
     if [[ -n "$vault" && "$vault" != "$source_vault" ]]; then
@@ -364,6 +370,49 @@ _secrets_require_source() {
         return 1
     fi
     return 0
+}
+
+_op_resolve_account_uuid() {
+    local account="$1"
+    [[ -z "$account" ]] && { echo ""; return 0; }
+    if [[ "$account" =~ ^[A-Z0-9]{26}$ ]]; then
+        echo "$account"
+        return 0
+    fi
+    local resolved
+    resolved="$(_op_account_alias "$account" 2>/dev/null || true)"
+    if [[ -n "$resolved" ]]; then
+        echo "$resolved"
+        return 0
+    fi
+    local accounts_json=""
+    if command -v op >/dev/null 2>&1; then
+        accounts_json="$(command op account list --format=json 2>/dev/null || true)"
+    fi
+    if [[ -n "$accounts_json" ]]; then
+        if command -v python3 >/dev/null 2>&1; then
+            python3 - <<'PY' "$accounts_json" "$account" 2>/dev/null && return 0
+import json,sys
+data=json.loads(sys.argv[1])
+name=sys.argv[2]
+for a in data:
+    if (a.get("shorthand") or "") == name:
+        print(a.get("account_uuid",""))
+        break
+PY
+        elif command -v python >/dev/null 2>&1; then
+            python - <<'PY' "$accounts_json" "$account" 2>/dev/null && return 0
+import json,sys
+data=json.loads(sys.argv[1])
+name=sys.argv[2]
+for a in data:
+    if (a.get("shorthand") or "") == name:
+        print(a.get("account_uuid",""))
+        break
+PY
+        fi
+    fi
+    echo "$account"
 }
 
 _op_resolve_account_arg() {
