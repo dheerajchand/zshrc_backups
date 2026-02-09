@@ -107,3 +107,4 @@ GITLAB_TOKEN=op://Private/gitlab-access-token/password
 - `op_login_headless` sets `OP_SESSION_<alias>` tokens.
 - `op` CLI wrapper rewrites `--account` aliases to UUIDs. Disable with `OP_ALIAS_SHIM_DISABLE=1`.
 - `secrets_rsync_*` is the supported fallback for headless servers without op GUI.
+- `secrets_sync_to_1p` writes content to both `secrets_file` field and secure note `notes`/`notesPlain` for compatibility; `secrets_pull_from_1p` will read either.

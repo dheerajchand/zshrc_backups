@@ -140,6 +140,18 @@ test_secrets_trim_value_strips_space_quote() {
     assert_equal "both" "$out" "should trim whitespace and trailing quote"
 }
 
+test_secrets_extract_item_value_notes_plain() {
+    local json='{"notesPlain":"hello","fields":[]}'
+    local value="$(_secrets_extract_item_value_from_json "$json")"
+    assert_equal "hello" "$value" "should read notesPlain when secrets_file field missing"
+}
+
+test_secrets_extract_item_value_field() {
+    local json='{"fields":[{"id":"secrets_file","value":"from_field"}]}'
+    local value="$(_secrets_extract_item_value_from_json "$json")"
+    assert_equal "from_field" "$value" "should read secrets_file field value"
+}
+
 test_secrets_find_account_for_item() {
     local tmp bin out
     tmp="$(mktemp -d)"
@@ -913,6 +925,8 @@ register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_secrets_load_op_supports_op_url_mapping" "test_secrets_load_op_supports_op_url_mapping"
 register_test "test_secrets_normalize_mode_strips_quote" "test_secrets_normalize_mode_strips_quote"
 register_test "test_secrets_trim_value_strips_space_quote" "test_secrets_trim_value_strips_space_quote"
+register_test "test_secrets_extract_item_value_notes_plain" "test_secrets_extract_item_value_notes_plain"
+register_test "test_secrets_extract_item_value_field" "test_secrets_extract_item_value_field"
 register_test "test_secrets_find_account_for_item" "test_secrets_find_account_for_item"
 register_test "test_machine_profile_default" "test_machine_profile_default"
 register_test "test_secrets_edit_creates_file" "test_secrets_edit_creates_file"
