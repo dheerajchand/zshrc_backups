@@ -1478,34 +1478,38 @@ secrets_pull_from_1p() {
         _secrets_warn "1Password auth required (run: op signin)"
         return 1
     fi
-    local item_id
-    item_id="$(_op_latest_item_id_by_title "$title" "$account_arg" "$vault_arg")"
-    if [[ -z "$item_id" ]]; then
+    local -a item_ids
+    item_ids=($(_op_group_item_ids_by_title "$title" "$account_arg" "$vault_arg" 2>/dev/null))
+    if [[ "${#item_ids[@]}" -eq 0 ]]; then
         _secrets_warn "Item not found: $title"
         return 1
     fi
-    local value
-    value="$(op item get "$item_id" \
-        ${account_arg:+--account="$account_arg"} \
-        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
-        --field="secrets_file" --reveal 2>/dev/null || true)"
-    if [[ -z "$value" ]]; then
-        local item_json
-        item_json="$(op item get "$item_id" \
+    local value="" item_id item_json
+    local -a tried_ids
+    for item_id in "${item_ids[@]}"; do
+        tried_ids+=("$item_id")
+        value="$(op item get "$item_id" \
             ${account_arg:+--account="$account_arg"} \
             ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
-            --format=json 2>/dev/null || true)"
-        if [[ -n "$item_json" ]]; then
-            value="$(_secrets_extract_item_value_from_json "$item_json")"
+            --field="secrets_file" --reveal 2>/dev/null || true)"
+        if [[ -z "$value" ]]; then
+            item_json="$(op item get "$item_id" \
+                ${account_arg:+--account="$account_arg"} \
+                ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+                --format=json 2>/dev/null || true)"
+            if [[ -n "$item_json" ]]; then
+                value="$(_secrets_extract_item_value_from_json "$item_json")"
+            fi
         fi
-    fi
-    if [[ -z "$value" ]]; then
-        _secrets_warn "No secrets_file/notes found for item: $title (id: $item_id)"
-        return 1
-    fi
-    umask 077
-    printf '%s\n' "$value" > "$ZSH_SECRETS_FILE"
-    _secrets_info "Pulled secrets into $ZSH_SECRETS_FILE"
+        if [[ -n "$value" ]]; then
+            umask 077
+            printf '%s\n' "$value" > "$ZSH_SECRETS_FILE"
+            _secrets_info "Pulled secrets into $ZSH_SECRETS_FILE"
+            return 0
+        fi
+    done
+    _secrets_warn "No secrets_file/notes found for item: $title (ids tried: ${tried_ids[*]})"
+    return 1
 }
 
 secrets_sync_codex_sessions_to_1p() {
