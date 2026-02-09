@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="${HOME}/.config/zsh"
 SECRETS_MAP="${ROOT_DIR}/secrets.1p"
+CODEX_SESSIONS_FILE="${ROOT_DIR}/codex-sessions.env"
 ACCOUNT_UUID=""
 VAULT_NAME="Private"
 ITEM_TITLE="gitlab personal access token"
@@ -25,8 +26,16 @@ if [[ -z "$ACCOUNT_UUID" ]]; then
   python - <<'PY' "$ACCOUNTS_JSON"
 import json,sys
 data=json.loads(sys.argv[1])
+aliases={
+    "NRPF34RS6VH2THRPJDBTZWQOKU":"Dheeraj_Chand_Family",
+    "I3C75JBKZJGSLMVQDGRKCVNHIM":"Masai_Family",
+    "NAGE4CCNQVBWPJEI5CLZ7NCVFM":"ElectInfo",
+    "TLTQ3ANAABGCNEK7KIAOTDNK2Q":"Siege_Analytics",
+}
 for idx,a in enumerate(data,1):
-    print(f"{idx}) {a.get('account_uuid','')}  {a.get('email','')}  {a.get('url','')}")
+    uuid=a.get("account_uuid","")
+    name=aliases.get(uuid) or (a.get("shorthand") or "unknown")
+    print(f"{idx}) {uuid}  {name}  {a.get('email','')}  {a.get('url','')}")
 PY
   printf "Select account number for '%s' in %s [1]: " "$ITEM_TITLE" "$VAULT_NAME"
   read -r choice
