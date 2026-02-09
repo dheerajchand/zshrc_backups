@@ -214,6 +214,57 @@ OP
     rm -rf "$tmp"
 }
 
+test_secrets_pull_defaults_to_source_account() {
+    local tmp bin old_bin old_path old_source
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    cat > "$bin/op" <<'OP'
+#!/usr/bin/env zsh
+case "$1 $2" in
+  "account list")
+    exit 0
+    ;;
+  "item list")
+    for arg in "$@"; do
+      if [[ "$arg" == "--account=SRC" ]]; then
+        echo '[{"id":"ok","title":"zsh-secrets-env","updatedAt":"2025-01-01"}]'
+        exit 0
+      fi
+    done
+    echo '[]'
+    exit 0
+    ;;
+  "item get")
+    if [[ "$3" == "ok" ]]; then
+      if [[ "$*" == *"--field=secrets_file"* || "$*" == *"--field secrets_file"* ]]; then
+        echo "FOO=bar"
+        exit 0
+      fi
+      echo '{"id":"ok","fields":[{"id":"secrets_file","value":"FOO=bar"}]}'
+      exit 0
+    fi
+    ;;
+esac
+exit 1
+OP
+    chmod +x "$bin/op"
+    old_bin="${OP_BIN-}"
+    old_path="$PATH"
+    old_source="${ZSH_OP_SOURCE_ACCOUNT-}"
+    OP_BIN="$bin/op"
+    PATH="$bin:/usr/bin:/bin"
+    export ZSH_OP_SOURCE_ACCOUNT="SRC"
+    export ZSH_OP_SOURCE_VAULT="Private"
+    export ZSH_SECRETS_FILE="$tmp/secrets.env"
+    secrets_pull_from_1p "zsh-secrets-env" "" "Private"
+    assert_contains "$(cat "$ZSH_SECRETS_FILE")" "FOO=bar" "should default to source account when OP_ACCOUNT empty"
+    OP_BIN="$old_bin"
+    PATH="$old_path"
+    export ZSH_OP_SOURCE_ACCOUNT="$old_source"
+    rm -rf "$tmp"
+}
+
 test_op_group_item_ids_by_title_orders() {
     local tmp bin out
     tmp="$(mktemp -d)"
@@ -1147,6 +1198,7 @@ register_test "test_op_account_alias_trims_quote" "test_op_account_alias_trims_q
 register_test "test_op_latest_item_id_uses_op_bin" "test_op_latest_item_id_uses_op_bin"
 register_test "test_op_latest_item_id_resolves_alias_to_uuid" "test_op_latest_item_id_resolves_alias_to_uuid"
 register_test "test_op_latest_item_id_fallbacks_without_vault" "test_op_latest_item_id_fallbacks_without_vault"
+register_test "test_secrets_pull_defaults_to_source_account" "test_secrets_pull_defaults_to_source_account"
 register_test "test_secrets_extract_item_value_notes_plain" "test_secrets_extract_item_value_notes_plain"
 register_test "test_secrets_extract_item_value_field" "test_secrets_extract_item_value_field"
 register_test "test_secrets_find_account_for_item" "test_secrets_find_account_for_item"
