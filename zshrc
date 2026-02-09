@@ -275,6 +275,7 @@ help() {
     echo "  op_accounts_edit        - Edit 1Password account aliases"
     echo "  op_accounts_set_alias   - Set alias in op-accounts.env"
     echo "  op_accounts_seed        - Prompt to seed aliases from op CLI"
+    echo "  op_accounts_sanitize    - Validate/clean op-accounts.env"
     echo "  op_verify_accounts      - Sign in + verify secrets per alias"
     echo "  op_set_default          - Set default 1Password account/vault"
     echo "  op_list_accounts_vaults - List accounts and vaults"

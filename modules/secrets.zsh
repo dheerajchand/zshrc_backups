@@ -161,6 +161,48 @@ op_accounts_edit() {
     "$editor" "$OP_ACCOUNTS_FILE"
 }
 
+op_accounts_sanitize() {
+    local mode="check"
+    local file="${OP_ACCOUNTS_FILE:-}"
+    if [[ "${1:-}" == "--fix" ]]; then
+        mode="fix"
+        shift
+    fi
+    [[ -z "$file" || ! -f "$file" ]] && { _secrets_warn "alias file not found: $file"; return 1; }
+
+    local tmp
+    tmp="$(mktemp)"
+    local issues=0
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        local original="$line"
+        line="${line%$'\r'}"
+        while [[ "$line" == *[[:space:]] ]]; do
+            line="${line%[[:space:]]}"
+        done
+        line="${line%\"}"
+        if [[ "$line" != "$original" ]]; then
+            issues=1
+        fi
+        printf "%s\n" "$line" >> "$tmp"
+    done < "$file"
+
+    if [[ "$issues" -eq 0 ]]; then
+        rm -f "$tmp"
+        _secrets_info "aliases file looks clean"
+        return 0
+    fi
+
+    if [[ "$mode" == "fix" ]]; then
+        mv "$tmp" "$file"
+        _secrets_info "aliases file cleaned: $file"
+        return 0
+    fi
+
+    rm -f "$tmp"
+    _secrets_warn "aliases file has formatting issues (run: op_accounts_sanitize --fix)"
+    return 1
+}
+
 _op_accounts_write_kv() {
     local alias_name="$1"
     local uuid="$2"
@@ -1392,6 +1434,7 @@ secrets_sync_all_to_1p() {
         _secrets_info "Run: secrets_source_set <account> <vault> to set source of truth"
         return 1
     fi
+    op_accounts_sanitize --fix >/dev/null 2>&1 || true
     local ok=0
     local old_file="$ZSH_SECRETS_FILE"
     ZSH_SECRETS_FILE="$OP_ACCOUNTS_FILE" \
