@@ -961,6 +961,11 @@ _op_latest_item_id_by_title() {
         ${resolved_account:+--account="$resolved_account"} \
         ${resolved_account:+${vault_arg:+--vault="$vault_arg"}} \
         --format=json 2>/dev/null || true)"
+    if [[ ( -z "$items_json" || "$items_json" == "[]" ) && -n "$vault_arg" ]]; then
+        items_json="$(OP_CLI_NO_COLOR=1 _op_cmd item list \
+            ${resolved_account:+--account="$resolved_account"} \
+            --format=json 2>/dev/null || true)"
+    fi
     if [[ -n "$items_json" ]]; then
         if command -v jq >/dev/null 2>&1; then
             local id
@@ -1008,6 +1013,11 @@ _op_group_item_ids_by_title() {
         ${resolved_account:+--account="$resolved_account"} \
         ${resolved_account:+${vault_arg:+--vault="$vault_arg"}} \
         --format=json 2>/dev/null || true)"
+    if [[ ( -z "$items_json" || "$items_json" == "[]" ) && -n "$vault_arg" ]]; then
+        items_json="$(OP_CLI_NO_COLOR=1 _op_cmd item list \
+            ${resolved_account:+--account="$resolved_account"} \
+            --format=json 2>/dev/null || true)"
+    fi
     [[ -z "$items_json" ]] && return 1
     if command -v jq >/dev/null 2>&1; then
         echo "$items_json" | jq -r --arg t "$title" '
