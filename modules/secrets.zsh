@@ -120,7 +120,7 @@ _op_account_alias() {
             val="${line#*=}"
             key="${key## }"; key="${key%% }"
             if [[ "$key" == "$alias_name" ]]; then
-                echo "$val"
+                echo "$(_secrets_trim_value "$val")"
                 return 0
             fi
         fi
@@ -139,6 +139,7 @@ _op_account_alias_for_uuid() {
             key="${line%%=*}"
             val="${line#*=}"
             key="${key## }"; key="${key%% }"
+            val="$(_secrets_trim_value "$val")"
             if [[ "$val" == "$uuid" ]]; then
                 echo "$key"
                 return 0
@@ -330,7 +331,7 @@ secrets_source_set() {
     fi
     local resolved
     resolved="$(_op_resolve_account_uuid "$account")"
-    export ZSH_OP_SOURCE_ACCOUNT="${resolved:-$account}"
+    export ZSH_OP_SOURCE_ACCOUNT="$(_secrets_trim_value "${resolved:-$account}")"
     if [[ -n "$vault" ]]; then
         export ZSH_OP_SOURCE_VAULT="$vault"
     fi
