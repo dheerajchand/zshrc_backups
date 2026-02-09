@@ -256,6 +256,21 @@ EOF
     rm -rf "$tmp"
 }
 
+test_op_account_alias_trims_quote() {
+    local tmp file old_file out
+    tmp="$(mktemp -d)"
+    file="$tmp/op-accounts.env"
+    cat > "$file" <<'EOF'
+Dheeraj_Chand_Family=UUIDQ"
+EOF
+    old_file="$OP_ACCOUNTS_FILE"
+    export OP_ACCOUNTS_FILE="$file"
+    out="$(_op_account_alias "Dheeraj_Chand_Family")"
+    assert_equal "UUIDQ" "$out" "alias lookup should trim trailing quote"
+    export OP_ACCOUNTS_FILE="$old_file"
+    rm -rf "$tmp"
+}
+
 test_secrets_find_account_for_item() {
     local tmp bin out
     tmp="$(mktemp -d)"
@@ -1032,6 +1047,7 @@ register_test "test_secrets_trim_value_strips_space_quote" "test_secrets_trim_va
 register_test "test_op_group_item_ids_by_title_orders" "test_op_group_item_ids_by_title_orders"
 register_test "test_secrets_pull_prefers_item_with_content" "test_secrets_pull_prefers_item_with_content"
 register_test "test_op_resolve_account_uuid_from_alias" "test_op_resolve_account_uuid_from_alias"
+register_test "test_op_account_alias_trims_quote" "test_op_account_alias_trims_quote"
 register_test "test_secrets_extract_item_value_notes_plain" "test_secrets_extract_item_value_notes_plain"
 register_test "test_secrets_extract_item_value_field" "test_secrets_extract_item_value_field"
 register_test "test_secrets_find_account_for_item" "test_secrets_find_account_for_item"
