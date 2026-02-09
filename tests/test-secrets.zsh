@@ -283,6 +283,44 @@ OP
     rm -rf "$tmp"
 }
 
+test_op_latest_item_id_resolves_alias_to_uuid() {
+    local tmp bin file old_file old_bin old_path out
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    file="$tmp/op-accounts.env"
+    cat > "$file" <<'EOF'
+AliasA=UUIDA
+EOF
+    cat > "$bin/op" <<'OP'
+#!/usr/bin/env zsh
+if [[ "$1 $2" == "item list" ]]; then
+  for arg in "$@"; do
+    if [[ "$arg" == "--account=UUIDA" ]]; then
+      echo '[{"id":"ok","title":"t","updatedAt":"2025-01-01"}]'
+      exit 0
+    fi
+  done
+  echo '[]'
+  exit 0
+fi
+exit 1
+OP
+    chmod +x "$bin/op"
+    old_file="$OP_ACCOUNTS_FILE"
+    old_bin="${OP_BIN-}"
+    old_path="$PATH"
+    export OP_ACCOUNTS_FILE="$file"
+    OP_BIN="$bin/op"
+    PATH="$bin:/usr/bin:/bin"
+    out="$(_op_latest_item_id_by_title "t" "AliasA")"
+    assert_equal "ok" "$out" "should resolve alias to uuid for item list"
+    export OP_ACCOUNTS_FILE="$old_file"
+    OP_BIN="$old_bin"
+    PATH="$old_path"
+    rm -rf "$tmp"
+}
+
 test_op_account_alias_trims_quote() {
     local tmp file old_file out
     tmp="$(mktemp -d)"
@@ -1076,6 +1114,7 @@ register_test "test_secrets_pull_prefers_item_with_content" "test_secrets_pull_p
 register_test "test_op_resolve_account_uuid_from_alias" "test_op_resolve_account_uuid_from_alias"
 register_test "test_op_account_alias_trims_quote" "test_op_account_alias_trims_quote"
 register_test "test_op_latest_item_id_uses_op_bin" "test_op_latest_item_id_uses_op_bin"
+register_test "test_op_latest_item_id_resolves_alias_to_uuid" "test_op_latest_item_id_resolves_alias_to_uuid"
 register_test "test_secrets_extract_item_value_notes_plain" "test_secrets_extract_item_value_notes_plain"
 register_test "test_secrets_extract_item_value_field" "test_secrets_extract_item_value_field"
 register_test "test_secrets_find_account_for_item" "test_secrets_find_account_for_item"
