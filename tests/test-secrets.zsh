@@ -256,6 +256,33 @@ EOF
     rm -rf "$tmp"
 }
 
+test_op_latest_item_id_uses_op_bin() {
+    local tmp bin old_bin old_path out
+    tmp="$(mktemp -d)"
+    bin="$tmp/bin"
+    mkdir -p "$bin"
+    cat > "$bin/op" <<'OP'
+#!/usr/bin/env zsh
+if [[ "$1 $2" == "item list" ]]; then
+  echo '[{"id":"idx","title":"t","updatedAt":"2025-01-01"}]'
+  exit 0
+fi
+exit 1
+OP
+    chmod +x "$bin/op"
+    old_bin="${OP_BIN-}"
+    old_path="$PATH"
+    OP_BIN="$bin/op"
+    PATH="$bin:/usr/bin:/bin"
+    op() { echo "wrapper-called" >&2; return 1; }
+    out="$(_op_latest_item_id_by_title "t")"
+    assert_equal "idx" "$out" "should use OP_BIN command not wrapper"
+    unset -f op 2>/dev/null || true
+    OP_BIN="$old_bin"
+    PATH="$old_path"
+    rm -rf "$tmp"
+}
+
 test_op_account_alias_trims_quote() {
     local tmp file old_file out
     tmp="$(mktemp -d)"
@@ -1048,6 +1075,7 @@ register_test "test_op_group_item_ids_by_title_orders" "test_op_group_item_ids_b
 register_test "test_secrets_pull_prefers_item_with_content" "test_secrets_pull_prefers_item_with_content"
 register_test "test_op_resolve_account_uuid_from_alias" "test_op_resolve_account_uuid_from_alias"
 register_test "test_op_account_alias_trims_quote" "test_op_account_alias_trims_quote"
+register_test "test_op_latest_item_id_uses_op_bin" "test_op_latest_item_id_uses_op_bin"
 register_test "test_secrets_extract_item_value_notes_plain" "test_secrets_extract_item_value_notes_plain"
 register_test "test_secrets_extract_item_value_field" "test_secrets_extract_item_value_field"
 register_test "test_secrets_find_account_for_item" "test_secrets_find_account_for_item"
