@@ -1542,6 +1542,12 @@ secrets_pull_from_1p() {
     local title="${1:-zsh-secrets}"
     local account_arg="${2:-${OP_ACCOUNT-}}"
     local vault_arg="${3:-${OP_VAULT-}}"
+    if [[ -z "$account_arg" ]]; then
+        account_arg="$(_op_source_account)"
+    fi
+    if [[ -z "$vault_arg" ]]; then
+        vault_arg="$(_op_source_vault)"
+    fi
     local resolved_account="$account_arg"
     if [[ -n "$account_arg" ]]; then
         resolved_account="$(_op_resolve_account_uuid "$account_arg")"
@@ -1615,6 +1621,12 @@ secrets_pull_codex_sessions_from_1p() {
 secrets_sync_all_to_1p() {
     local account_arg="${1:-${OP_ACCOUNT-}}"
     local vault_arg="${2:-${OP_VAULT-}}"
+    if [[ -z "$account_arg" ]]; then
+        account_arg="$(_op_source_account)"
+    fi
+    if [[ -z "$vault_arg" ]]; then
+        vault_arg="$(_op_source_vault)"
+    fi
     if ! _secrets_require_source "$account_arg" "$vault_arg"; then
         _secrets_info "Run: secrets_source_set <account> <vault> to set source of truth"
         return 1
@@ -1637,6 +1649,12 @@ secrets_sync_all_to_1p() {
 secrets_pull_all_from_1p() {
     local account_arg="${1:-${OP_ACCOUNT-}}"
     local vault_arg="${2:-${OP_VAULT-}}"
+    if [[ -z "$account_arg" ]]; then
+        account_arg="$(_op_source_account)"
+    fi
+    if [[ -z "$vault_arg" ]]; then
+        vault_arg="$(_op_source_vault)"
+    fi
     if ! _secrets_require_source "$account_arg" "$vault_arg"; then
         _secrets_info "Run: secrets_source_set <account> <vault> to set source of truth"
         return 1
