@@ -952,10 +952,14 @@ _op_latest_item_id_by_title() {
     local title="$1"
     local account_arg="${2:-${OP_ACCOUNT-}}"
     local vault_arg="${3:-${OP_VAULT-}}"
+    local resolved_account="$account_arg"
+    if [[ -n "$account_arg" ]]; then
+        resolved_account="$(_op_resolve_account_uuid "$account_arg")"
+    fi
     local items_json
     items_json="$(OP_CLI_NO_COLOR=1 _op_cmd item list \
-        ${account_arg:+--account="$account_arg"} \
-        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+        ${resolved_account:+--account="$resolved_account"} \
+        ${resolved_account:+${vault_arg:+--vault="$vault_arg"}} \
         --format=json 2>/dev/null || true)"
     if [[ -n "$items_json" ]]; then
         if command -v jq >/dev/null 2>&1; then
@@ -995,10 +999,14 @@ _op_group_item_ids_by_title() {
     local title="$1"
     local account_arg="${2:-${OP_ACCOUNT-}}"
     local vault_arg="${3:-${OP_VAULT-}}"
+    local resolved_account="$account_arg"
+    if [[ -n "$account_arg" ]]; then
+        resolved_account="$(_op_resolve_account_uuid "$account_arg")"
+    fi
     local items_json
     items_json="$(OP_CLI_NO_COLOR=1 _op_cmd item list \
-        ${account_arg:+--account="$account_arg"} \
-        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+        ${resolved_account:+--account="$resolved_account"} \
+        ${resolved_account:+${vault_arg:+--vault="$vault_arg"}} \
         --format=json 2>/dev/null || true)"
     [[ -z "$items_json" ]] && return 1
     if command -v jq >/dev/null 2>&1; then
@@ -1023,6 +1031,10 @@ PY
 secrets_prune_duplicates_1p() {
     local account_arg="${1:-${OP_ACCOUNT-}}"
     local vault_arg="${2:-${OP_VAULT-}}"
+    local resolved_account="$account_arg"
+    if [[ -n "$account_arg" ]]; then
+        resolved_account="$(_op_resolve_account_uuid "$account_arg")"
+    fi
     shift 2 || true
     if [[ -n "$vault_arg" && -z "$account_arg" ]]; then
         _secrets_warn "Vault specified without account; refusing to prune"
@@ -1032,7 +1044,7 @@ secrets_prune_duplicates_1p() {
         _secrets_warn "op not found; cannot prune duplicates"
         return 1
     fi
-    if ! op account list >/dev/null 2>&1; then
+    if ! _op_cmd account list >/dev/null 2>&1; then
         _secrets_warn "1Password auth required (run: op signin)"
         return 1
     fi
@@ -1044,16 +1056,16 @@ secrets_prune_duplicates_1p() {
     fi
     local title ids keep_id id
     for title in "${titles[@]}"; do
-        ids=($(_op_group_item_ids_by_title "$title" "$account_arg" "$vault_arg" 2>/dev/null))
+        ids=($(_op_group_item_ids_by_title "$title" "$resolved_account" "$vault_arg" 2>/dev/null))
         if [[ "${#ids[@]}" -le 1 ]]; then
             continue
         fi
         keep_id="${ids[-1]}"
         for id in "${ids[@]}"; do
             [[ "$id" == "$keep_id" ]] && continue
-            op item delete "$id" \
-                ${account_arg:+--account="$account_arg"} \
-                ${account_arg:+${vault_arg:+--vault="$vault_arg"}} >/dev/null 2>&1 || true
+            _op_cmd item delete "$id" \
+                ${resolved_account:+--account="$resolved_account"} \
+                ${resolved_account:+${vault_arg:+--vault="$vault_arg"}} >/dev/null 2>&1 || true
         done
         _secrets_info "Pruned duplicates for $title (kept: $keep_id)"
     done
@@ -1451,6 +1463,10 @@ secrets_sync_to_1p() {
     local title="${1:-zsh-secrets}"
     local account_arg="${2:-${OP_ACCOUNT-}}"
     local vault_arg="${3:-${OP_VAULT-}}"
+    local resolved_account="$account_arg"
+    if [[ -n "$account_arg" ]]; then
+        resolved_account="$(_op_resolve_account_uuid "$account_arg")"
+    fi
     if [[ -n "$vault_arg" && -z "$account_arg" ]]; then
         _secrets_warn "Vault specified without account; refusing to sync"
         return 1
@@ -1472,20 +1488,20 @@ secrets_sync_to_1p() {
     local err_file
     err_file="$(mktemp)"
     local item_id
-    item_id="$(_op_latest_item_id_by_title "$title" "$account_arg" "$vault_arg")"
+    item_id="$(_op_latest_item_id_by_title "$title" "$resolved_account" "$vault_arg")"
     if [[ -n "$item_id" ]]; then
-    if _op_cmd item edit "$item_id" \
-        ${account_arg:+--account="$account_arg"} \
-        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
-        "secrets_file[text]=$content" \
-        "notesPlain=$content" >/dev/null 2>"$err_file"; then
+        if _op_cmd item edit "$item_id" \
+            ${resolved_account:+--account="$resolved_account"} \
+            ${resolved_account:+${vault_arg:+--vault="$vault_arg"}} \
+            "secrets_file[text]=$content" \
+            "notesPlain=$content" >/dev/null 2>"$err_file"; then
             rm -f "$err_file"
             _secrets_info "Synced secrets file to 1Password item: $title"
             return 0
         fi
         if _op_cmd item edit "$item_id" \
-            ${account_arg:+--account="$account_arg"} \
-            ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+            ${resolved_account:+--account="$resolved_account"} \
+            ${resolved_account:+${vault_arg:+--vault="$vault_arg"}} \
             --notes "$content" >/dev/null 2>"$err_file"; then
             rm -f "$err_file"
             _secrets_info "Synced secrets file to 1Password item: $title"
@@ -1495,8 +1511,8 @@ secrets_sync_to_1p() {
     if _op_cmd item create \
         --category="Secure Note" \
         --title="$title" \
-        ${account_arg:+--account="$account_arg"} \
-        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+        ${resolved_account:+--account="$resolved_account"} \
+        ${resolved_account:+${vault_arg:+--vault="$vault_arg"}} \
         "secrets_file[text]=$content" \
         "notesPlain=$content" \
         "notes=$content" >/dev/null 2>"$err_file"; then
@@ -1516,6 +1532,10 @@ secrets_pull_from_1p() {
     local title="${1:-zsh-secrets}"
     local account_arg="${2:-${OP_ACCOUNT-}}"
     local vault_arg="${3:-${OP_VAULT-}}"
+    local resolved_account="$account_arg"
+    if [[ -n "$account_arg" ]]; then
+        resolved_account="$(_op_resolve_account_uuid "$account_arg")"
+    fi
     if [[ -n "$vault_arg" && -z "$account_arg" ]]; then
         _secrets_warn "Vault specified without account; refusing to pull"
         return 1
@@ -1529,7 +1549,7 @@ secrets_pull_from_1p() {
         return 1
     fi
     local -a item_ids
-    item_ids=($(_op_group_item_ids_by_title "$title" "$account_arg" "$vault_arg" 2>/dev/null))
+    item_ids=($(_op_group_item_ids_by_title "$title" "$resolved_account" "$vault_arg" 2>/dev/null))
     if [[ "${#item_ids[@]}" -eq 0 ]]; then
         _secrets_warn "Item not found: $title"
         return 1
@@ -1538,14 +1558,14 @@ secrets_pull_from_1p() {
     local -a tried_ids
     for item_id in "${item_ids[@]}"; do
         tried_ids+=("$item_id")
-    value="$(_op_cmd item get "$item_id" \
-        ${account_arg:+--account="$account_arg"} \
-        ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
-        --field="secrets_file" --reveal 2>/dev/null || true)"
+        value="$(_op_cmd item get "$item_id" \
+            ${resolved_account:+--account="$resolved_account"} \
+            ${resolved_account:+${vault_arg:+--vault="$vault_arg"}} \
+            --field="secrets_file" --reveal 2>/dev/null || true)"
         if [[ -z "$value" ]]; then
             item_json="$(_op_cmd item get "$item_id" \
-                ${account_arg:+--account="$account_arg"} \
-                ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+                ${resolved_account:+--account="$resolved_account"} \
+                ${resolved_account:+${vault_arg:+--vault="$vault_arg"}} \
                 --format=json 2>/dev/null || true)"
             if [[ -n "$item_json" ]]; then
                 value="$(_secrets_extract_item_value_from_json "$item_json")"
