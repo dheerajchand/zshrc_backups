@@ -1302,6 +1302,33 @@ secrets_map_sanitize() {
     return 1
 }
 
+_secrets_extract_item_value_from_json() {
+    local item_json="$1"
+    [[ -z "$item_json" ]] && return 1
+    if command -v jq >/dev/null 2>&1; then
+        echo "$item_json" | jq -r '
+            (.fields[]? | select((.id=="secrets_file") or (.label=="secrets_file") or (.title=="secrets_file") or (.name=="secrets_file")) | .value)
+            // .notesPlain
+            // .notes
+            // empty
+        ' 2>/dev/null
+        return 0
+    fi
+    python - <<'PY' "$item_json"
+import json,sys
+data=json.loads(sys.argv[1])
+value=""
+for field in data.get("fields", []) or []:
+    if field.get("id") == "secrets_file" or field.get("label") == "secrets_file" or field.get("title") == "secrets_file" or field.get("name") == "secrets_file":
+        value = field.get("value","")
+        break
+if not value:
+    value = data.get("notesPlain","") or data.get("notes","") or ""
+print(value)
+PY
+    return 0
+}
+
 secrets_sync_to_1p() {
     local title="${1:-zsh-secrets}"
     local account_arg="${2:-${OP_ACCOUNT-}}"
@@ -1322,15 +1349,39 @@ secrets_sync_to_1p() {
         _secrets_warn "secrets file not found: $ZSH_SECRETS_FILE"
         return 1
     fi
+    local content
+    content="$(cat "$ZSH_SECRETS_FILE")"
     local err_file
     err_file="$(mktemp)"
+    local item_id
+    item_id="$(_op_latest_item_id_by_title "$title" "$account_arg" "$vault_arg")"
+    if [[ -n "$item_id" ]]; then
+        if op item edit "$item_id" \
+            ${account_arg:+--account="$account_arg"} \
+            ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+            "secrets_file[text]=$content" \
+            "notesPlain=$content" >/dev/null 2>"$err_file"; then
+            rm -f "$err_file"
+            _secrets_info "Synced secrets file to 1Password item: $title"
+            return 0
+        fi
+        if op item edit "$item_id" \
+            ${account_arg:+--account="$account_arg"} \
+            ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
+            --notes "$content" >/dev/null 2>"$err_file"; then
+            rm -f "$err_file"
+            _secrets_info "Synced secrets file to 1Password item: $title"
+            return 0
+        fi
+    fi
     if op item create \
         --category="Secure Note" \
         --title="$title" \
         ${account_arg:+--account="$account_arg"} \
         ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
-        "secrets_file[text]=$(cat "$ZSH_SECRETS_FILE")" \
-        "notesPlain=$(cat "$ZSH_SECRETS_FILE")" >/dev/null 2>"$err_file"; then
+        "secrets_file[text]=$content" \
+        "notesPlain=$content" \
+        "notes=$content" >/dev/null 2>"$err_file"; then
         rm -f "$err_file"
         _secrets_info "Synced secrets file to 1Password item: $title"
         return 0
@@ -1377,29 +1428,11 @@ secrets_pull_from_1p() {
             ${account_arg:+${vault_arg:+--vault="$vault_arg"}} \
             --format=json 2>/dev/null || true)"
         if [[ -n "$item_json" ]]; then
-            if command -v jq >/dev/null 2>&1; then
-                value="$(echo "$item_json" | jq -r '
-                    (.fields[]? | select((.id=="secrets_file") or (.label=="secrets_file") or (.title=="secrets_file") or (.name=="secrets_file")) | .value) // .notesPlain // empty
-                ')"
-            else
-                value="$(python - <<'PY' "$item_json"
-import json,sys
-data=json.loads(sys.argv[1])
-value=""
-for field in data.get("fields", []) or []:
-    if field.get("id") == "secrets_file" or field.get("label") == "secrets_file" or field.get("title") == "secrets_file" or field.get("name") == "secrets_file":
-        value = field.get("value","")
-        break
-if not value:
-    value = data.get("notesPlain","") or ""
-print(value)
-PY
-)"
-            fi
+            value="$(_secrets_extract_item_value_from_json "$item_json")"
         fi
     fi
     if [[ -z "$value" ]]; then
-        _secrets_warn "No secrets_file field found for item: $title"
+        _secrets_warn "No secrets_file/notes found for item: $title (id: $item_id)"
         return 1
     fi
     umask 077
