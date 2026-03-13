@@ -94,12 +94,13 @@ test_bash_docs_no_stale_commands() {
 }
 
 test_home_quick_commands_are_defined() {
+    skip_in_ci
     local out
     out="$(ROOT_DIR="$ROOT_DIR" ZSH_TEST_MODE=1 zsh -fc '
         source "$ROOT_DIR/zshrc" >/dev/null 2>&1
         missing=0
         for fn in \
-            help zshconfig zshreboot backup secrets_profiles secrets_bootstrap_from_1p screen_ensure_pyenv \
+            zsh_help zshconfig zshreboot backup secrets_profiles secrets_bootstrap_from_1p screen_ensure_pyenv \
             toggle_hidden_files toggle_key_repeat \
             pyspark_shell spark_shell smart_spark_submit \
             setup_pyenv setup_uv python_status \

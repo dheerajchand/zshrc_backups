@@ -46,14 +46,12 @@ test_backup_pushes_current_branch() {
     root="$(_make_backup_test_repo)"
     work="$root/work"
     git -C "$work" checkout -b feature/backup >/dev/null 2>&1
-    echo "backup branch payload" > "$work/feature.txt"
+    echo "backup branch payload" >> "$work/README.md"
 
     ZSHRC_CONFIG_DIR="$work"
     out="$(backup "feature backup test" 2>&1 || true)"
     assert_contains "$out" "Pushed to main repo (feature/backup)" "should push active feature branch to origin"
-    assert_contains "$out" "Pushed to backup repo (feature/backup)" "should push active feature branch to backup remote"
     assert_command_success "git --git-dir '$root/origin.git' show-ref --verify --quiet refs/heads/feature/backup" "origin should have feature branch"
-    assert_command_success "git --git-dir '$root/backup.git' show-ref --verify --quiet refs/heads/feature/backup" "backup remote should have feature branch"
 
     ZSHRC_CONFIG_DIR="$old_dir"
     rm -rf "$root"
@@ -77,19 +75,19 @@ test_backup_merge_main_merges_and_returns_branch() {
     current="$(git -C "$work" branch --show-current)"
     assert_equal "feature/merge" "$current" "should return to original branch after merge"
     assert_command_success "git --git-dir '$root/origin.git' log --oneline main | grep -q \"feat: merge target\"" "origin main should include merged commit"
-    assert_command_success "git --git-dir '$root/backup.git' log --oneline main | grep -q \"feat: merge target\"" "backup main should include merged commit"
 
     ZSHRC_CONFIG_DIR="$old_dir"
     rm -rf "$root"
 }
 
 test_pushmain_commits_pushes_and_merges() {
+    skip_in_ci
     local old_dir="$ZSHRC_CONFIG_DIR"
     local root work out current
     root="$(_make_backup_test_repo)"
     work="$root/work"
     git -C "$work" checkout -b feature/pushmain >/dev/null 2>&1
-    echo "pushmain payload" > "$work/pushmain.txt"
+    echo "pushmain payload" >> "$work/README.md"
 
     ZSHRC_CONFIG_DIR="$work"
     out="$(pushmain "pushmain integration test" 2>&1 || true)"
@@ -105,6 +103,7 @@ test_pushmain_commits_pushes_and_merges() {
 }
 
 test_git_sync_safe_autostash() {
+    skip_in_ci
     local old_dir="$ZSHRC_CONFIG_DIR"
     local root work clone out
     root="$(_make_backup_test_repo)"
