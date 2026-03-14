@@ -849,3 +849,8 @@ fi
 
 # pyenv: canonical init is in modules/python.zsh (setup_pyenv)
 # For screen/tmux sessions, call setup_pyenv manually if needed
+
+# cd to STARTUP_DIR if set (configured in vars.env or machine overrides)
+if [[ -o interactive && -n "${STARTUP_DIR:-}" && -d "$STARTUP_DIR" ]]; then
+    cd "$STARTUP_DIR"
+fi
