@@ -299,7 +299,7 @@ hadoop_use_version() {
     fi
     sdk use hadoop "$version"
     if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
-        _secrets_update_env_file "HADOOP_VERSION" "$version" >/dev/null 2>&1 || true
+        _secrets_update_env_file --key "HADOOP_VERSION" --value "$version" >/dev/null 2>&1 || true
     fi
     export HADOOP_VERSION="$version"
 }
@@ -316,7 +316,7 @@ hadoop_default_version() {
     fi
     sdk default hadoop "$version"
     if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
-        _secrets_update_env_file "HADOOP_VERSION" "$version" >/dev/null 2>&1 || true
+        _secrets_update_env_file --key "HADOOP_VERSION" --value "$version" >/dev/null 2>&1 || true
     fi
     export HADOOP_VERSION="$version"
 }

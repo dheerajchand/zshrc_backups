@@ -70,7 +70,7 @@ _bitbucket_slugify() {
 _bitbucket_set_secret_var() {
     local key="$1" value="$2"
     if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
-        _secrets_update_env_file "$key" "$value"
+        _secrets_update_env_file --key "$key" --value "$value"
         return $?
     fi
     local file="${ZSH_SECRETS_FILE:-$HOME/.config/zsh/secrets.env}"
@@ -226,8 +226,8 @@ bb_auth_setup() {
 
     if (( persist )); then
         if typeset -f settings_persist_var >/dev/null 2>&1; then
-            settings_persist_var "BITBUCKET_WORKSPACE" "$workspace" "${ZSH_VARS_FILE:-$HOME/.config/zsh/vars.env}" || return 1
-            [[ -n "$username" ]] && settings_persist_var "BITBUCKET_USERNAME" "$username" "${ZSH_VARS_FILE:-$HOME/.config/zsh/vars.env}" || true
+            settings_persist_var --key "BITBUCKET_WORKSPACE" --value "$workspace" --file "${ZSH_VARS_FILE:-$HOME/.config/zsh/vars.env}" || return 1
+            [[ -n "$username" ]] && settings_persist_var --key "BITBUCKET_USERNAME" --value "$username" --file "${ZSH_VARS_FILE:-$HOME/.config/zsh/vars.env}" || true
         else
             echo "⚠️  settings_persist_var unavailable; workspace/username not persisted" >&2
         fi

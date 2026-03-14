@@ -44,16 +44,42 @@ ZSHRC_CONFIG_DIR="/Users/dheerajchand/.config/zsh"
 - Return status codes, do not rely on parsing logs.
 - Prefer idempotent behavior for setup operations.
 
-Example:
+### Named Arguments (Required)
+
+**All functions with parameters must use named arguments (`--flag value`), never positional arguments.** This applies to public functions, private helpers, and any function that accepts input.
+
+Parse named arguments using a `while/case` loop at the top of the function:
+
 ```zsh
 my_func() {
-  local arg="${1:-}"
-  if [[ -z "$arg" ]]; then
-    echo "Usage: my_func <arg>" >&2
+  local name="" count=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --name)  name="${2:-}"; shift 2 ;;
+      --count) count="${2:-0}"; shift 2 ;;
+      *)       echo "Usage: my_func --name <name> [--count <n>]" >&2; return 1 ;;
+    esac
+  done
+  if [[ -z "$name" ]]; then
+    echo "Usage: my_func --name <name> [--count <n>]" >&2
     return 1
   fi
   # work
 }
+```
+
+**Exceptions** (positional arguments are allowed only for):
+- Wrapper/alias functions with a single obvious argument (e.g., `backup "message"`, `cd /path`).
+- Functions that delegate directly to an external CLI tool using `"$@"`.
+- Test assertion helpers (`assert_equal`, `assert_contains`, etc.) where positional is idiomatic.
+
+When calling internal functions, always use named flags:
+```zsh
+# Good
+_op_sessions_save --tmp-file "$tmpfile" --count "$n"
+
+# Avoid
+_op_sessions_save "$tmpfile" "$n"
 ```
 
 ## Shell Safety and Style
@@ -110,6 +136,7 @@ zsh run-tests.zsh --test <name>
 
 ## Review Checklist
 - No hardcoded personal paths in module logic.
+- Named arguments used for all function parameters (no positional `$1`, `$2`).
 - Inputs validated and usage shown on invalid args.
 - Quoting and arrays used safely.
 - Errors return non-zero with clear stderr message.

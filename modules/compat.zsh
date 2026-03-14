@@ -15,7 +15,7 @@ _compat_persist_var() {
     local value="$2"
     local file="${ZSHRC_CONFIG_DIR:-${ZSH_CONFIG_DIR:-$HOME/.config/zsh}}/vars.env"
     if typeset -f settings_persist_var >/dev/null 2>&1; then
-        settings_persist_var "$key" "$value" "$file"
+        settings_persist_var --key "$key" --value "$value" --file "$file"
         return $?
     fi
     [[ -z "$key" || -z "$file" ]] && return 1

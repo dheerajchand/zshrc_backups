@@ -101,7 +101,7 @@ _zeppelin_persist_var() {
     local file="${ZSHRC_CONFIG_DIR:-${ZSH_CONFIG_DIR:-$HOME/.config/zsh}}/vars.env"
     [[ -z "$key" || -z "$value" ]] && return 1
     if typeset -f settings_persist_var >/dev/null 2>&1; then
-        settings_persist_var "$key" "$value" "$file"
+        settings_persist_var --key "$key" --value "$value" --file "$file"
         return $?
     fi
     if typeset -f _compat_persist_var >/dev/null 2>&1; then

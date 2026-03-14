@@ -103,14 +103,33 @@ download_jars() {
 
 # Recursive text search
 findtext() {
-    grep -r "$1" .
+    local pattern=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --pattern|-p) pattern="${2:-}"; shift 2 ;;
+            --help|-h) echo "Usage: findtext --pattern <text>" >&2; return 0 ;;
+            *) pattern="$1"; shift ;;  # accept bare arg for convenience
+        esac
+    done
+    [[ -z "$pattern" ]] && { echo "Usage: findtext --pattern <text>" >&2; return 1; }
+    grep -r "$pattern" .
 }
 
 # Add directory to PATH if not already present
 path_add() {
-    local new_path="$1"
-    local position="${2:-prepend}"
-    
+    local new_path="" position="prepend"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --path)     new_path="${2:-}"; shift 2 ;;
+            --position) position="${2:-prepend}"; shift 2 ;;
+            --prepend)  position="prepend"; shift ;;
+            --append)   position="append"; shift ;;
+            --help|-h)  echo "Usage: path_add --path <dir> [--position prepend|append]" >&2; return 0 ;;
+            *)          new_path="$1"; shift ;;  # accept bare arg for convenience
+        esac
+    done
+    [[ -z "$new_path" ]] && { echo "Usage: path_add --path <dir> [--position prepend|append]" >&2; return 1; }
+
     if [[ -d "$new_path" && ":$PATH:" != *":$new_path:"* ]]; then
         case "$position" in
             prepend) export PATH="$new_path:$PATH" ;;

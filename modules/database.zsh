@@ -30,7 +30,7 @@ setup_postgres_credentials() {
     # Try to get from credential system
     if command -v get_credential >/dev/null 2>&1; then
         local password
-        password=$(get_credential "postgres" "$PGUSER" "PASSWORD" 2>/dev/null)
+        password=$(get_credential --service "postgres" --user "$PGUSER" --field "PASSWORD" 2>/dev/null)
         if [[ -n "$password" ]]; then
             export PGPASSWORD="$password"
             echo "✅ Loaded from secure storage"
@@ -51,7 +51,7 @@ setup_postgres_credentials() {
         echo -n "Store password securely? (y/n): "
         read store_it
         if [[ "$store_it" == "y" ]] && command -v store_credential >/dev/null 2>&1; then
-            store_credential "postgres" "$PGUSER" "$password" && echo "🔐 Stored securely"
+            store_credential --service "postgres" --user "$PGUSER" --value "$password" && echo "🔐 Stored securely"
         fi
         
         echo "✅ Password configured"
@@ -84,21 +84,22 @@ pg_test_connection() {
 
 # Connect to PostgreSQL
 pg_connect() {
-    local database="${1:-$PGDATABASE}"
-    local flag="$2"
-    
-    # Handle --test flag
-    if [[ "$database" == "--test" || "$flag" == "--test" ]]; then
-        pg_test_connection
-        return $?
-    fi
-    
+    local database="$PGDATABASE"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --database|-d) database="${2:-$PGDATABASE}"; shift 2 ;;
+            --test)        pg_test_connection; return $? ;;
+            --help|-h)     echo "Usage: pg_connect [--database <name>] [--test]" >&2; return 0 ;;
+            *)             database="$1"; shift ;;  # accept bare arg for convenience
+        esac
+    done
+
     # Ensure credentials are set
     if [[ -z "$PGPASSWORD" ]]; then
         echo "⚠️  Password not configured"
         setup_postgres_credentials || return 1
     fi
-    
+
     # Connect
     PGDATABASE="$database" psql
 }

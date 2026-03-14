@@ -91,7 +91,7 @@ test_get_credential_env() {
     export CRED_STORE_BACKENDS="op keychain"
     export PGPASSWORD="pgpass"
     local out
-    out="$(get_credential postgres user)"
+    out="$(get_credential --service postgres --user user)"
     assert_equal "pgpass" "$out" "env backend should return PGPASSWORD"
     unset PGPASSWORD
     PATH="$old_path"
@@ -114,7 +114,7 @@ test_get_credential_op_priority() {
     export OP_STUB_VALUE="op-pass"
     export SECURITY_STUB_VALUE="kc-pass"
     local out
-    out="$(get_credential svc user)"
+    out="$(get_credential --service svc --user user)"
     assert_equal "op-pass" "$out" "op backend should take priority"
     unset OP_STUB_ITEM OP_STUB_VALUE SECURITY_STUB_VALUE
     PATH="$old_path"
@@ -135,7 +135,7 @@ test_get_credential_keychain() {
     export CRED_STORE_BACKENDS="op keychain"
     export SECURITY_STUB_VALUE="kc-pass"
     local out
-    out="$(get_credential svc user)"
+    out="$(get_credential --service svc --user user)"
     assert_equal "kc-pass" "$out" "keychain backend should return security value"
     unset SECURITY_STUB_VALUE
     PATH="$old_path"
@@ -157,7 +157,7 @@ test_store_credential_multiple_backends() {
     export CRED_BACKENDS="op keychain"
     export CRED_STORE_BACKENDS="op keychain"
     local out
-    out="$(store_credential svc user secret 2>&1)"
+    out="$(store_credential --service svc --user user --value secret 2>&1)"
     assert_contains "$out" "Stored in 2 backend(s)" "store should report two backends"
     PATH="$old_path"
     rm -rf "$tmp"
@@ -196,7 +196,7 @@ test_unknown_backend_warns() {
     hash -r
     export CRED_BACKENDS="bogus op"
     err="$tmp/err.log"
-    get_credential svc user 2>"$err" >/dev/null || true
+    get_credential --service svc --user user 2>"$err" >/dev/null || true
     assert_contains "$(cat "$err")" "Unknown credential backend: bogus" "unknown backend should warn"
     PATH="$old_path"
     rm -rf "$tmp"

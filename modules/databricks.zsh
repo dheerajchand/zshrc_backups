@@ -97,7 +97,7 @@ if needle:
 _dbx_profile_persist() {
     local profile="$1"
     if typeset -f settings_persist_var >/dev/null 2>&1; then
-        settings_persist_var "DATABRICKS_CONFIG_PROFILE" "$profile"
+        settings_persist_var --key "DATABRICKS_CONFIG_PROFILE" --value "$profile"
         return $?
     fi
     return 1

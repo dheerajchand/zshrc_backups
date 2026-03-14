@@ -36,12 +36,18 @@ _codex_sessions_get() {
 }
 
 codex_session_add() {
-    local key="$1"
-    shift || true
-    local value="$*"
+    local key="" value=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --name)  key="${2:-}"; shift 2 ;;
+            --value) value="${2:-}"; shift 2 ;;
+            --help|-h) echo "Usage: codex_session_add --name <name> --value <id>|<description>" >&2; return 0 ;;
+            *) if [[ -z "$key" ]]; then key="$1"; else value="${value:+$value }$1"; fi; shift ;;
+        esac
+    done
     if [[ -z "$key" || -z "$value" ]]; then
-        echo "Usage: codex_session_add <name> <id>|<description>" >&2
-        echo "Example: codex_session_add zsh_work \"019b...|ZSH refactor work\"" >&2
+        echo "Usage: codex_session_add --name <name> --value <id>|<description>" >&2
+        echo "Example: codex_session_add --name zsh_work --value \"019b...|ZSH refactor work\"" >&2
         return 1
     fi
     _codex_sessions_ensure_file || { echo "Cannot write $CODEX_SESSIONS_FILE" >&2; return 1; }
@@ -53,11 +59,17 @@ codex_session_add() {
 }
 
 codex_session_update() {
-    local key="$1"
-    shift || true
-    local value="$*"
+    local key="" value=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --name)  key="${2:-}"; shift 2 ;;
+            --value) value="${2:-}"; shift 2 ;;
+            --help|-h) echo "Usage: codex_session_update --name <name> --value <id>|<description>" >&2; return 0 ;;
+            *) if [[ -z "$key" ]]; then key="$1"; else value="${value:+$value }$1"; fi; shift ;;
+        esac
+    done
     if [[ -z "$key" || -z "$value" ]]; then
-        echo "Usage: codex_session_update <name> <id>|<description>" >&2
+        echo "Usage: codex_session_update --name <name> --value <id>|<description>" >&2
         return 1
     fi
     _codex_sessions_ensure_file || { echo "Cannot write $CODEX_SESSIONS_FILE" >&2; return 1; }
@@ -118,7 +130,14 @@ codex_session_edit() {
 }
 
 codex_session() {
-    local key="$1"
+    local key=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --name)  key="${2:-}"; shift 2 ;;
+            --help|-h) echo "Usage: codex_session [--name <key>]" >&2; return 0 ;;
+            *) key="$1"; shift ;;  # accept bare arg for convenience
+        esac
+    done
     _codex_sessions_ensure_file || return 1
     if [[ -z "$key" ]]; then
         local choice=""
@@ -229,12 +248,18 @@ _claude_sessions_get() {
 }
 
 claude_session_add() {
-    local key="$1"
-    shift || true
-    local value="$*"
+    local key="" value=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --name)  key="${2:-}"; shift 2 ;;
+            --value) value="${2:-}"; shift 2 ;;
+            --help|-h) echo "Usage: claude_session_add --name <name> --value <id>|<description>" >&2; return 0 ;;
+            *) if [[ -z "$key" ]]; then key="$1"; else value="${value:+$value }$1"; fi; shift ;;
+        esac
+    done
     if [[ -z "$key" || -z "$value" ]]; then
-        echo "Usage: claude_session_add <name> <id>|<description>" >&2
-        echo "Example: claude_session_add zsh_work \"019b...|ZSH refactor work\"" >&2
+        echo "Usage: claude_session_add --name <name> --value <id>|<description>" >&2
+        echo "Example: claude_session_add --name zsh_work --value \"019b...|ZSH refactor work\"" >&2
         return 1
     fi
     _claude_sessions_ensure_file || { echo "Cannot write $CLAUDE_SESSIONS_FILE" >&2; return 1; }
@@ -246,11 +271,17 @@ claude_session_add() {
 }
 
 claude_session_update() {
-    local key="$1"
-    shift || true
-    local value="$*"
+    local key="" value=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --name)  key="${2:-}"; shift 2 ;;
+            --value) value="${2:-}"; shift 2 ;;
+            --help|-h) echo "Usage: claude_session_update --name <name> --value <id>|<description>" >&2; return 0 ;;
+            *) if [[ -z "$key" ]]; then key="$1"; else value="${value:+$value }$1"; fi; shift ;;
+        esac
+    done
     if [[ -z "$key" || -z "$value" ]]; then
-        echo "Usage: claude_session_update <name> <id>|<description>" >&2
+        echo "Usage: claude_session_update --name <name> --value <id>|<description>" >&2
         return 1
     fi
     _claude_sessions_ensure_file || { echo "Cannot write $CLAUDE_SESSIONS_FILE" >&2; return 1; }
@@ -311,7 +342,14 @@ claude_session_edit() {
 }
 
 claude_session() {
-    local key="$1"
+    local key=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --name)  key="${2:-}"; shift 2 ;;
+            --help|-h) echo "Usage: claude_session [--name <key>]" >&2; return 0 ;;
+            *) key="$1"; shift ;;  # accept bare arg for convenience
+        esac
+    done
     _claude_sessions_ensure_file || return 1
     if [[ -z "$key" ]]; then
         local choice=""
@@ -599,7 +637,7 @@ EOF
             if [[ -n "$session_desc" ]]; then
                 session_value="${PWD}|${session_desc}"
             fi
-            claude_session_add "$session_name" "$session_value"
+            claude_session_add --name "$session_name" --value "$session_value"
             echo "✅ Added to Claude session list: $session_name"
         fi
     fi
@@ -899,10 +937,10 @@ EOF
                 session_value="${PWD}|${session_desc}"
             fi
             if _codex_sessions_get "$session_name" >/dev/null 2>&1; then
-                codex_session_update "$session_name" "$session_value"
+                codex_session_update --name "$session_name" --value "$session_value"
                 echo "✅ Updated Codex session: $session_name"
             else
-                codex_session_add "$session_name" "$session_value"
+                codex_session_add --name "$session_name" --value "$session_value"
                 echo "✅ Added Codex session: $session_name"
             fi
         fi

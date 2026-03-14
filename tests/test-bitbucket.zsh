@@ -94,11 +94,26 @@ test_bb_auth_setup_interactive_persists_with_helpers() {
     old_secrets_update_env_file="$(typeset -f _secrets_update_env_file || true)"
 
     settings_persist_var() {
-        local key="$1" val="$2" file="${3:-$ZSH_VARS_FILE}"
+        local key="" val="" file="$ZSH_VARS_FILE"
+        while [[ $# -gt 0 ]]; do
+            case "$1" in
+                --key)   key="${2:-}"; shift 2 ;;
+                --value) val="${2:-}"; shift 2 ;;
+                --file)  file="${2:-$ZSH_VARS_FILE}"; shift 2 ;;
+                *)       shift ;;
+            esac
+        done
         echo "export ${key}=\"\${${key}:-${val}}\"" >> "$file"
     }
     _secrets_update_env_file() {
-        local key="$1" val="$2"
+        local key="" val=""
+        while [[ $# -gt 0 ]]; do
+            case "$1" in
+                --key)   key="${2:-}"; shift 2 ;;
+                --value) val="${2:-}"; shift 2 ;;
+                *)       shift ;;
+            esac
+        done
         echo "${key}=${val}" >> "$ZSH_SECRETS_FILE"
     }
 
