@@ -13,6 +13,7 @@
 : "${OP_ACCOUNT:=}"
 : "${CODEX_SESSIONS_FILE:=$HOME/.config/zsh/codex-sessions.env}"
 : "${SECRETS_AGENT_ENV_FILE:=$HOME/.config/zsh/.agent-secrets.env}"
+: "${OP_SESSIONS_FILE:=$HOME/.config/zsh/.op-sessions.env}"
 : "${ZSH_OP_SOURCE_ACCOUNT:=Dheeraj_Chand_Family}"
 : "${ZSH_OP_SOURCE_VAULT:=Private}"
 _SECRETS_SYNC_FILES=(op-accounts.env secrets.env secrets.1p codex-sessions.env)
@@ -2336,6 +2337,11 @@ op_signin_all() {
         return 1
     fi
     local line alias_name resolved token reply ok=0 fail=0
+    local _sessions_tmp
+    _sessions_tmp="$(mktemp)"
+    umask 077
+    chmod 600 "$_sessions_tmp" 2>/dev/null || true
+    printf '# op session state — written by op_signin_all at %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" > "$_sessions_tmp"
     while IFS= read -r -u3 line || [[ -n "$line" ]]; do
         [[ -z "$line" || "$line" == \#* ]] && continue
         alias_name="${line%%=*}"
@@ -2374,20 +2380,94 @@ op_signin_all() {
             ((fail++))
             continue
         fi
+        # Determine which identifier op knows: prefer shorthand, fall back to UUID
+        local signin_id="$resolved"
+        if _op_account_shorthand_configured "$alias_name" "$accounts_json"; then
+            signin_id="$alias_name"
+        fi
         unset "OP_SESSION_${alias_name}" 2>/dev/null || true
-        token="$(OP_CLI_NO_COLOR=1 op signin --account "$alias_name" --raw </dev/tty || true)"
-        if [[ -z "$token" ]]; then
-            _secrets_warn "Failed to sign in: $alias_name"
-            _secrets_info "Try: export OP_SESSION_${alias_name}=\"\$(op signin --account $alias_name --raw)\""
+        local signin_err="" signin_rc
+        local _stderr_file="$(mktemp)"
+        if [[ -e /dev/tty ]]; then
+            token="$(OP_CLI_NO_COLOR=1 op signin --account "$signin_id" --raw </dev/tty 2>"$_stderr_file")"
+        else
+            token="$(OP_CLI_NO_COLOR=1 op signin --account "$signin_id" --raw 2>"$_stderr_file")"
+        fi
+        signin_rc=$?
+        signin_err="$(<"$_stderr_file")"
+        rm -f "$_stderr_file"
+        if [[ "$signin_rc" -ne 0 ]]; then
+            _secrets_warn "Failed to sign in: $alias_name (account: $signin_id)"
+            [[ -n "$signin_err" ]] && _secrets_warn "  op error: $signin_err"
+            _secrets_info "Try: op signin --account $signin_id"
             ((fail++))
             continue
         fi
-        export "OP_SESSION_${alias_name}=${token}"
+        # With app integration (biometric), token is empty but signin succeeds
+        if [[ -n "$token" ]]; then
+            export "OP_SESSION_${alias_name}=${token}"
+        fi
+        # Record successful signin for agent access
+        # Human-legible label, resolved UUID, and op identifier
+        printf '# %s\n' "$alias_name" >> "$_sessions_tmp"
+        printf 'OP_SIGNED_IN_%s=%q\n' "$alias_name" "$signin_id" >> "$_sessions_tmp"
+        printf 'OP_UUID_%s=%q\n' "$alias_name" "$resolved" >> "$_sessions_tmp"
+        # Include email/URL for human identification
+        local _acct_email _acct_url
+        _acct_email="$(printf '%s' "$accounts_json" | python3 -c "import json,sys; d=json.load(sys.stdin); print(next((a.get('email','') for a in d if a.get('account_uuid')==sys.argv[1]),''))" "$resolved" 2>/dev/null || true)"
+        _acct_url="$(printf '%s' "$accounts_json" | python3 -c "import json,sys; d=json.load(sys.stdin); print(next((a.get('url','') for a in d if a.get('account_uuid')==sys.argv[1]),''))" "$resolved" 2>/dev/null || true)"
+        [[ -n "$_acct_email" ]] && printf 'OP_EMAIL_%s=%q\n' "$alias_name" "$_acct_email" >> "$_sessions_tmp"
+        [[ -n "$_acct_url" ]] && printf 'OP_URL_%s=%q\n' "$alias_name" "$_acct_url" >> "$_sessions_tmp"
+        if [[ -n "$token" ]]; then
+            printf 'OP_SESSION_%s=%q\n' "$alias_name" "$token" >> "$_sessions_tmp"
+        fi
         echo "✅ Signed in: $alias_name"
         ((ok++))
     done 3< "$OP_ACCOUNTS_FILE"
     echo "Done: ${ok} ok, ${fail} failed"
+
+    # Finalize session file with defaults and move into place
+    _op_sessions_save --tmp-file "$_sessions_tmp" --count "$ok"
+
     [[ "$fail" -eq 0 ]] || return 1
+}
+
+_op_sessions_save() {
+    local tmp_file="" count=0
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --tmp-file) tmp_file="${2:-}"; shift 2 ;;
+            --count)    count="${2:-0}"; shift 2 ;;
+            *)          shift ;;
+        esac
+    done
+    [[ -z "$tmp_file" ]] && return 1
+    local sessions_file="${OP_SESSIONS_FILE:-$HOME/.config/zsh/.op-sessions.env}"
+
+    # Append current default account/vault
+    [[ -n "${OP_ACCOUNT:-}" ]] && printf 'OP_ACCOUNT=%q\n' "$OP_ACCOUNT" >> "$tmp_file"
+    [[ -n "${OP_VAULT:-}" ]] && printf 'OP_VAULT=%q\n' "$OP_VAULT" >> "$tmp_file"
+
+    mkdir -p "$(dirname "$sessions_file")" 2>/dev/null || true
+    mv "$tmp_file" "$sessions_file"
+    chmod 600 "$sessions_file" 2>/dev/null || true
+    _secrets_info "Session state saved to $sessions_file ($count accounts)"
+}
+
+op_sessions_source() {
+    local sessions_file="${OP_SESSIONS_FILE:-$HOME/.config/zsh/.op-sessions.env}"
+    if [[ ! -f "$sessions_file" ]]; then
+        _secrets_warn "No sessions file: $sessions_file (run op_signin_all first)"
+        return 1
+    fi
+    local line
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        local key="${line%%=*}"
+        local val="${line#*=}"
+        export "$key=$val"
+    done < "$sessions_file"
+    _secrets_info "Loaded OP sessions from $sessions_file"
 }
 
 op_login_headless() {
