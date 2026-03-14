@@ -42,20 +42,24 @@ fi
 
 # Switch Python environments
 py_env_switch() {
-    local env_name="${1:-}"
-    if [[ "$env_name" == "--default" ]]; then
-        local set_name="${2:-}"
-        if [[ -z "$set_name" ]]; then
-            echo "Usage: py_env_switch --default <env>" >&2
-            return 1
-        fi
-        PYENV_DEFAULT_VENV="$set_name"
-        DEFAULT_PYENV_VENV="$set_name"
+    local env_name="" set_default=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --name)    env_name="${2:-}"; shift 2 ;;
+            --default) set_default="${2:-}"; shift 2 ;;
+            --list)    env_name="list"; shift ;;
+            --help|-h) echo "Usage: py_env_switch [--name <env>] [--default <env>] [--list]" >&2; return 0 ;;
+            *)         env_name="$1"; shift ;;  # accept bare arg for convenience
+        esac
+    done
+    if [[ -n "$set_default" ]]; then
+        PYENV_DEFAULT_VENV="$set_default"
+        DEFAULT_PYENV_VENV="$set_default"
         if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
-            _secrets_update_env_file "PYENV_DEFAULT_VENV" "$set_name" >/dev/null 2>&1 || true
-            _secrets_update_env_file "DEFAULT_PYENV_VENV" "$set_name" >/dev/null 2>&1 || true
+            _secrets_update_env_file --key "PYENV_DEFAULT_VENV" --value "$set_default" >/dev/null 2>&1 || true
+            _secrets_update_env_file --key "DEFAULT_PYENV_VENV" --value "$set_default" >/dev/null 2>&1 || true
         fi
-        env_name="$set_name"
+        env_name="$set_default"
     fi
     if [[ -z "$env_name" || "$env_name" == "default" ]]; then
         env_name="$(_pyenv_default_venv)"
@@ -63,7 +67,7 @@ py_env_switch() {
     if [[ -z "$env_name" ]]; then
         env_name="list"
     fi
-    
+
     if [[ "$env_name" == "list" ]]; then
         echo "📋 Available Python environments:"
         pyenv versions
@@ -169,7 +173,7 @@ pyenv_use_version() {
     fi
     pyenv shell "$version"
     if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
-        _secrets_update_env_file "PYENV_VERSION" "$version" >/dev/null 2>&1 || true
+        _secrets_update_env_file --key "PYENV_VERSION" --value "$version" >/dev/null 2>&1 || true
     fi
     export PYENV_VERSION="$version"
 }
@@ -186,7 +190,7 @@ pyenv_default_version() {
     fi
     pyenv global "$version"
     if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
-        _secrets_update_env_file "PYENV_VERSION" "$version" >/dev/null 2>&1 || true
+        _secrets_update_env_file --key "PYENV_VERSION" --value "$version" >/dev/null 2>&1 || true
     fi
     export PYENV_VERSION="$version"
 }
@@ -217,24 +221,31 @@ use_uv() {
 
 # Initialize data science project structure
 ds_project_init() {
-    local project_name="${1:-}"
-    local use_spark="${2:-}"
-    
+    local project_name="" with_spark=0
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --name)       project_name="${2:-}"; shift 2 ;;
+            --with-spark) with_spark=1; shift ;;
+            --help|-h)    echo "Usage: ds_project_init --name <project> [--with-spark]" >&2; return 0 ;;
+            *)            project_name="$1"; shift ;;  # accept bare arg for convenience
+        esac
+    done
+
     if [[ -z "$project_name" ]]; then
-        echo "Usage: ds_project_init <project_name> [spark]"
+        echo "Usage: ds_project_init --name <project> [--with-spark]" >&2
         return 1
     fi
-    
+
     echo "📦 Creating data science project: $project_name"
-    
+
     mkdir -p "$project_name"/{data,notebooks,src,tests,output}
     cd "$project_name"
-    
+
     # Create basic structure
     touch src/__init__.py
     touch tests/__init__.py
     touch README.md
-    
+
     # Create requirements.txt
     cat > requirements.txt << 'EOF'
 pandas
@@ -243,12 +254,12 @@ matplotlib
 seaborn
 jupyter
 EOF
-    
+
     # Add Spark dependencies if requested
-    if [[ "$use_spark" == "spark" ]]; then
+    if [[ "$with_spark" -eq 1 ]]; then
         echo "pyspark" >> requirements.txt
     fi
-    
+
     echo "✅ Project structure created"
     echo "💡 Next steps:"
     echo "   cd $project_name"

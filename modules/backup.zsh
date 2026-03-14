@@ -29,7 +29,14 @@ _backup_current_branch() {
 
 # Main backup function
 backup() {
-    local message="${1:-Config update}"
+    local message="Config update"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --message|-m) message="${2:-Config update}"; shift 2 ;;
+            --help|-h) echo "Usage: backup [--message <msg>]" >&2; return 0 ;;
+            *) message="$1"; shift ;;  # accept bare arg for convenience
+        esac
+    done
     local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     local branch=""
     _backup_cd_repo || return 1
@@ -68,7 +75,14 @@ backup() {
 
 # Merge a branch into main and push
 backup_merge_main() {
-    local source_branch="${1:-}"
+    local source_branch=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --branch|-b) source_branch="${2:-}"; shift 2 ;;
+            --help|-h) echo "Usage: backup_merge_main [--branch <name>]" >&2; return 0 ;;
+            *) source_branch="$1"; shift ;;  # accept bare arg for convenience
+        esac
+    done
     local start_branch=""
     local merged=0
 
@@ -116,8 +130,15 @@ backup_merge_main() {
 
 # Quick push + merge to main
 pushmain() {
-    local message="${1:-Quick update}"
-    backup "$message" || return 1
+    local message="Quick update"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --message|-m) message="${2:-Quick update}"; shift 2 ;;
+            --help|-h) echo "Usage: pushmain [--message <msg>]" >&2; return 0 ;;
+            *) message="$1"; shift ;;  # accept bare arg for convenience
+        esac
+    done
+    backup --message "$message" || return 1
     backup_merge_main
 }
 

@@ -45,9 +45,16 @@ _settings_detect_machine_profile() {
 : "${ZSH_VARS_MACHINE_FILE:=$ZSH_SETTINGS_DIR/vars.${ZSH_MACHINE_PROFILE}.env}"
 
 settings_persist_var() {
-    local key="$1"
-    local value="$2"
-    local file="${3:-$ZSH_VARS_FILE}"
+    local key="" value="" file="$ZSH_VARS_FILE"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --key)   key="${2:-}"; shift 2 ;;
+            --value) value="${2:-}"; shift 2 ;;
+            --file)  file="${2:-$ZSH_VARS_FILE}"; shift 2 ;;
+            --help|-h) echo "Usage: settings_persist_var --key <key> --value <val> [--file <path>]" >&2; return 0 ;;
+            *)       shift ;;
+        esac
+    done
     [[ -z "$key" || -z "$file" ]] && return 1
     [[ -f "$file" ]] || touch "$file"
     python3 - "$file" "$key" "$value" <<'PY'

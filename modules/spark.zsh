@@ -90,7 +90,7 @@ _spark_persist_var() {
     local file="${ZSHRC_CONFIG_DIR:-${ZSH_CONFIG_DIR:-$HOME/.config/zsh}}/vars.env"
     [[ -z "$key" ]] && return 1
     if typeset -f settings_persist_var >/dev/null 2>&1; then
-        settings_persist_var "$key" "$value" "$file"
+        settings_persist_var --key "$key" --value "$value" --file "$file"
         return $?
     fi
     if typeset -f _compat_persist_var >/dev/null 2>&1; then
@@ -476,7 +476,7 @@ spark_use_version() {
     fi
     sdk use spark "$version"
     if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
-        _secrets_update_env_file "SPARK_VERSION" "$version" >/dev/null 2>&1 || true
+        _secrets_update_env_file --key "SPARK_VERSION" --value "$version" >/dev/null 2>&1 || true
     fi
     export SPARK_VERSION="$version"
 }
@@ -493,7 +493,7 @@ spark_default_version() {
     fi
     sdk default spark "$version"
     if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
-        _secrets_update_env_file "SPARK_VERSION" "$version" >/dev/null 2>&1 || true
+        _secrets_update_env_file --key "SPARK_VERSION" --value "$version" >/dev/null 2>&1 || true
     fi
     export SPARK_VERSION="$version"
 }
@@ -518,7 +518,7 @@ scala_use_version() {
     fi
     sdk use scala "$version"
     if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
-        _secrets_update_env_file "SPARK_SCALA_VERSION" "$version" >/dev/null 2>&1 || true
+        _secrets_update_env_file --key "SPARK_SCALA_VERSION" --value "$version" >/dev/null 2>&1 || true
     fi
     export SPARK_SCALA_VERSION="$version"
 }
@@ -535,7 +535,7 @@ scala_default_version() {
     fi
     sdk default scala "$version"
     if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
-        _secrets_update_env_file "SPARK_SCALA_VERSION" "$version" >/dev/null 2>&1 || true
+        _secrets_update_env_file --key "SPARK_SCALA_VERSION" --value "$version" >/dev/null 2>&1 || true
     fi
     export SPARK_SCALA_VERSION="$version"
 }
@@ -560,7 +560,7 @@ java_use_version() {
     fi
     sdk use java "$version"
     if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
-        _secrets_update_env_file "JAVA_VERSION" "$version" >/dev/null 2>&1 || true
+        _secrets_update_env_file --key "JAVA_VERSION" --value "$version" >/dev/null 2>&1 || true
     fi
     export JAVA_VERSION="$version"
 }
@@ -577,7 +577,7 @@ java_default_version() {
     fi
     sdk default java "$version"
     if typeset -f _secrets_update_env_file >/dev/null 2>&1; then
-        _secrets_update_env_file "JAVA_VERSION" "$version" >/dev/null 2>&1 || true
+        _secrets_update_env_file --key "JAVA_VERSION" --value "$version" >/dev/null 2>&1 || true
     fi
     export JAVA_VERSION="$version"
 }

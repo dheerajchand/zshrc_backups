@@ -50,6 +50,7 @@ Follow the conventions in [Coding Standards](wiki/Coding-Standards).
 
 Key points:
 - Declare all variables with `local` inside functions.
+- **Use named arguments (`--flag value`) for all function parameters — never positional `$1`/`$2`.**
 - Use `${VAR:-default}` for optional env vars.
 - Never hardcode user/host-specific paths in module logic.
 - Guard loaded messages with `if [[ -z "${ZSH_TEST_MODE:-}" ]]; then ... fi`.

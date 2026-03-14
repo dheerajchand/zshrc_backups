@@ -1129,7 +1129,7 @@ test_secrets_profile_switch_usage() {
 
 test_secrets_profile_switch_invalid_profile() {
     local out
-    out="$(secrets_profile_switch nonsense 2>&1 || true)"
+    out="$(secrets_profile_switch --profile nonsense 2>&1 || true)"
     assert_contains "$out" "Invalid profile: nonsense" "should reject invalid profile"
     assert_contains "$out" "expected one of:" "should show expected profiles"
     assert_contains "$out" "Available profiles:" "should list available profiles"
@@ -1188,7 +1188,7 @@ test_secrets_bootstrap_requires_op() {
 test_secrets_profile_switch_sets_profile() {
     local old_profile="${ZSH_ENV_PROFILE-}"
     ZSH_SECRETS_MODE=off
-    secrets_profile_switch dev >/dev/null 2>&1
+    secrets_profile_switch --profile dev >/dev/null 2>&1
     assert_equal "dev" "$ZSH_ENV_PROFILE" "should set ZSH_ENV_PROFILE"
     if [[ -n "$old_profile" ]]; then
         export ZSH_ENV_PROFILE="$old_profile"
@@ -1211,7 +1211,7 @@ test_secrets_profile_switch_persists() {
     unset OP_ACCOUNT OP_VAULT
     export ZSH_PROFILE_LIST="dev staging prod laptop cyberpower"
     : > "$file"
-    secrets_profile_switch staging >/dev/null 2>&1 || true
+    secrets_profile_switch --profile staging >/dev/null 2>&1 || true
     assert_contains "$(cat "$file")" "ZSH_ENV_PROFILE=staging" "should persist profile to secrets file"
     export ZSH_SECRETS_FILE="$old_file"
     export ZSH_SECRETS_MODE="$old_mode"
@@ -1232,7 +1232,7 @@ test_secrets_update_env_file_error_handling() {
     chmod 500 "$blocked"
     export PATH="/usr/bin:/bin"
     export ZSH_SECRETS_FILE="$blocked/forbidden_secrets.env"
-    out="$(_secrets_update_env_file FOO bar 2>&1 || true)"
+    out="$(_secrets_update_env_file --key FOO --value bar 2>&1 || true)"
     assert_contains "$out" "Failed to create secrets file" "should warn on write failure"
     export ZSH_SECRETS_FILE="$old_file"
     PATH="$old_path"
@@ -1247,7 +1247,7 @@ test_secrets_profile_switch_ignores_vault_without_account() {
     unset OP_ACCOUNT
     export OP_VAULT="VaultOnly"
     tmp="$(mktemp)"
-    secrets_profile_switch dev >"$tmp" 2>&1 || true
+    secrets_profile_switch --profile dev >"$tmp" 2>&1 || true
     out="$(cat "$tmp")"
     assert_contains "$out" "clearing vault" "should clear vault without account"
     assert_equal "" "${OP_VAULT-}" "should unset OP_VAULT"

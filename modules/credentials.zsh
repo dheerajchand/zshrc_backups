@@ -33,7 +33,16 @@ _cred_warn_unknown_backend() {
 }
 
 _cred_get_op() {
-    local service="$1" user="$2" field="$3"
+    local service="" user="" field=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --service) service="${2:-}"; shift 2 ;;
+            --user)    user="${2:-}"; shift 2 ;;
+            --field)   field="${2:-}"; shift 2 ;;
+            *)         shift ;;
+        esac
+    done
+    [[ -z "$service" || -z "$user" || -z "$field" ]] && return 1
     command -v op >/dev/null 2>&1 || return 1
     op item get "$service-$user" \
         ${OP_ACCOUNT:+--account="$OP_ACCOUNT"} \
@@ -47,7 +56,16 @@ _cred_get_op() {
 }
 
 _cred_put_op() {
-    local service="$1" user="$2" value="$3"
+    local service="" user="" value=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --service) service="${2:-}"; shift 2 ;;
+            --user)    user="${2:-}"; shift 2 ;;
+            --value)   value="${2:-}"; shift 2 ;;
+            *)         shift ;;
+        esac
+    done
+    [[ -z "$service" || -z "$user" || -z "$value" ]] && return 1
     command -v op >/dev/null 2>&1 || return 1
     if op item get "$service-$user" >/dev/null 2>&1; then
         printf '%s' "$value" | op item edit "$service-$user" \
@@ -86,7 +104,15 @@ _cred_status_op() {
 }
 
 _cred_get_keychain() {
-    local service="$1" user="$2"
+    local service="" user=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --service) service="${2:-}"; shift 2 ;;
+            --user)    user="${2:-}"; shift 2 ;;
+            *)         shift ;;
+        esac
+    done
+    [[ -z "$service" || -z "$user" ]] && return 1
     command -v security >/dev/null 2>&1 || return 1
     security find-generic-password -s "$service-$user" -a "$user" -w 2>/dev/null
 }
@@ -95,7 +121,16 @@ _cred_put_keychain() {
     # Note: macOS `security add-generic-password -w` does not support stdin;
     # the password must be passed as a CLI argument. This is acceptable because
     # Keychain operations require system authentication (Touch ID / password).
-    local service="$1" user="$2" value="$3"
+    local service="" user="" value=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --service) service="${2:-}"; shift 2 ;;
+            --user)    user="${2:-}"; shift 2 ;;
+            --value)   value="${2:-}"; shift 2 ;;
+            *)         shift ;;
+        esac
+    done
+    [[ -z "$service" || -z "$user" || -z "$value" ]] && return 1
     command -v security >/dev/null 2>&1 || return 1
     security delete-generic-password -s "$service-$user" -a "$user" 2>/dev/null
     security add-generic-password -s "$service-$user" -a "$user" -w "$value" 2>/dev/null && {
@@ -114,7 +149,14 @@ _cred_status_keychain() {
 }
 
 _cred_get_env() {
-    local service="$1"
+    local service=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --service) service="${2:-}"; shift 2 ;;
+            *)         shift ;;
+        esac
+    done
+    [[ -z "$service" ]] && return 1
     case "$service" in
         postgres)   [[ -n "$PGPASSWORD" ]] && echo "$PGPASSWORD" && return 0 ;;
         mysql)      [[ -n "$MYSQL_PASSWORD" ]] && echo "$MYSQL_PASSWORD" && return 0 ;;
@@ -188,12 +230,19 @@ _cred_status_aws() {
 
 # Get credential from secure storage
 get_credential() {
-    local service="$1"
-    local user="$2"
-    local field="${3:-password}"
+    local service="" user="" field="password"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --service) service="${2:-}"; shift 2 ;;
+            --user)    user="${2:-}"; shift 2 ;;
+            --field)   field="${2:-password}"; shift 2 ;;
+            --help|-h) echo "Usage: get_credential --service <svc> --user <usr> [--field <fld>]" >&2; return 0 ;;
+            *)         shift ;;
+        esac
+    done
 
     if [[ -z "$service" || -z "$user" ]]; then
-        echo "Usage: get_credential <service> <user> [field]" >&2
+        echo "Usage: get_credential --service <svc> --user <usr> [--field <fld>]" >&2
         return 1
     fi
 
@@ -204,9 +253,9 @@ get_credential() {
             continue
         fi
         case "$backend" in
-            op)        _cred_get_op "$service" "$user" "$field" && return 0 ;;
-            keychain)  _cred_get_keychain "$service" "$user" && return 0 ;;
-            env)       _cred_get_env "$service" && return 0 ;;
+            op)        _cred_get_op --service "$service" --user "$user" --field "$field" && return 0 ;;
+            keychain)  _cred_get_keychain --service "$service" --user "$user" && return 0 ;;
+            env)       _cred_get_env --service "$service" && return 0 ;;
             vault)     _cred_get_vault "$service" "$user" "$field" && return 0 ;;
             aws)       _cred_get_aws "$service" "$user" "$field" && return 0 ;;
         esac
@@ -217,12 +266,19 @@ get_credential() {
 
 # Store credential securely
 store_credential() {
-    local service="$1"
-    local user="$2"
-    local value="$3"
+    local service="" user="" value=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --service) service="${2:-}"; shift 2 ;;
+            --user)    user="${2:-}"; shift 2 ;;
+            --value)   value="${2:-}"; shift 2 ;;
+            --help|-h) echo "Usage: store_credential --service <svc> --user <usr> --value <val>" >&2; return 0 ;;
+            *)         shift ;;
+        esac
+    done
 
     if [[ -z "$service" || -z "$user" || -z "$value" ]]; then
-        echo "Usage: store_credential <service> <user> <value>" >&2
+        echo "Usage: store_credential --service <svc> --user <usr> --value <val>" >&2
         return 1
     fi
 
@@ -234,8 +290,8 @@ store_credential() {
             continue
         fi
         case "$backend" in
-            op)        _cred_put_op "$service" "$user" "$value" && ((success++)) ;;
-            keychain)  _cred_put_keychain "$service" "$user" "$value" && ((success++)) ;;
+            op)        _cred_put_op --service "$service" --user "$user" --value "$value" && ((success++)) ;;
+            keychain)  _cred_put_keychain --service "$service" --user "$user" --value "$value" && ((success++)) ;;
             env)       _cred_put_env "$service" "$user" "$value" && true ;;
             vault)     _cred_put_vault "$service" "$user" "$value" && ((success++)) ;;
             aws)       _cred_put_aws "$service" "$user" "$value" && ((success++)) ;;
@@ -341,8 +397,8 @@ test_credential_system() {
     
     local test_pass="test123"
     
-    if store_credential "test-zsh" "testuser" "$test_pass"; then
-        local retrieved=$(get_credential "test-zsh" "testuser")
+    if store_credential --service "test-zsh" --user "testuser" --value "$test_pass"; then
+        local retrieved=$(get_credential --service "test-zsh" --user "testuser")
         if [[ "$retrieved" == "$test_pass" ]]; then
             echo "✅ Round-trip test passed"
             # Cleanup

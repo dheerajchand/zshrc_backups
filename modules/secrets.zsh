@@ -43,9 +43,15 @@ _secrets_debug() {
 }
 
 _secrets_update_env_file() {
-    local key="$1"
-    local value="$2"
-    local file="$ZSH_SECRETS_FILE"
+    local key="" value="" file="$ZSH_SECRETS_FILE"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --key)   key="${2:-}"; shift 2 ;;
+            --value) value="${2:-}"; shift 2 ;;
+            --file)  file="${2:-$ZSH_SECRETS_FILE}"; shift 2 ;;
+            *)       shift ;;
+        esac
+    done
     local tmp
     umask 077
     if [[ ! -f "$file" ]]; then
@@ -408,10 +414,17 @@ _secrets_accounts_equivalent() {
 }
 
 secrets_source_set() {
-    local account="${1:-}"
-    local vault="${2:-}"
+    local account="" vault=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --account) account="${2:-}"; shift 2 ;;
+            --vault)   vault="${2:-}"; shift 2 ;;
+            --help|-h) echo "Usage: secrets_source_set --account <acct> [--vault <vault>]" >&2; return 0 ;;
+            *)         if [[ -z "$account" ]]; then account="$1"; else vault="$1"; fi; shift ;;
+        esac
+    done
     if [[ -z "$account" ]]; then
-        _secrets_warn "Usage: secrets_source_set <account> [vault]"
+        _secrets_warn "Usage: secrets_source_set --account <acct> [--vault <vault>]"
         return 1
     fi
     local resolved
@@ -420,8 +433,8 @@ secrets_source_set() {
     if [[ -n "$vault" ]]; then
         export ZSH_OP_SOURCE_VAULT="$vault"
     fi
-    _secrets_update_env_file "ZSH_OP_SOURCE_ACCOUNT" "$ZSH_OP_SOURCE_ACCOUNT" || true
-    _secrets_update_env_file "ZSH_OP_SOURCE_VAULT" "$ZSH_OP_SOURCE_VAULT" || true
+    _secrets_update_env_file --key "ZSH_OP_SOURCE_ACCOUNT" --value "$ZSH_OP_SOURCE_ACCOUNT" || true
+    _secrets_update_env_file --key "ZSH_OP_SOURCE_VAULT" --value "$ZSH_OP_SOURCE_VAULT" || true
     _secrets_info "1Password source set: account=$ZSH_OP_SOURCE_ACCOUNT vault=$ZSH_OP_SOURCE_VAULT"
 }
 
@@ -2154,18 +2167,25 @@ secrets_pull_all_from_1p() {
 }
 
 secrets_profile_switch() {
-    local profile="${1-}"
-    local account="${2:-${OP_ACCOUNT-}}"
-    local vault="${3:-${OP_VAULT-}}"
+    local profile="" account="${OP_ACCOUNT-}" vault="${OP_VAULT-}"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --profile)  profile="${2:-}"; shift 2 ;;
+            --account)  account="${2:-}"; shift 2 ;;
+            --vault)    vault="${2:-}"; shift 2 ;;
+            --help|-h)  echo "Usage: secrets_profile_switch --profile <name> [--account <acct>] [--vault <vault>]" >&2; return 0 ;;
+            *)          profile="$1"; shift ;;  # accept bare arg for convenience
+        esac
+    done
     if [[ -z "$profile" ]]; then
-        echo "Usage: secrets_profile_switch <profile> [account] [vault]" >&2
+        echo "Usage: secrets_profile_switch --profile <name> [--account <acct>] [--vault <vault>]" >&2
         return 1
     fi
     if ! _secrets_validate_profile "$profile"; then
         echo "Available profiles: $(_secrets_profile_list)" >&2
         return 1
     fi
-    _secrets_update_env_file "ZSH_ENV_PROFILE" "$profile"
+    _secrets_update_env_file --key "ZSH_ENV_PROFILE" --value "$profile"
     export ZSH_ENV_PROFILE="$profile"
     if [[ -n "$account" ]]; then
         if ! op_set_default "$account" "$vault"; then

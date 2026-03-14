@@ -34,7 +34,7 @@ test_backup_requires_git_repo() {
     local tmp out
     tmp="$(mktemp -d)"
     ZSHRC_CONFIG_DIR="$tmp"
-    out="$(backup "test" 2>&1 || true)"
+    out="$(backup --message "test" 2>&1 || true)"
     assert_contains "$out" "Not a git repository" "backup should refuse non-git dir"
     ZSHRC_CONFIG_DIR="$old_dir"
     rm -rf "$tmp"
@@ -49,7 +49,7 @@ test_backup_pushes_current_branch() {
     echo "backup branch payload" >> "$work/README.md"
 
     ZSHRC_CONFIG_DIR="$work"
-    out="$(backup "feature backup test" 2>&1 || true)"
+    out="$(backup --message "feature backup test" 2>&1 || true)"
     assert_contains "$out" "Pushed to main repo (feature/backup)" "should push active feature branch to origin"
     assert_command_success "git --git-dir '$root/origin.git' show-ref --verify --quiet refs/heads/feature/backup" "origin should have feature branch"
 
@@ -90,7 +90,7 @@ test_pushmain_commits_pushes_and_merges() {
     echo "pushmain payload" >> "$work/README.md"
 
     ZSHRC_CONFIG_DIR="$work"
-    out="$(pushmain "pushmain integration test" 2>&1 || true)"
+    out="$(pushmain --message "pushmain integration test" 2>&1 || true)"
     assert_contains "$out" "Backup complete" "pushmain should run backup"
     assert_contains "$out" "Merged and pushed: feature/pushmain -> main" "pushmain should merge to main"
     assert_command_success "git --git-dir '$root/origin.git' show-ref --verify --quiet refs/heads/feature/pushmain" "origin should have pushed feature branch"

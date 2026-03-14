@@ -11,7 +11,7 @@ test_command_exists_basic() {
 test_path_add_and_clean() {
     local old_path="$PATH"
     PATH="/bin:/bin:/usr/bin"
-    path_add "/tmp" "append"
+    path_add --path "/tmp" --position append
     assert_contains "$PATH" "/tmp" "path_add should append new dir"
     path_clean >/dev/null
     local count
