@@ -117,3 +117,11 @@ register_test "test_python_status_with_pyenv" "test_python_status_with_pyenv"
 register_test "test_python_status_uses_python3_shim" "test_python_status_uses_python3_shim"
 register_test "test_python_config_status_defined" "test_python_config_status_defined"
 register_test "test_pyenv_default_venv_variable" "test_pyenv_default_venv_variable"
+
+test_python_module_uses_no_rehash() {
+    local file="$ROOT_DIR/modules/python.zsh"
+    assert_true "grep -Fq 'pyenv init --path --no-rehash' \"$file\"" "python module should disable pyenv startup rehash for --path"
+    assert_true "grep -Fq 'pyenv init - --no-rehash' \"$file\"" "python module should disable pyenv startup rehash for shell init"
+}
+
+register_test "test_python_module_uses_no_rehash" "test_python_module_uses_no_rehash"

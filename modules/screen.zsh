@@ -27,16 +27,16 @@ PYENV
 
 # pyenv (screen)
 if command -v pyenv >/dev/null 2>&1; then
-  eval "$(pyenv init --path)"
-  eval "$(pyenv init -)"
+  eval "$(pyenv init --path --no-rehash)"
+  eval "$(pyenv init - --no-rehash)"
 fi
 PYENV
     elif [[ ! -f "$zshrc" ]]; then
         cat >> "$zshrc" <<'PYENV'
 # pyenv (screen)
 if command -v pyenv >/dev/null 2>&1; then
-  eval "$(pyenv init --path)"
-  eval "$(pyenv init -)"
+  eval "$(pyenv init --path --no-rehash)"
+  eval "$(pyenv init - --no-rehash)"
 fi
 PYENV
     fi

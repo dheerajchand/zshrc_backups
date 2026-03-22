@@ -254,7 +254,7 @@ zeppelin_start() {
         if [[ -n "$spark_home" && -d "$spark_home/bin" ]]; then
             export PATH="$spark_home/bin:$PATH"
             export SPARK_HOME="$spark_home"
-            rehash 2>/dev/null || true
+            builtin rehash 2>/dev/null || true
             unset SPARK_VERSION
             unset SPARK_SCALA_VERSION
             unset SPARK_KAFKA_VERSION

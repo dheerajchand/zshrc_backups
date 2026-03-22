@@ -23,7 +23,9 @@ Core utility helpers and shared variables.
 | `path_clean` | Deduplicate `PATH` | `PATH` mutation | Directories are readable |
 | `zshconfig` | Open config dir in editor | `$EDITOR` | Editor installed |
 | `zshreboot` | Restart shell | `exec zsh` | Zsh installed |
+| `claude_tmp_cleanup` | Remove oversized Claude temp outputs | `find`, `pkill`, `rm`, `df` | Claude temp dir readable |
 
 ## Notes
 - `download_jars` writes into `JARS_DIR` by default.
 - `extract` is extension-based (no content detection).
+- `claude_tmp_cleanup [min_gb] [dry_run]` defaults to `/System/Volumes/Data/private/tmp/claude-501` and can be overridden with `CLAUDE_TMP_DIR`.
