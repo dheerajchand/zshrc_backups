@@ -1,10 +1,7 @@
-language: "en-US"
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 
 reviews:
-  high_level_summary: true
   review_status: true
-  collapse_walkthrough: false
-  poem: false
   auto_review:
     enabled: true
     drafts: false
@@ -12,71 +9,5 @@ reviews:
       - "develop"
       - "main"
 
-path_instructions:
-  - path: "zshrc"
-    instructions: |
-      This file is startup-critical. Review with a shell-initialization mindset.
-
-      Treat the following as high-risk primitives:
-      - `rehash`
-      - `eval`
-      - `source`
-      - version-manager init hooks such as `pyenv init`, `sdkman-init`, and similar PATH-mutating setup
-
-      Do not assume familiar shell commands retain builtin semantics after environment-manager initialization.
-      In particular:
-      - verify whether `rehash` is intended to mean shell command-table refresh or tool-managed shim regeneration
-      - prefer the narrowest behavior that matches intent
-      - if the shell only needs a command-table refresh, prefer `builtin rehash`
-      - if shim regeneration is intended, require that this be explicit and justified
-
-      Flag startup regressions aggressively. Ask whether the change could:
-      - block shell startup
-      - alter PATH ordering unexpectedly
-      - trigger expensive side effects during login
-      - behave differently in interactive vs non-interactive shells
-
-      Require runtime verification evidence for risky startup changes, such as:
-      - `type <command>` or `whence -v <command>` after init
-      - `zsh -i -c 'echo ok'`
-      - targeted tests for startup-sensitive behavior
-
-  - path: "modules/**/*.zsh"
-    instructions: |
-      Review as production shell code, not as loose utility scripts.
-
-      Focus on:
-      - shell startup/runtime safety
-      - PATH mutation correctness
-      - version-manager interactions (`pyenv`, SDKMAN, etc.)
-      - command overloading and wrappers
-      - idempotency and repeated sourcing behavior
-
-      For code that can run during shell initialization:
-      - question any implicit rehashing, auto-activation, or package-manager side effects
-      - verify that builtins vs wrapped functions are handled intentionally
-      - prefer explicit, low-side-effect commands
-
-      For cleanup/destructive helpers:
-      - verify path scoping is tight
-      - require dry-run or low-risk modes where appropriate
-      - ensure commands use safe quoting and handle empty results correctly
-
-  - path: "tests/**/*.zsh"
-    instructions: |
-      Verify that tests cover behavioral regressions, not just symbol existence.
-
-      For startup-related fixes, prefer tests or verification that prove:
-      - initialization does not trigger unwanted side effects
-      - dangerous commands are not called implicitly
-      - helpers work in degraded PATH/minimal-shell conditions when relevant
-
-  - path: ".github/workflows/*.yml"
-    instructions: |
-      Ensure PR checks exercise shell-init-sensitive code paths where possible.
-      Prefer CI coverage that would catch startup regressions in `zshrc` and module loading.
-
-  - path: "wiki/**/*.md"
-    instructions: |
-      Confirm documentation reflects operational reality.
-      When behavior changes for startup, cleanup, or review policy, require docs to explain the risk and the intended usage clearly.
+chat:
+  auto_reply: true

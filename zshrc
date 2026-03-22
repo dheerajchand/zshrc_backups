@@ -63,10 +63,12 @@ autoload -Uz compinit && compinit
 : "${ZSH_STATUS_BANNER_MODE:=auto}"
 : "${ZSH_AUTO_RECOVER_MODE:=auto}"
 
+# Detect Warp so interactive startup can use a lighter default path there.
 _zsh_is_warp_terminal() {
   [[ "${TERM_PROGRAM:-}" == "WarpTerminal" || "${WARP_IS_LOCAL_SHELL_SESSION:-}" == "1" ]]
 }
 
+# Decide whether this shell should render the heavy status banner.
 _zsh_show_full_startup_banner() {
   case "${ZSH_STATUS_BANNER_MODE}" in
     full) return 0 ;;
@@ -81,6 +83,7 @@ _zsh_show_full_startup_banner() {
   esac
 }
 
+# Decide whether startup should attempt automatic service recovery.
 _zsh_should_auto_recover_services() {
   case "${ZSH_AUTO_RECOVER_MODE}" in
     on) return 0 ;;
