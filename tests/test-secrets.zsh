@@ -1517,6 +1517,42 @@ test_load_secrets_falls_back_to_agent_cache() {
     rm -rf "$tmp"
 }
 
+test_load_secrets_prefers_agent_cache_in_ide_mode() {
+    local tmp old_cache old_mode old_startup_source old_ide old_secret
+    tmp="$(mktemp -d)"
+    old_cache="${SECRETS_AGENT_ENV_FILE-}"
+    old_mode="${ZSH_SECRETS_MODE-}"
+    old_startup_source="${ZSH_SECRETS_STARTUP_SOURCE-}"
+    old_ide="${ZSH_IS_IDE_TERMINAL-}"
+    old_secret="${MY_SECRET-}"
+
+    export SECRETS_AGENT_ENV_FILE="$tmp/.agent-secrets.env"
+    cat > "$SECRETS_AGENT_ENV_FILE" <<'EOF'
+MY_SECRET=cached_value
+EOF
+    export ZSH_SECRETS_MODE="op"
+    export ZSH_SECRETS_STARTUP_SOURCE="auto"
+    export ZSH_IS_IDE_TERMINAL="1"
+    unset MY_SECRET
+
+    secrets_load_op() {
+        echo "live-secrets-should-not-run" >&2
+        return 1
+    }
+
+    load_secrets >/dev/null 2>&1
+
+    assert_equal "cached_value" "${MY_SECRET:-}" "IDE startup should prefer agent cache over live op reads"
+
+    unfunction secrets_load_op 2>/dev/null || true
+    export SECRETS_AGENT_ENV_FILE="$old_cache"
+    export ZSH_SECRETS_MODE="$old_mode"
+    export ZSH_SECRETS_STARTUP_SOURCE="$old_startup_source"
+    export ZSH_IS_IDE_TERMINAL="$old_ide"
+    export MY_SECRET="$old_secret"
+    rm -rf "$tmp"
+}
+
 register_test "test_secrets_load_file" "test_secrets_load_file"
 register_test "test_secrets_load_op" "test_secrets_load_op"
 register_test "test_secrets_load_op_supports_op_url_mapping" "test_secrets_load_op_supports_op_url_mapping"
@@ -1580,3 +1616,4 @@ register_test "test_secrets_agent_refresh_writes_agent_env" "test_secrets_agent_
 register_test "test_secrets_debug_silent_without_flag" "test_secrets_debug_silent_without_flag"
 register_test "test_secrets_debug_outputs_with_flag" "test_secrets_debug_outputs_with_flag"
 register_test "test_load_secrets_falls_back_to_agent_cache" "test_load_secrets_falls_back_to_agent_cache"
+register_test "test_load_secrets_prefers_agent_cache_in_ide_mode" "test_load_secrets_prefers_agent_cache_in_ide_mode"

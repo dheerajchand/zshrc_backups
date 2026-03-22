@@ -184,6 +184,46 @@ zshreboot() {
     exec zsh
 }
 
+claude_tmp_cleanup() {
+    emulate -L zsh
+    set -euo pipefail
+
+    local base="${CLAUDE_TMP_DIR:-/System/Volumes/Data/private/tmp/claude-501}"
+    local min_gb="${1:-1}"
+    local dry_run="${2:-false}"
+    local found=()
+
+    if [[ ! -d "$base" ]]; then
+        echo "⚠️  Claude temp directory not found: $base"
+        return 0
+    fi
+
+    while IFS= read -r path; do
+        [[ -n "$path" ]] && found+=("$path")
+    done < <(/usr/bin/find "$base" -type f -name "*.output" -size +"${min_gb}"G -print 2>/dev/null)
+
+    if (( ${#found[@]} == 0 )); then
+        echo "✅ No Claude temp output files >= ${min_gb}G in $base"
+        return 0
+    fi
+
+    echo "🧹 Claude temp outputs >= ${min_gb}G"
+    /bin/ls -lh "${found[@]}" 2>/dev/null || true
+
+    if [[ "$dry_run" == "true" ]]; then
+        echo "🧪 Dry run only. Nothing deleted."
+        return 0
+    fi
+
+    # Stop known writers before deleting their runaway temp outputs.
+    /usr/bin/pkill -f claude >/dev/null 2>&1 || true
+    /usr/bin/pkill -f craft-agent >/dev/null 2>&1 || true
+
+    /bin/rm -f "${found[@]}"
+    echo "✅ Deleted ${#found[@]} Claude temp output file(s)"
+    /bin/df -h /System/Volumes/Data 2>/dev/null || true
+}
+
 setup_pyenv() {
     if ! command -v pyenv >/dev/null 2>&1; then
         echo "❌ pyenv not found on PATH" >&2
@@ -192,8 +232,8 @@ setup_pyenv() {
     fi
     export PYENV_ROOT="${PYENV_ROOT:-$HOME/.pyenv}"
     [[ ":$PATH:" == *":$PYENV_ROOT/bin:"* ]] || export PATH="$PYENV_ROOT/bin:$PATH"
-    eval "$(pyenv init --path 2>/dev/null)"
-    eval "$(pyenv init - 2>/dev/null)"
+    eval "$(pyenv init --path --no-rehash 2>/dev/null)"
+    eval "$(pyenv init - --no-rehash 2>/dev/null)"
     echo "✅ pyenv initialized"
     pyenv --version 2>/dev/null | head -n 1 || true
 }
@@ -272,4 +312,3 @@ alias zshreload='zshreboot'
 alias editconfig='zshconfig'
 
 echo "✅ utils loaded"
-

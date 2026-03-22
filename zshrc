@@ -57,6 +57,46 @@ plugins=(git)
 
 # Initialize completion system
 autoload -Uz compinit && compinit
+
+# Warp is sensitive to noisy, probe-heavy interactive startup. Default it to a
+# lighter path unless explicitly overridden.
+: "${ZSH_STATUS_BANNER_MODE:=auto}"
+: "${ZSH_AUTO_RECOVER_MODE:=auto}"
+
+# Detect Warp so interactive startup can use a lighter default path there.
+_zsh_is_warp_terminal() {
+  [[ "${TERM_PROGRAM:-}" == "WarpTerminal" || "${WARP_IS_LOCAL_SHELL_SESSION:-}" == "1" ]]
+}
+
+# Decide whether this shell should render the heavy status banner.
+_zsh_show_full_startup_banner() {
+  case "${ZSH_STATUS_BANNER_MODE}" in
+    full) return 0 ;;
+    off|minimal) return 1 ;;
+    auto)
+      _zsh_is_warp_terminal && return 1
+      return 0
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
+
+# Decide whether startup should attempt automatic service recovery.
+_zsh_should_auto_recover_services() {
+  case "${ZSH_AUTO_RECOVER_MODE}" in
+    on) return 0 ;;
+    off) return 1 ;;
+    auto)
+      _zsh_is_warp_terminal && return 1
+      return 0
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
 zmodload zsh/compctl 2>/dev/null
 
 # Load Oh-My-Zsh
@@ -245,8 +285,8 @@ if [[ -n "$SPARK_HOME" && -d "$SPARK_HOME/bin" ]]; then
     [[ ":$PATH:" != *":$SPARK_HOME/sbin:"* ]] && export PATH="$SPARK_HOME/sbin:$PATH"
 fi
 
-# Rehash command table after PATH changes
-rehash
+# Rehash command table after PATH changes without invoking pyenv's wrapper.
+builtin rehash
 
 # Help
 zsh_help() {
@@ -261,6 +301,7 @@ zsh_help() {
     echo "  pyenv_use_version <v>  - pyenv shell <version>"
     echo "  pyenv_default_version <v> - pyenv global <version>"
     echo "  ds_project_init <name> - Create data science project"
+    echo "  claude_tmp_cleanup [min_gb] [dry_run] - Remove runaway Claude temp outputs"
     echo ""
     echo "⚡ Spark:"
     echo "  spark_start            - Start Spark cluster"
@@ -834,8 +875,12 @@ zsh_status_banner() {
 
 if [[ -o interactive ]]; then
     apply_profile_theme
+  if _zsh_should_auto_recover_services; then
     _zsh_auto_recover_data_services
+  fi
+  if _zsh_show_full_startup_banner; then
     zsh_status_banner
+  fi
 fi
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
