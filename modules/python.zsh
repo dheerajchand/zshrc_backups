@@ -23,9 +23,10 @@ if [[ -z "${ZSH_TEST_MODE:-}" ]] && command -v pyenv >/dev/null 2>&1; then
     export PYENV_ROOT="$HOME/.pyenv"
     export PATH="$PYENV_ROOT/bin:$PATH"
     
-    # Initialize pyenv (suppress rehash warnings - cosmetic sandbox issue)
-    eval "$(pyenv init --path 2>/dev/null)"
-    eval "$(pyenv init - 2>/dev/null)"
+    # Avoid pyenv startup rehash: on this shell config noclobber can make
+    # pyenv-rehash block for 60s trying to rewrite .pyenv-shim.
+    eval "$(pyenv init --path --no-rehash 2>/dev/null)"
+    eval "$(pyenv init - --no-rehash 2>/dev/null)"
     
     # Initialize virtualenv plugin if available
     if pyenv commands --bare 2>/dev/null | grep -q "^virtualenv-init$"; then

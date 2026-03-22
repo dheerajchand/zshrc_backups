@@ -27,3 +27,4 @@ Python/pyenv management and data‑science helpers.
 
 ## Notes
 - `python_status` falls back to system Python if pyenv unavailable.
+- Startup uses `pyenv init ... --no-rehash` to avoid 60-second stalls from pyenv shim lock contention.

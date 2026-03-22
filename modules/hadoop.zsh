@@ -512,5 +512,5 @@ echo "✅ hadoop loaded"
 
 
 
-# Rehash to ensure commands are found
-rehash 2>/dev/null
+# Rehash to ensure commands are found without triggering pyenv rehash.
+builtin rehash 2>/dev/null

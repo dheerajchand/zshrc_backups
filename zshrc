@@ -245,8 +245,8 @@ if [[ -n "$SPARK_HOME" && -d "$SPARK_HOME/bin" ]]; then
     [[ ":$PATH:" != *":$SPARK_HOME/sbin:"* ]] && export PATH="$SPARK_HOME/sbin:$PATH"
 fi
 
-# Rehash command table after PATH changes
-rehash
+# Rehash command table after PATH changes without invoking pyenv's wrapper.
+builtin rehash
 
 # Help
 zsh_help() {
@@ -261,6 +261,7 @@ zsh_help() {
     echo "  pyenv_use_version <v>  - pyenv shell <version>"
     echo "  pyenv_default_version <v> - pyenv global <version>"
     echo "  ds_project_init <name> - Create data science project"
+    echo "  claude_tmp_cleanup [min_gb] [dry_run] - Remove runaway Claude temp outputs"
     echo ""
     echo "⚡ Spark:"
     echo "  spark_start            - Start Spark cluster"

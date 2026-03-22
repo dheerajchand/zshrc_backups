@@ -57,6 +57,7 @@ CURL
 
 test_legacy_quick_commands_defined() {
     assert_true "typeset -f setup_pyenv >/dev/null 2>&1" "setup_pyenv should be defined"
+    assert_true "typeset -f claude_tmp_cleanup >/dev/null 2>&1" "claude_tmp_cleanup should be defined"
     assert_true "typeset -f setup_uv >/dev/null 2>&1" "setup_uv should be defined"
     assert_true "typeset -f toggle_hidden_files >/dev/null 2>&1" "toggle_hidden_files should be defined"
     assert_true "typeset -f toggle_key_repeat >/dev/null 2>&1" "toggle_key_repeat should be defined"
@@ -70,7 +71,32 @@ test_legacy_quick_commands_defined() {
     assert_true "typeset -f test_bash_install >/dev/null 2>&1" "test_bash_install should be defined"
 }
 
+test_claude_tmp_cleanup_dry_run_and_delete() {
+    local tmp old_dir out
+    tmp="$(mktemp -d)"
+    mkdir -p "$tmp/tasks"
+    old_dir="${CLAUDE_TMP_DIR-}"
+    export CLAUDE_TMP_DIR="$tmp"
+    truncate -s 2G "$tmp/tasks/runaway.output"
+
+    out="$(claude_tmp_cleanup 1 true)"
+    assert_contains "$out" "Dry run only" "dry run should not delete files"
+    assert_true "[[ -f \"$tmp/tasks/runaway.output\" ]]" "dry run should keep file"
+
+    out="$(claude_tmp_cleanup 1 false)"
+    assert_contains "$out" "Deleted 1 Claude temp output file" "delete run should report deletion"
+    assert_true "[[ ! -e \"$tmp/tasks/runaway.output\" ]]" "delete run should remove file"
+
+    if [[ -n "$old_dir" ]]; then
+        export CLAUDE_TMP_DIR="$old_dir"
+    else
+        unset CLAUDE_TMP_DIR
+    fi
+    rm -rf "$tmp"
+}
+
 register_test "utils_command_exists" test_command_exists_basic
 register_test "utils_path_add_clean" test_path_add_and_clean
 register_test "utils_download_jars" test_download_jars_stub
 register_test "utils_legacy_quick_commands_defined" test_legacy_quick_commands_defined
+register_test "utils_claude_tmp_cleanup" test_claude_tmp_cleanup_dry_run_and_delete
