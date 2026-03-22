@@ -16,6 +16,7 @@
 : "${OP_SESSIONS_FILE:=$HOME/.config/zsh/.op-sessions.env}"
 : "${ZSH_OP_SOURCE_ACCOUNT:=Dheeraj_Chand_Family}"
 : "${ZSH_OP_SOURCE_VAULT:=Private}"
+: "${ZSH_SECRETS_STARTUP_SOURCE:=auto}" # auto|live|cache
 _SECRETS_SYNC_FILES=(op-accounts.env secrets.env secrets.1p codex-sessions.env)
 
 # Resolve JSON tool once: prefer jq, fall back to python3, then python
@@ -130,6 +131,22 @@ _secrets_normalize_mode() {
     if [[ -n "${ZSH_SECRETS_MODE:-}" ]]; then
         export ZSH_SECRETS_MODE="$(_secrets_normalize_value "$ZSH_SECRETS_MODE")"
     fi
+}
+
+_secrets_startup_prefers_agent_cache() {
+    local mode="${ZSH_SECRETS_STARTUP_SOURCE:-auto}"
+    mode="${mode:l}"
+    case "$mode" in
+        cache) return 0 ;;
+        live) return 1 ;;
+        auto)
+            [[ "${ZSH_IS_IDE_TERMINAL:-0}" == "1" ]] && [[ -f "${SECRETS_AGENT_ENV_FILE:-$HOME/.config/zsh/.agent-secrets.env}" ]]
+            return $?
+            ;;
+        *)
+            return 1
+            ;;
+    esac
 }
 
 _secrets_strip_crlf() {
@@ -1259,6 +1276,10 @@ load_secrets() {
         off) return 0 ;;
         file) secrets_load_file ;;
         op)
+            if _secrets_startup_prefers_agent_cache; then
+                _secrets_info "startup using agent cache"
+                secrets_agent_source && return 0
+            fi
             secrets_load_op || {
                 if [[ -f "$_agent_cache" ]]; then
                     _secrets_info "op auth unavailable, loading from agent cache"
@@ -1268,6 +1289,10 @@ load_secrets() {
             ;;
         both)
             secrets_load_file
+            if _secrets_startup_prefers_agent_cache; then
+                _secrets_info "startup using agent cache"
+                secrets_agent_source && return 0
+            fi
             secrets_load_op || {
                 if [[ -f "$_agent_cache" ]]; then
                     _secrets_info "op auth unavailable, loading from agent cache"
