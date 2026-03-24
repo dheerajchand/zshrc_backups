@@ -839,11 +839,14 @@ zsh_status_banner() {
     # Launch probes in parallel (background subshells writing to temp files)
     local _probe_dir
     _probe_dir="$(mktemp -d 2>/dev/null || mktemp -d -t zsh-probe 2>/dev/null)"
+    local -a _probe_pids=()
     if command -v docker >/dev/null 2>&1; then
         ( _zsh_startup_probe "$_startup_probe_timeout" docker info >/dev/null 2>&1 && echo "running" || echo "unreachable/timeout" ) > "$_probe_dir/docker" &
+        _probe_pids+=($!)
     fi
     if command -v op >/dev/null 2>&1; then
         ( _zsh_startup_probe "$_startup_probe_timeout" op account list >/dev/null 2>&1 && echo "yes" || echo "no" ) > "$_probe_dir/op" &
+        _probe_pids+=($!)
     fi
 
     # Zeppelin status (lightweight, no network)
@@ -859,8 +862,11 @@ zsh_status_banner() {
         fi
     fi
 
-    # Collect parallel probe results (wait for all background jobs)
-    wait 2>/dev/null
+    # Collect parallel probe results (only wait on probe PIDs, not unrelated jobs)
+    local _probe_pid
+    for _probe_pid in "${_probe_pids[@]}"; do
+        wait "$_probe_pid" 2>/dev/null
+    done
 
     if [[ -f "$_probe_dir/docker" ]]; then
         local docker_state

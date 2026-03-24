@@ -7,6 +7,9 @@
 
 : "${JARS_DIR:=$HOME/.jars}"
 
+# Load zsh/datetime for $EPOCHSECONDS (avoids subprocess in is_online cache)
+zmodload zsh/datetime 2>/dev/null
+
 # Check if internet connection is available
 # Used by Spark to decide: local JARs vs Maven downloads
 # Result is cached for ZSH_ONLINE_CACHE_SEC (default 30s) to avoid
@@ -16,8 +19,7 @@ _ZSH_ONLINE_CACHE=""
 _ZSH_ONLINE_CACHE_TS=0
 
 is_online() {
-    local now
-    now="$(date +%s)"
+    local now=$EPOCHSECONDS
     if [[ -n "$_ZSH_ONLINE_CACHE" ]] && (( now - _ZSH_ONLINE_CACHE_TS < ZSH_ONLINE_CACHE_SEC )); then
         return "$_ZSH_ONLINE_CACHE"
     fi
