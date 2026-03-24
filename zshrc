@@ -840,11 +840,13 @@ zsh_status_banner() {
     local _probe_dir
     _probe_dir="$(mktemp -d 2>/dev/null || mktemp -d -t zsh-probe 2>/dev/null)"
     local -a _probe_pids=()
-    if command -v docker >/dev/null 2>&1; then
+    local _have_probe_dir=0
+    [[ -n "$_probe_dir" && -d "$_probe_dir" ]] && _have_probe_dir=1
+    if (( _have_probe_dir )) && command -v docker >/dev/null 2>&1; then
         ( _zsh_startup_probe "$_startup_probe_timeout" docker info >/dev/null 2>&1 && echo "running" || echo "unreachable/timeout" ) > "$_probe_dir/docker" &
         _probe_pids+=($!)
     fi
-    if command -v op >/dev/null 2>&1; then
+    if (( _have_probe_dir )) && command -v op >/dev/null 2>&1; then
         ( _zsh_startup_probe "$_startup_probe_timeout" op account list >/dev/null 2>&1 && echo "yes" || echo "no" ) > "$_probe_dir/op" &
         _probe_pids+=($!)
     fi
@@ -860,6 +862,8 @@ zsh_status_banner() {
                 zeppelin_state="stopped"
             fi
         fi
+    elif [[ "${ZSH_IS_IDE_TERMINAL:-0}" == "1" ]]; then
+        zeppelin_state="loading"
     fi
 
     # Collect parallel probe results (only wait on probe PIDs, not unrelated jobs)
@@ -868,7 +872,7 @@ zsh_status_banner() {
         wait "$_probe_pid" 2>/dev/null
     done
 
-    if [[ -f "$_probe_dir/docker" ]]; then
+    if (( _have_probe_dir )) && [[ -f "$_probe_dir/docker" ]]; then
         local docker_state
         docker_state="$(<"$_probe_dir/docker")"
         printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🐳 Docker:" "$reset_color" "$docker_state"
@@ -888,13 +892,13 @@ zsh_status_banner() {
         local file_ok="no"
         local op_ok="no"
         [[ -n "${ZSH_SECRETS_FILE:-}" && -f "$ZSH_SECRETS_FILE" ]] && file_ok="yes"
-        if [[ -f "$_probe_dir/op" ]]; then
+        if (( _have_probe_dir )) && [[ -f "$_probe_dir/op" ]]; then
             op_ok="$(<"$_probe_dir/op")"
         fi
         secrets_status="file:${file_ok} op:${op_ok} mode:${ZSH_SECRETS_MODE:-unset}"
     fi
     printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🔐 Secrets:" "$reset_color" "$secrets_status"
-    rm -rf "$_probe_dir" 2>/dev/null
+    (( _have_probe_dir )) && rm -rf "$_probe_dir" 2>/dev/null
 
     # Quick tips
     echo ""
