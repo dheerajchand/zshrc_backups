@@ -9,7 +9,26 @@
 
 # Check if internet connection is available
 # Used by Spark to decide: local JARs vs Maven downloads
-is_online() { ping -c 1 -W 2 google.com &>/dev/null; }
+# Result is cached for ZSH_ONLINE_CACHE_SEC (default 30s) to avoid
+# blocking shell startup with a synchronous ping on every invocation.
+: "${ZSH_ONLINE_CACHE_SEC:=30}"
+_ZSH_ONLINE_CACHE=""
+_ZSH_ONLINE_CACHE_TS=0
+
+is_online() {
+    local now
+    now="$(date +%s)"
+    if [[ -n "$_ZSH_ONLINE_CACHE" ]] && (( now - _ZSH_ONLINE_CACHE_TS < ZSH_ONLINE_CACHE_SEC )); then
+        return "$_ZSH_ONLINE_CACHE"
+    fi
+    if ping -c 1 -W 2 google.com &>/dev/null; then
+        _ZSH_ONLINE_CACHE=0
+    else
+        _ZSH_ONLINE_CACHE=1
+    fi
+    _ZSH_ONLINE_CACHE_TS="$now"
+    return "$_ZSH_ONLINE_CACHE"
+}
 
 is_online_status() {
     is_online && echo "online" || echo "offline"

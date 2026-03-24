@@ -39,16 +39,31 @@ if [[ -d "$HOME/.pyenv/bin" && ":$PATH:" != *":$HOME/.pyenv/bin:"* ]]; then
     export PATH="$HOME/.pyenv/bin:$PATH"
 fi
 
-# Initialize SDKMAN (sets HADOOP_HOME, SPARK_HOME, JAVA_HOME)
+# Initialize SDKMAN lazily - set *_HOME vars from "current" symlinks now
+# (fast path: no sourcing), then load the full SDK on first `sdk` call.
 export SDKMAN_DIR="$HOME/.sdkman"
-if [[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]]; then
-    source "$SDKMAN_DIR/bin/sdkman-init.sh"
-fi
 
-# Set *_HOME variables if not set by SDKMAN
+# Set *_HOME variables from SDKMAN current symlinks (no sourcing needed)
 [[ -z "$HADOOP_HOME" && -d "$SDKMAN_DIR/candidates/hadoop/current" ]] && export HADOOP_HOME="$SDKMAN_DIR/candidates/hadoop/current"
 [[ -z "$SPARK_HOME" && -d "$SDKMAN_DIR/candidates/spark/current" ]] && export SPARK_HOME="$SDKMAN_DIR/candidates/spark/current"
 [[ -z "$JAVA_HOME" && -d "$SDKMAN_DIR/candidates/java/current" ]] && export JAVA_HOME="$SDKMAN_DIR/candidates/java/current"
+
+# Add SDKMAN candidate bins to PATH without full init
+if [[ -d "$SDKMAN_DIR/candidates" ]]; then
+    for _sdk_cand in "$SDKMAN_DIR"/candidates/*/current/bin(N); do
+        [[ ":$PATH:" != *":$_sdk_cand:"* ]] && export PATH="$_sdk_cand:$PATH"
+    done
+    unset _sdk_cand
+fi
+
+# Lazy-load full SDKMAN on first `sdk` invocation
+if [[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]]; then
+    sdk() {
+        unfunction sdk 2>/dev/null
+        source "$SDKMAN_DIR/bin/sdkman-init.sh"
+        sdk "$@"
+    }
+fi
 
 # Oh-My-Zsh setup
 export ZSH="$HOME/.dotfiles/oh-my-zsh"
@@ -809,6 +824,7 @@ zsh_status_banner() {
     printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "📁 Location:" "$reset_color" "$(pwd)"
 
     # Key services status (never block shell startup)
+    # Probes run in parallel to cut worst-case wait from ~6s to ~2s.
     local _startup_probe_timeout=2
     _zsh_startup_probe() {
         local seconds="${1:-2}"
@@ -819,17 +835,21 @@ zsh_status_banner() {
         fi
         perl -e 'alarm shift; exec @ARGV' "$seconds" "$@"
     }
+
+    # Launch probes in parallel (background subshells writing to temp files)
+    local _probe_dir
+    _probe_dir="$(mktemp -d 2>/dev/null || mktemp -d -t zsh-probe 2>/dev/null)"
     if command -v docker >/dev/null 2>&1; then
-        if _zsh_startup_probe "$_startup_probe_timeout" docker info >/dev/null 2>&1; then
-            printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🐳 Docker:" "$reset_color" "running"
-        else
-            printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🐳 Docker:" "$reset_color" "unreachable/timeout"
-        fi
+        ( _zsh_startup_probe "$_startup_probe_timeout" docker info >/dev/null 2>&1 && echo "running" || echo "unreachable/timeout" ) > "$_probe_dir/docker" &
+    fi
+    if command -v op >/dev/null 2>&1; then
+        ( _zsh_startup_probe "$_startup_probe_timeout" op account list >/dev/null 2>&1 && echo "yes" || echo "no" ) > "$_probe_dir/op" &
     fi
 
-    # Zeppelin status (lightweight)
+    # Zeppelin status (lightweight, no network)
+    local zeppelin_state=""
     if typeset -f _zeppelin_detect_home >/dev/null 2>&1; then
-        local zeppelin_state="missing"
+        zeppelin_state="missing"
         if _zeppelin_detect_home >/dev/null 2>&1; then
             if typeset -f _zeppelin_is_running >/dev/null 2>&1 && _zeppelin_is_running; then
                 zeppelin_state="running"
@@ -837,12 +857,24 @@ zsh_status_banner() {
                 zeppelin_state="stopped"
             fi
         fi
+    fi
+
+    # Collect parallel probe results (wait for all background jobs)
+    wait 2>/dev/null
+
+    if [[ -f "$_probe_dir/docker" ]]; then
+        local docker_state
+        docker_state="$(<"$_probe_dir/docker")"
+        printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🐳 Docker:" "$reset_color" "$docker_state"
+    fi
+
+    if [[ -n "$zeppelin_state" ]]; then
         printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "📝 Zeppelin:" "$reset_color" "$zeppelin_state"
     fi
     local recovery_summary="${ZSH_DATA_RECOVERY_SUMMARY:-not attempted in this shell}"
     printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🩺 Auto-recovery:" "$reset_color" "$recovery_summary"
 
-    # Secrets status (lightweight)
+    # Secrets status
     local secrets_status="unknown"
     if [[ "${ZSH_SECRETS_MODE:-}" == "off" ]]; then
         secrets_status="off"
@@ -850,12 +882,13 @@ zsh_status_banner() {
         local file_ok="no"
         local op_ok="no"
         [[ -n "${ZSH_SECRETS_FILE:-}" && -f "$ZSH_SECRETS_FILE" ]] && file_ok="yes"
-        if command -v op >/dev/null 2>&1; then
-            _zsh_startup_probe "$_startup_probe_timeout" op account list >/dev/null 2>&1 && op_ok="yes"
+        if [[ -f "$_probe_dir/op" ]]; then
+            op_ok="$(<"$_probe_dir/op")"
         fi
         secrets_status="file:${file_ok} op:${op_ok} mode:${ZSH_SECRETS_MODE:-unset}"
     fi
     printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🔐 Secrets:" "$reset_color" "$secrets_status"
+    rm -rf "$_probe_dir" 2>/dev/null
 
     # Quick tips
     echo ""
