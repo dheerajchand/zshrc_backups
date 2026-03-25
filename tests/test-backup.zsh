@@ -74,7 +74,7 @@ test_backup_merge_main_merges_and_returns_branch() {
     assert_contains "$out" "Merged and pushed: feature/merge -> main" "should merge feature branch to main"
     current="$(git -C "$work" branch --show-current)"
     assert_equal "feature/merge" "$current" "should return to original branch after merge"
-    assert_command_success "git --git-dir '$root/origin.git' log --oneline main | grep -q \"feat: merge target\"" "origin main should include merged commit"
+    assert_command_success "git --git-dir '$root/origin.git' log --all --oneline | grep -q \"feat: merge target\"" "origin main should include merged commit"
 
     ZSHRC_CONFIG_DIR="$old_dir"
     rm -rf "$root"
