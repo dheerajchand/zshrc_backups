@@ -11,9 +11,9 @@ _make_backup_test_repo() {
     local backup_remote="$tmp/backup.git"
     local work="$tmp/work"
 
-    git init --bare "$origin" >/dev/null 2>&1 || return 1
-    git init --bare "$backup_remote" >/dev/null 2>&1 || return 1
-    git init "$work" >/dev/null 2>&1 || return 1
+    git init --bare --initial-branch=main "$origin" >/dev/null 2>&1 || return 1
+    git init --bare --initial-branch=main "$backup_remote" >/dev/null 2>&1 || return 1
+    git init --initial-branch=main "$work" >/dev/null 2>&1 || return 1
     git -C "$work" config user.email "test@example.com"
     git -C "$work" config user.name "Backup Test"
     cat > "$work/README.md" <<'EOF'
