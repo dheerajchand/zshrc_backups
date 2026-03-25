@@ -11,9 +11,9 @@ _make_backup_test_repo() {
     local backup_remote="$tmp/backup.git"
     local work="$tmp/work"
 
-    git init --bare "$origin" >/dev/null 2>&1 || return 1
-    git init --bare "$backup_remote" >/dev/null 2>&1 || return 1
-    git init "$work" >/dev/null 2>&1 || return 1
+    git init --bare --initial-branch=main "$origin" >/dev/null 2>&1 || return 1
+    git init --bare --initial-branch=main "$backup_remote" >/dev/null 2>&1 || return 1
+    git init --initial-branch=main "$work" >/dev/null 2>&1 || return 1
     git -C "$work" config user.email "test@example.com"
     git -C "$work" config user.name "Backup Test"
     cat > "$work/README.md" <<'EOF'
@@ -74,7 +74,7 @@ test_backup_merge_main_merges_and_returns_branch() {
     assert_contains "$out" "Merged and pushed: feature/merge -> main" "should merge feature branch to main"
     current="$(git -C "$work" branch --show-current)"
     assert_equal "feature/merge" "$current" "should return to original branch after merge"
-    assert_command_success "git --git-dir '$root/origin.git' log --all --oneline | grep -q \"feat: merge target\"" "origin main should include merged commit"
+    assert_command_success "git --git-dir '$root/origin.git' log --oneline main | grep -q \"feat: merge target\"" "origin main should include merged commit"
 
     ZSHRC_CONFIG_DIR="$old_dir"
     rm -rf "$root"
