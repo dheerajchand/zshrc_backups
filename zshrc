@@ -16,7 +16,11 @@ export ZSH_CONFIG_DIR
 
 # Minimal init for non-TTY interactive shells (prevents GUI app timeouts)
 # Set ZSH_FORCE_FULL_INIT=1 to override.
-if [[ -o interactive && ! -t 0 && ! -t 1 && -z "${ZSH_FORCE_FULL_INIT:-}" ]]; then
+# Known terminal programs (Warp, VS Code, etc.) are always allowed full init.
+if [[ -o interactive && ! -t 0 && ! -t 1 && -z "${ZSH_FORCE_FULL_INIT:-}" \
+      && "$TERM_PROGRAM" != "WarpTerminal" \
+      && "$TERM_PROGRAM" != "vscode" \
+      && -z "${WARP_IS_LOCAL_SHELL_SESSION:-}" ]]; then
     if [[ "$OSTYPE" == "darwin"* ]]; then
         export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     else
@@ -70,8 +74,14 @@ export ZSH="$HOME/.dotfiles/oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
 plugins=(git)
 
-# Initialize completion system
-autoload -Uz compinit && compinit
+
+# Initialize completion system (rebuild dump at most once per day)
+autoload -Uz compinit
+if [[ -f ~/.zcompdump && $(date +'%j') == $(stat -f '%Sm' -t '%j' ~/.zcompdump 2>/dev/null) ]]; then
+    compinit -C  # fast: skip security check, use cached dump
+else
+    compinit      # full rebuild
+fi
 
 # Warp is sensitive to noisy, probe-heavy interactive startup. Default it to a
 # lighter path unless explicitly overridden.
