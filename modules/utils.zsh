@@ -36,6 +36,52 @@ is_online_status() {
     is_online && echo "online" || echo "offline"
 }
 
+# Persist a key=value to vars.env (canonical implementation).
+# Other modules delegate here; this is the single copy of the Python fallback.
+# Usage: _persist_env_var KEY VALUE [FILE]
+_persist_env_var() {
+    local key="$1" value="$2"
+    local file="${3:-${ZSHRC_CONFIG_DIR:-${ZSH_CONFIG_DIR:-$HOME/.config/zsh}}/vars.env}"
+    [[ -z "$key" ]] && return 1
+    # Prefer the settings module if loaded
+    if typeset -f settings_persist_var >/dev/null 2>&1; then
+        settings_persist_var --key "$key" --value "$value" --file "$file"
+        return $?
+    fi
+    [[ -f "$file" ]] || { mkdir -p "$(dirname "$file")"; touch "$file"; }
+    python3 - "$file" "$key" "$value" <<'PY'
+import sys
+path, key, value = sys.argv[1:4]
+with open(path, "r", encoding="utf-8") as f:
+    lines = f.read().splitlines()
+needle = f'export {key}="'
+new_line = f'export {key}="${{{key}:-{value}}}"'
+updated = False
+out = []
+for line in lines:
+    if line.startswith(needle):
+        out.append(new_line)
+        updated = True
+    else:
+        out.append(line)
+if not updated:
+    out.append(new_line)
+with open(path, "w", encoding="utf-8") as f:
+    f.write("\n".join(out) + "\n")
+PY
+}
+
+# Check if a required function from another module is available.
+# Emits a warning instead of silently degrading.
+# Usage: _module_require "function_name" "module_name" || return 0
+_module_require() {
+    local func="$1" module="${2:-unknown}"
+    if ! typeset -f "$func" >/dev/null 2>&1; then
+        echo "⚠️  ${func}() not available (module '${module}' not loaded) — skipping" >&2
+        return 1
+    fi
+}
+
 # Check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
