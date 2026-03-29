@@ -24,48 +24,76 @@ NC='\033[0m' # No Color
 # Configuration
 STACK_PROFILE="${STACK_PROFILE:-stable}"
 SETUP_MODE="${SETUP_MODE:-full}"
-PYTHON_VERSION="3.11.11"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MATRIX_FILE="${SCRIPT_DIR}/compatibility-matrix.json"
+
+# Non-matrix defaults (Python is not in the compatibility matrix)
+PYTHON_VERSION="${PYTHON_VERSION:-3.11.11}"
 DEFAULT_VENV="default_${PYTHON_VERSION//./}"
-HADOOP_VERSION="3.3.6"
-SPARK_VERSION="4.1.1"
-JAVA_VERSION="17.0.15-tem"  # Temurin (Eclipse Adoptium)
-ZEPPELIN_VERSION="0.12.0"
-LIVY_VERSION="0.8.0-incubating"
-LIVY_SCALA_BINARY="2.12"
-SPARK_SCALA_VERSION="2.13"
-SPARK_GRAPHFRAMES_VERSION="0.10.0"
-ZEPPELIN_SPARK_INTEGRATION_MODE="${ZEPPELIN_SPARK_INTEGRATION_MODE:-external}"
+# Livy is referenced in profiles but not yet in the matrix versions
+LIVY_VERSION="${LIVY_VERSION:-0.8.0-incubating}"
+LIVY_SCALA_BINARY="${LIVY_SCALA_BINARY:-2.12}"
+
+# Read a value from the compatibility matrix JSON
+# Usage: matrix_read '.profiles.stable.versions.spark'
+matrix_read() {
+    local jq_path="$1"
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo ""
+        return 1
+    fi
+    python3 -c "
+import json, sys
+with open('${MATRIX_FILE}') as f:
+    data = json.load(f)
+keys = '${jq_path}'.lstrip('.').split('.')
+obj = data
+for k in keys:
+    if isinstance(obj, dict) and k in obj:
+        obj = obj[k]
+    else:
+        sys.exit(1)
+print(obj)
+" 2>/dev/null
+}
 
 apply_stack_profile_config() {
-    case "$STACK_PROFILE" in
-        stable)
-            HADOOP_VERSION="3.3.6"
-            SPARK_VERSION="4.1.1"
-            SPARK_SCALA_VERSION="2.13"
-            JAVA_VERSION="17.0.15-tem"
-            ZEPPELIN_VERSION="0.12.0"
-            LIVY_VERSION="0.8.0-incubating"
-            LIVY_SCALA_BINARY="2.12"
-            SPARK_GRAPHFRAMES_VERSION="0.10.0"
-            ZEPPELIN_SPARK_INTEGRATION_MODE="${ZEPPELIN_SPARK_INTEGRATION_MODE:-external}"
-            ;;
-        zeppelin_compatible)
-            HADOOP_VERSION="3.3.6"
-            SPARK_VERSION="3.5.3"
-            SPARK_SCALA_VERSION="2.12"
-            JAVA_VERSION="17.0.15-tem"
-            ZEPPELIN_VERSION="0.12.0"
-            LIVY_VERSION="0.8.0-incubating"
-            LIVY_SCALA_BINARY="2.12"
-            SPARK_GRAPHFRAMES_VERSION="0.9.3"
-            ZEPPELIN_SPARK_INTEGRATION_MODE="${ZEPPELIN_SPARK_INTEGRATION_MODE:-embedded}"
-            ;;
-        *)
-            print_error "Unknown STACK_PROFILE: $STACK_PROFILE"
-            echo "Use STACK_PROFILE=stable or STACK_PROFILE=zeppelin_compatible"
-            exit 1
-            ;;
-    esac
+    if [[ ! -f "$MATRIX_FILE" ]]; then
+        print_error "Compatibility matrix not found: $MATRIX_FILE"
+        exit 1
+    fi
+
+    # Validate the profile exists
+    local profile_desc
+    profile_desc="$(matrix_read "profiles.${STACK_PROFILE}.description")"
+    if [[ -z "$profile_desc" ]]; then
+        print_error "Unknown STACK_PROFILE: $STACK_PROFILE"
+        local available
+        available="$(python3 -c "
+import json
+with open('${MATRIX_FILE}') as f:
+    data = json.load(f)
+print(', '.join(data.get('profiles', {}).keys()))
+" 2>/dev/null)"
+        echo "Available profiles: ${available:-stable, zeppelin_compatible}"
+        exit 1
+    fi
+
+    # Read all versions from the matrix (single source of truth)
+    JAVA_VERSION="$(matrix_read "profiles.${STACK_PROFILE}.versions.java")"
+    HADOOP_VERSION="$(matrix_read "profiles.${STACK_PROFILE}.versions.hadoop")"
+    SPARK_VERSION="$(matrix_read "profiles.${STACK_PROFILE}.versions.spark")"
+    SPARK_SCALA_VERSION="$(matrix_read "profiles.${STACK_PROFILE}.versions.scala")"
+    ZEPPELIN_VERSION="$(matrix_read "profiles.${STACK_PROFILE}.versions.zeppelin")"
+    SPARK_GRAPHFRAMES_VERSION="$(matrix_read "profiles.${STACK_PROFILE}.versions.graphframes")"
+
+    # Read defaults (allow env override)
+    ZEPPELIN_SPARK_INTEGRATION_MODE="${ZEPPELIN_SPARK_INTEGRATION_MODE:-$(matrix_read "profiles.${STACK_PROFILE}.defaults.zeppelin_spark_integration_mode")}"
+    local matrix_livy_url
+    matrix_livy_url="$(matrix_read "profiles.${STACK_PROFILE}.defaults.zeppelin_livy_url" 2>/dev/null)"
+    ZEPPELIN_LIVY_URL="${ZEPPELIN_LIVY_URL:-${matrix_livy_url:-http://127.0.0.1:8998}}"
+
+    print_info "Profile '$STACK_PROFILE': $profile_desc"
 }
 
 # Functions
@@ -176,9 +204,11 @@ install_homebrew() {
     print_step "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     
-    # Add to PATH for this session
+    # Add to PATH for this session (ARM64 or Intel)
     if [[ -f /opt/homebrew/bin/brew ]]; then
         eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [[ -f /usr/local/bin/brew ]]; then
+        eval "$(/usr/local/bin/brew shellenv)"
     fi
     
     print_success "Homebrew installed"
@@ -300,16 +330,44 @@ install_java() {
     fi
     
     print_step "Installing Java $JAVA_VERSION (Temurin)..."
-    sdk install java "$JAVA_VERSION" || true
+    if ! sdk install java "$JAVA_VERSION"; then
+        print_error "Failed to install Java $JAVA_VERSION via SDKMAN"
+        print_info "Check available versions with: sdk list java | grep tem"
+        return 1
+    fi
     sdk default java "$JAVA_VERSION"
-    
+
     print_success "Java installed: $(java -version 2>&1 | head -1)"
 
     if command -v java >/dev/null 2>&1; then
         local java_home
-        java_home="$(dirname "$(dirname "$(readlink -f "$(which java)")")")"
+        java_home="$(_resolve_java_home)"
         echo "JAVA_HOME=$java_home"
     fi
+}
+
+# Portable readlink -f alternative (works on stock macOS)
+_resolve_symlink() {
+    local target="$1"
+    if command -v realpath >/dev/null 2>&1; then
+        realpath "$target"
+    elif command -v python3 >/dev/null 2>&1; then
+        python3 -c "import os; print(os.path.realpath('$target'))"
+    elif readlink -f "$target" >/dev/null 2>&1; then
+        readlink -f "$target"
+    else
+        # Fallback: manual chase
+        while [[ -L "$target" ]]; do
+            target="$(readlink "$target")"
+        done
+        echo "$target"
+    fi
+}
+
+_resolve_java_home() {
+    local java_bin
+    java_bin="$(_resolve_symlink "$(which java)")"
+    dirname "$(dirname "$java_bin")"
 }
 
 ensure_java_home_in_zshenv() {
@@ -318,7 +376,7 @@ ensure_java_home_in_zshenv() {
         return 1
     fi
     local java_home line
-    java_home="$(dirname "$(dirname "$(readlink -f "$(which java)")")")"
+    java_home="$(_resolve_java_home)"
     line="export JAVA_HOME=\"$java_home\""
     if [[ -f "$HOME/.zshenv" ]]; then
         if grep -q "^export JAVA_HOME=" "$HOME/.zshenv"; then
@@ -367,7 +425,11 @@ install_hadoop() {
         print_success "Hadoop $HADOOP_VERSION already installed"
     else
         print_step "Installing Hadoop $HADOOP_VERSION..."
-        sdk install hadoop "$HADOOP_VERSION" || true
+        if ! sdk install hadoop "$HADOOP_VERSION"; then
+            print_error "Failed to install Hadoop $HADOOP_VERSION via SDKMAN"
+            print_info "Check available versions with: sdk list hadoop"
+            return 1
+        fi
         sdk default hadoop "$HADOOP_VERSION"
         print_success "Hadoop installed"
     fi
@@ -448,42 +510,111 @@ EOF
     fi
 }
 
-install_spark() {
-    print_header "Installing Spark (via SDKMAN)"
-    
-    source "$HOME/.sdkman/bin/sdkman-init.sh"
-    
-    if sdk list spark 2>/dev/null | grep -q "installed.*$SPARK_VERSION"; then
-        print_success "Spark $SPARK_VERSION already installed"
-    else
-        print_step "Installing Spark $SPARK_VERSION..."
-        sdk install spark "$SPARK_VERSION" || true
-        sdk default spark "$SPARK_VERSION"
-        print_success "Spark installed"
+SPARK_FALLBACK_VERSION="${SPARK_FALLBACK_VERSION:-3.5.3}"
+SPARK_DRIVER_MEMORY="${SPARK_DRIVER_MEMORY:-2g}"
+SPARK_EXECUTOR_MEMORY="${SPARK_EXECUTOR_MEMORY:-2g}"
+
+# Install Spark from Apache binary tarball into SDKMAN's directory layout.
+# This is needed when SDKMAN doesn't carry the version (e.g., 4.1.1).
+_install_spark_from_binary() {
+    local version="$1"
+    local scala_ver="$2"
+    local sdkman_spark_dir="$HOME/.sdkman/candidates/spark"
+    local spark_pkg="spark-${version}-bin-hadoop3"
+    if [[ "$scala_ver" == "2.13" ]]; then
+        spark_pkg="spark-${version}-bin-hadoop3-scala${scala_ver}"
     fi
-    
+    local tarball="/tmp/${spark_pkg}.tgz"
+    local url="https://downloads.apache.org/spark/spark-${version}/${spark_pkg}.tgz"
+    local archive_url="https://archive.apache.org/dist/spark/spark-${version}/${spark_pkg}.tgz"
+
+    print_step "Downloading Spark ${version} binary from Apache..."
+    if command -v curl >/dev/null 2>&1; then
+        if ! curl -fL "$url" -o "$tarball" 2>/dev/null; then
+            print_info "Primary mirror failed, trying archive..."
+            if ! curl -fL "$archive_url" -o "$tarball" 2>/dev/null; then
+                print_error "Failed to download Spark ${version} from any mirror"
+                return 1
+            fi
+        fi
+    elif command -v wget >/dev/null 2>&1; then
+        if ! wget -O "$tarball" "$url" 2>/dev/null; then
+            if ! wget -O "$tarball" "$archive_url" 2>/dev/null; then
+                print_error "Failed to download Spark ${version} from any mirror"
+                return 1
+            fi
+        fi
+    else
+        print_error "Neither curl nor wget found"
+        return 1
+    fi
+
+    print_step "Extracting to SDKMAN layout..."
+    mkdir -p "$sdkman_spark_dir"
+    tar -xzf "$tarball" -C "$sdkman_spark_dir"
+    mv "$sdkman_spark_dir/$spark_pkg" "$sdkman_spark_dir/$version"
+    ln -sfn "$sdkman_spark_dir/$version" "$sdkman_spark_dir/current"
+    rm -f "$tarball"
+    print_success "Spark ${version} installed from binary to ${sdkman_spark_dir}/${version}"
+}
+
+install_spark() {
+    print_header "Installing Spark (via SDKMAN with binary fallback)"
+
+    source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+    if [[ -d "$HOME/.sdkman/candidates/spark/${SPARK_VERSION}" ]]; then
+        print_success "Spark $SPARK_VERSION already installed"
+        sdk default spark "$SPARK_VERSION" 2>/dev/null || \
+            ln -sfn "$HOME/.sdkman/candidates/spark/$SPARK_VERSION" "$HOME/.sdkman/candidates/spark/current"
+    else
+        # Try SDKMAN first
+        print_step "Trying SDKMAN install for Spark $SPARK_VERSION..."
+        if sdk install spark "$SPARK_VERSION" 2>/dev/null; then
+            sdk default spark "$SPARK_VERSION"
+            print_success "Spark $SPARK_VERSION installed via SDKMAN"
+        else
+            print_warning "SDKMAN does not have Spark $SPARK_VERSION — trying Apache binary..."
+            if _install_spark_from_binary "$SPARK_VERSION" "$SPARK_SCALA_VERSION"; then
+                print_success "Spark $SPARK_VERSION installed from Apache binary"
+            else
+                print_warning "Binary install failed for Spark $SPARK_VERSION"
+                print_info "Falling back to Spark $SPARK_FALLBACK_VERSION..."
+                if sdk install spark "$SPARK_FALLBACK_VERSION"; then
+                    sdk default spark "$SPARK_FALLBACK_VERSION"
+                    SPARK_VERSION="$SPARK_FALLBACK_VERSION"
+                    # Update Scala version for fallback (3.5.x uses 2.12)
+                    SPARK_SCALA_VERSION="2.12"
+                    SPARK_GRAPHFRAMES_VERSION="0.9.3"
+                    print_success "Spark $SPARK_FALLBACK_VERSION installed as fallback"
+                else
+                    print_error "Failed to install Spark $SPARK_FALLBACK_VERSION (fallback)"
+                    return 1
+                fi
+            fi
+        fi
+    fi
+
     # Create Spark directories
     print_step "Creating Spark directories..."
     mkdir -p ~/spark-events
     mkdir -p ~/spark-jars
     print_success "Spark directories created"
-    
+
     # Configure Spark
     print_step "Configuring Spark..."
     local spark_home="$HOME/.sdkman/candidates/spark/current"
-    
+
     if [[ -d "$spark_home/conf" ]]; then
-        # Create spark-defaults.conf
         cat > "$spark_home/conf/spark-defaults.conf" << EOF
-# Spark Configuration
+# Spark Configuration (generated by setup-software.sh)
 spark.master                     spark://localhost:7077
 spark.eventLog.enabled           true
 spark.eventLog.dir               file://$HOME/spark-events
 spark.history.fs.logDirectory    file://$HOME/spark-events
-spark.driver.memory              2g
-spark.executor.memory            2g
+spark.driver.memory              ${SPARK_DRIVER_MEMORY}
+spark.executor.memory            ${SPARK_EXECUTOR_MEMORY}
 EOF
-        
         print_success "Spark configured"
     else
         print_warning "Spark config directory not found, skipping configuration"
@@ -816,11 +947,12 @@ check_postgresql() {
     else
         print_warning "PostgreSQL not installed"
         echo ""
-        read -r "install_pg?Install PostgreSQL now? [y/N]: "
+        printf "Install PostgreSQL now? [y/N]: "
+        read -r install_pg
         if [[ "$install_pg" == [Yy]* ]]; then
             if [[ "$OS" == "macos" ]]; then
-                brew install postgresql@15
-                brew services start postgresql@15
+                brew install postgresql
+                brew services start postgresql
             elif command -v apt-get >/dev/null 2>&1; then
                 sudo apt-get install -y postgresql postgresql-contrib
                 sudo systemctl start postgresql
@@ -958,6 +1090,63 @@ verify_installation() {
     else
         print_error "Some components failed verification"
         return 1
+    fi
+
+    # Validate installed combination against compatibility matrix rules
+    validate_compatibility_matrix
+}
+
+validate_compatibility_matrix() {
+    print_header "Validating Compatibility Matrix"
+
+    if [[ ! -f "$MATRIX_FILE" ]]; then
+        print_warning "Compatibility matrix not found — skipping validation"
+        return 0
+    fi
+
+    local violations
+    violations="$(python3 - "$MATRIX_FILE" "$SPARK_VERSION" "$ZEPPELIN_VERSION" \
+        "$SPARK_SCALA_VERSION" "$ZEPPELIN_SPARK_INTEGRATION_MODE" <<'PY'
+import json, sys, fnmatch
+
+matrix_file, spark_ver, zep_ver, scala_ver, zep_mode = sys.argv[1:6]
+with open(matrix_file) as f:
+    data = json.load(f)
+
+env = {
+    "spark": spark_ver,
+    "zeppelin": zep_ver,
+    "scala": scala_ver,
+    "zeppelin_spark_integration_mode": zep_mode,
+}
+violations = []
+for rule in data.get("rules", []):
+    if rule.get("status") != "incompatible":
+        continue
+    when = rule.get("when", {})
+    match = True
+    for key, pattern in when.items():
+        actual = env.get(key, "")
+        if not fnmatch.fnmatch(actual, pattern):
+            match = False
+            break
+    if match:
+        violations.append(f"{rule['id']}: {rule['reason']}")
+
+for v in violations:
+    print(v)
+PY
+    )"
+
+    if [[ -z "$violations" ]]; then
+        print_success "No compatibility issues detected"
+    else
+        print_warning "Compatibility warnings:"
+        while IFS= read -r line; do
+            print_warning "  $line"
+        done <<< "$violations"
+        echo ""
+        print_info "Consider switching profiles or integration modes to resolve these"
     fi
 }
 
