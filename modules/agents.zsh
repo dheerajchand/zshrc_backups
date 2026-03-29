@@ -176,6 +176,7 @@ claude_init() {
     local project_name org_name git_root current_date
     local add_to_sessions=false
     local claude_configs_repo="${CLAUDE_CONFIGS_REPO:-https://github.com/siege-analytics/claude-configs.git}"
+    local claude_skills_repo="${CLAUDE_SKILLS_REPO:-https://github.com/StrongAI/claude-skills.git}"
 
     # Parse options
     while [[ $# -gt 0 ]]; do
@@ -286,51 +287,75 @@ HELP
     # Create .claude directory
     mkdir -p .claude
 
-    # Clone and copy skills and templates (works for both git and non-git repos)
-    local tmp_dir
+    # ── Phase 1: Fetch org configs (templates + org-specific skills) ──
+    local tmp_dir configs_ok=false templates_dir=""
     tmp_dir="$(mktemp -d)"
-    echo "Fetching skills and templates from $claude_configs_repo..."
-    if command -v gh >/dev/null 2>&1; then
-        gh repo clone siege-analytics/claude-configs "$tmp_dir" -- --depth 1 >/dev/null 2>&1 || \
-            git clone --depth 1 "$claude_configs_repo" "$tmp_dir" >/dev/null 2>&1
-    else
-        git clone --depth 1 "$claude_configs_repo" "$tmp_dir" >/dev/null 2>&1
-    fi
-    if [[ -d "$tmp_dir/.git" || -d "$tmp_dir/templates" ]]; then
-        cp -r "$tmp_dir/skills" .claude/
 
-        # Store templates for later use
-        local templates_dir="$tmp_dir/templates"
-
-        echo "✅ Skills copied to .claude/skills/"
-
-        # If in a git repo, set up subtree tracking for future updates
-        if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            git add .claude/skills
-            echo ""
-            echo "💡 To update skills in the future, run:"
-            echo "   git subtree pull --prefix .claude/skills $claude_configs_repo main --squash"
+    echo "Fetching org configs from $claude_configs_repo..."
+    if git clone --depth 1 "$claude_configs_repo" "$tmp_dir" >/dev/null 2>&1; then
+        configs_ok=true
+        templates_dir="$tmp_dir/templates"
+        if [[ -d "$tmp_dir/skills" ]]; then
+            mkdir -p .claude/skills
+            cp -r "$tmp_dir/skills/"* .claude/skills/ 2>/dev/null
+            echo "✅ Org skills copied to .claude/skills/"
         fi
+    else
+        echo "⚠️  Org configs repo not available — skipping (this is fine)"
+    fi
 
-        # Generate CLAUDE.md from template
-        if [[ ! -f CLAUDE.md ]] || { echo "CLAUDE.md exists."; read -q "?Overwrite? [y/N]: " }; then
-            echo ""
-            echo "Generating CLAUDE.md from template..."
-            if [[ -f "$templates_dir/CLAUDE.md.template" ]]; then
-                local template_content
-                template_content="$(<"$templates_dir/CLAUDE.md.template")"
-                # Substitute variables
-                template_content="${template_content//\{\{PROJECT_NAME\}\}/$project_name}"
-                template_content="${template_content//\{\{ORG_NAME\}\}/$org_name}"
-                template_content="${template_content//\{\{GIT_ROOT\}\}/$git_root}"
-                template_content="${template_content//\{\{CURRENT_DATE\}\}/$current_date}"
-
-                echo "$template_content" > CLAUDE.md
-                echo "✅ CLAUDE.md created"
-                echo "   Edit CLAUDE.md to add project-specific content"
+    # ── Phase 2: Fetch community skills from StrongAI/claude-skills ──
+    local skills_tmp
+    skills_tmp="$(mktemp -d)"
+    echo "Fetching community skills from $claude_skills_repo..."
+    if git clone --depth 1 --recursive "$claude_skills_repo" "$skills_tmp" >/dev/null 2>&1; then
+        mkdir -p .claude/skills
+        # Copy each skill category, preserving existing org skills
+        local category
+        for category in "$skills_tmp"/skills/*(N/); do
+            local cat_name="${category:t}"
+            if [[ ! -d ".claude/skills/$cat_name" ]]; then
+                cp -r "$category" ".claude/skills/$cat_name"
             else
-                echo "⚠️  Template not found, using fallback"
-                cat > CLAUDE.md <<EOF
+                # Merge: copy individual skills that don't already exist
+                local skill_dir
+                for skill_dir in "$category"/*(N/); do
+                    local skill_name="${skill_dir:t}"
+                    if [[ ! -d ".claude/skills/$cat_name/$skill_name" ]]; then
+                        cp -r "$skill_dir" ".claude/skills/$cat_name/$skill_name"
+                    fi
+                done
+            fi
+        done
+        echo "✅ Community skills merged into .claude/skills/"
+        echo "   Source: StrongAI/claude-skills ($(ls -d .claude/skills/*/* 2>/dev/null | wc -l | tr -d ' ') skills)"
+    else
+        echo "⚠️  Community skills repo not available — skipping"
+    fi
+    rm -rf "$skills_tmp"
+
+    # Stage skills if in a git repo
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && [[ -d .claude/skills ]]; then
+        git add .claude/skills 2>/dev/null
+        echo ""
+        echo "💡 To update skills in the future, re-run: claude_init"
+    fi
+
+    # ── Phase 3: Generate CLAUDE.md ──
+    if [[ ! -f CLAUDE.md ]] || { echo "CLAUDE.md exists."; read -q "?Overwrite? [y/N]: " }; then
+        echo ""
+        echo "Generating CLAUDE.md..."
+        if [[ "$configs_ok" == true && -f "$templates_dir/CLAUDE.md.template" ]]; then
+            local template_content
+            template_content="$(<"$templates_dir/CLAUDE.md.template")"
+            template_content="${template_content//\{\{PROJECT_NAME\}\}/$project_name}"
+            template_content="${template_content//\{\{ORG_NAME\}\}/$org_name}"
+            template_content="${template_content//\{\{GIT_ROOT\}\}/$git_root}"
+            template_content="${template_content//\{\{CURRENT_DATE\}\}/$current_date}"
+            echo "$template_content" > CLAUDE.md
+            echo "✅ CLAUDE.md created from org template"
+        else
+            cat > CLAUDE.md <<EOF
 # $project_name
 
 > **SESSION START**: Always read all markdown files in $project_name repositories at session start:
@@ -356,26 +381,19 @@ EOF
         fi
     fi
 
-        # Copy settings.local.json
-        if [[ ! -f .claude/settings.local.json ]] || { echo "settings.local.json exists."; read -q "?Overwrite? [y/N]: " }; then
-            echo ""
-            echo "Copying settings.local.json..."
-            if [[ -f "$templates_dir/settings.local.json" ]]; then
-                cp "$templates_dir/settings.local.json" .claude/settings.local.json
-                echo "✅ .claude/settings.local.json created"
-                echo "   Edit to add project-specific permissions"
-            else
-                echo "⚠️  Settings template not found" >&2
-            fi
+    # ── Phase 4: Copy settings.local.json ──
+    if [[ ! -f .claude/settings.local.json ]] || { echo "settings.local.json exists."; read -q "?Overwrite? [y/N]: " }; then
+        echo ""
+        if [[ "$configs_ok" == true && -f "$templates_dir/settings.local.json" ]]; then
+            cp "$templates_dir/settings.local.json" .claude/settings.local.json
+            echo "✅ .claude/settings.local.json created"
+        else
+            echo "⚠️  Settings template not found (create .claude/settings.local.json manually)" >&2
         fi
-
-        # Clean up temp directory
-        rm -rf "$tmp_dir"
-    else
-        echo "❌ Failed to clone claude-configs repository" >&2
-        rm -rf "$tmp_dir"
-        return 1
     fi
+
+    # Clean up
+    rm -rf "$tmp_dir"
 
     echo ""
     echo "✅ Claude Code initialization complete!"
