@@ -2102,15 +2102,6 @@ secrets_pull_from_1p() {
     return 1
 }
 
-secrets_sync_codex_sessions_to_1p() {
-    # Deprecated: use secrets_sync_all_to_1p or secrets_push instead
-    secrets_sync_all_to_1p "$@"
-}
-
-secrets_pull_codex_sessions_from_1p() {
-    # Deprecated: use secrets_pull_all_from_1p or secrets_pull instead
-    secrets_pull_all_from_1p "$@"
-}
 
 secrets_sync_all_to_1p() {
     local account_arg="${1:-${OP_ACCOUNT-}}"
@@ -2515,11 +2506,6 @@ op_sessions_source() {
     _secrets_info "Loaded OP sessions from $sessions_file"
 }
 
-op_login_headless() {
-    # Deprecated: use op_signin_all instead
-    op_signin_all "$@"
-}
-
 secrets_profiles() {
     local list
     local -a profiles
@@ -2597,11 +2583,6 @@ PY
     export ZSH_SECRETS_FILE="$old_file"
     load_secrets
     _secrets_info "Bootstrap complete"
-}
-
-op_signin_account_uuid() {
-    # Deprecated: use op_signin_account instead
-    op_signin_account "$@"
 }
 
 op_set_default_alias() {

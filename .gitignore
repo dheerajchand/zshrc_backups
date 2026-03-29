@@ -1,9 +1,30 @@
+# Claude Code
 .claude/
+
+# Secrets & credentials
 secrets.env
 secrets.1p
 op-accounts.env
-message-db/
-node_modules/
 .op_signin_all.stamp
 .agent-secrets.env
 .op-sessions.env
+
+# npm (not used — see git history for why)
+node_modules/
+package.json
+package-lock.json
+
+# ZSH completion cache
+.zcompdump*
+
+# Editor artifacts
+NetrwTreeListing
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak.*
+
+# Misc
+message-db/

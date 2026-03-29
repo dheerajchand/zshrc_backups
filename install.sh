@@ -276,7 +276,12 @@ verify_installation() {
     fi
     
     # Check module files
-    local modules=(utils python spark hadoop docker database credentials backup)
+    # Dynamically discover all modules
+    local modules=()
+    local f
+    for f in "$CONFIG_DIR"/modules/*.zsh; do
+        [ -f "$f" ] && modules+=("$(basename "${f%.zsh}")")
+    done
     local missing_modules=()
     
     for module in "${modules[@]}"; do
