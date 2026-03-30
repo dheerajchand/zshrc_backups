@@ -10,36 +10,9 @@ _compat_matrix_file() {
     echo "${base}/compatibility-matrix.json"
 }
 
+# Delegate to canonical _persist_env_var in utils.zsh
 _compat_persist_var() {
-    local key="$1"
-    local value="$2"
-    local file="${ZSHRC_CONFIG_DIR:-${ZSH_CONFIG_DIR:-$HOME/.config/zsh}}/vars.env"
-    if typeset -f settings_persist_var >/dev/null 2>&1; then
-        settings_persist_var --key "$key" --value "$value" --file "$file"
-        return $?
-    fi
-    [[ -z "$key" || -z "$file" ]] && return 1
-    [[ -f "$file" ]] || touch "$file"
-    python3 - "$file" "$key" "$value" <<'PY'
-import sys
-path, key, value = sys.argv[1:4]
-with open(path, "r", encoding="utf-8") as f:
-    lines = f.read().splitlines()
-needle = f'export {key}="'
-new_line = f'export {key}="${{{key}:-{value}}}"'
-updated = False
-out = []
-for line in lines:
-    if line.startswith(needle):
-        out.append(new_line)
-        updated = True
-    else:
-        out.append(line)
-if not updated:
-    out.append(new_line)
-with open(path, "w", encoding="utf-8") as f:
-    f.write("\n".join(out) + "\n")
-PY
+    _persist_env_var "$@"
 }
 
 _compat_detect_zeppelin_version() {

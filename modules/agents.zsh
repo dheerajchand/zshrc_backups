@@ -6,8 +6,12 @@
 : "${CODEX_SESSIONS_FILE:=$HOME/.config/zsh/codex-sessions.env}"
 : "${CLAUDE_SESSIONS_FILE:=$HOME/.config/zsh/claude-sessions.env}"
 
-_codex_sessions_ensure_file() {
-    local file="$CODEX_SESSIONS_FILE"
+# =================================================================
+# Generic session manager — parameterized by tool name & file
+# =================================================================
+
+_agent_sessions_ensure_file() {
+    local file="$1"
     if [[ ! -f "$file" ]]; then
         umask 077
         touch "$file" 2>/dev/null || return 1
@@ -15,399 +19,154 @@ _codex_sessions_ensure_file() {
     return 0
 }
 
-_codex_sessions_list_keys() {
-    local file="$CODEX_SESSIONS_FILE"
+_agent_sessions_list_keys() {
+    local file="$1"
     [[ -f "$file" ]] || return 0
-    awk -F'=' '
-        /^[[:space:]]*#/ {next}
-        /^[[:space:]]*$/ {next}
-        {print $1}
-    ' "$file"
+    awk -F'=' '/^[[:space:]]*#/{next} /^[[:space:]]*$/{next} {print $1}' "$file"
 }
 
-_codex_sessions_get() {
-    local key="$1"
-    local file="$CODEX_SESSIONS_FILE"
+_agent_sessions_get() {
+    local key="$1" file="$2"
     [[ -f "$file" ]] || return 1
-    awk -F'=' -v k="$key" '
-        $1==k {print $2; found=1}
-        END {exit found?0:1}
-    ' "$file"
+    awk -F'=' -v k="$key" '$1==k {print $2; found=1} END {exit found?0:1}' "$file"
 }
 
-codex_session_add() {
+_agent_session_add() {
+    local tool="$1" file="$2"; shift 2
     local key="" value=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --name)  key="${2:-}"; shift 2 ;;
             --value) value="${2:-}"; shift 2 ;;
-            --help|-h) echo "Usage: codex_session_add --name <name> --value <id>|<description>" >&2; return 0 ;;
+            --help|-h) echo "Usage: ${tool}_session_add --name <name> --value <id>|<description>" >&2; return 0 ;;
             *) if [[ -z "$key" ]]; then key="$1"; else value="${value:+$value }$1"; fi; shift ;;
         esac
     done
     if [[ -z "$key" || -z "$value" ]]; then
-        echo "Usage: codex_session_add --name <name> --value <id>|<description>" >&2
-        echo "Example: codex_session_add --name zsh_work --value \"019b...|ZSH refactor work\"" >&2
+        echo "Usage: ${tool}_session_add --name <name> --value <id>|<description>" >&2
         return 1
     fi
-    _codex_sessions_ensure_file || { echo "Cannot write $CODEX_SESSIONS_FILE" >&2; return 1; }
-    if _codex_sessions_get "$key" >/dev/null 2>&1; then
-        echo "Key exists: $key (use codex_session_update)" >&2
-        return 1
+    _agent_sessions_ensure_file "$file" || { echo "Cannot write $file" >&2; return 1; }
+    if _agent_sessions_get "$key" "$file" >/dev/null 2>&1; then
+        echo "Key exists: $key (use ${tool}_session_update)" >&2; return 1
     fi
-    printf '%s=%s\n' "$key" "$value" >> "$CODEX_SESSIONS_FILE"
+    printf '%s=%s\n' "$key" "$value" >> "$file"
 }
 
-codex_session_update() {
+_agent_session_update() {
+    local tool="$1" file="$2"; shift 2
     local key="" value=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --name)  key="${2:-}"; shift 2 ;;
             --value) value="${2:-}"; shift 2 ;;
-            --help|-h) echo "Usage: codex_session_update --name <name> --value <id>|<description>" >&2; return 0 ;;
+            --help|-h) echo "Usage: ${tool}_session_update --name <name> --value <id>|<description>" >&2; return 0 ;;
             *) if [[ -z "$key" ]]; then key="$1"; else value="${value:+$value }$1"; fi; shift ;;
         esac
     done
     if [[ -z "$key" || -z "$value" ]]; then
-        echo "Usage: codex_session_update --name <name> --value <id>|<description>" >&2
-        return 1
+        echo "Usage: ${tool}_session_update --name <name> --value <id>|<description>" >&2; return 1
     fi
-    _codex_sessions_ensure_file || { echo "Cannot write $CODEX_SESSIONS_FILE" >&2; return 1; }
-    local tmp
-    tmp="$(mktemp)" || return 1
-    awk -F'=' -v k="$key" -v v="$value" '
-        BEGIN {updated=0}
-        $1==k {print k "=" v; updated=1; next}
-        {print}
-        END {if (!updated) exit 2}
-    ' "$CODEX_SESSIONS_FILE" > "$tmp"
+    _agent_sessions_ensure_file "$file" || { echo "Cannot write $file" >&2; return 1; }
+    local tmp; tmp="$(mktemp)" || return 1
+    awk -F'=' -v k="$key" -v v="$value" 'BEGIN{u=0} $1==k{print k"="v;u=1;next} {print} END{if(!u)exit 2}' "$file" > "$tmp"
     local rc=$?
-    if [[ $rc -eq 2 ]]; then
-        rm -f "$tmp"
-        echo "Key not found: $key" >&2
-        return 1
-    fi
-    mv "$tmp" "$CODEX_SESSIONS_FILE"
+    if [[ $rc -eq 2 ]]; then rm -f "$tmp"; echo "Key not found: $key" >&2; return 1; fi
+    mv "$tmp" "$file"
 }
 
-codex_session_remove() {
-    local key="$1"
-    if [[ -z "$key" ]]; then
-        echo "Usage: codex_session_remove <name>" >&2
-        return 1
-    fi
-    local tmp
-    tmp="$(mktemp)" || return 1
-    awk -F'=' -v k="$key" '
-        $1==k {removed=1; next}
-        {print}
-        END {if (!removed) exit 2}
-    ' "$CODEX_SESSIONS_FILE" > "$tmp"
+_agent_session_remove() {
+    local tool="$1" file="$2" key="$3"
+    if [[ -z "$key" ]]; then echo "Usage: ${tool}_session_remove <name>" >&2; return 1; fi
+    local tmp; tmp="$(mktemp)" || return 1
+    awk -F'=' -v k="$key" '$1==k{r=1;next}{print}END{if(!r)exit 2}' "$file" > "$tmp"
     local rc=$?
-    if [[ $rc -eq 2 ]]; then
-        rm -f "$tmp"
-        echo "Key not found: $key" >&2
-        return 1
-    fi
-    mv "$tmp" "$CODEX_SESSIONS_FILE"
+    if [[ $rc -eq 2 ]]; then rm -f "$tmp"; echo "Key not found: $key" >&2; return 1; fi
+    mv "$tmp" "$file"
 }
 
-codex_session_list() {
-    _codex_sessions_ensure_file || return 1
-    echo "Codex sessions: $CODEX_SESSIONS_FILE"
-    awk -F'=' '
-        /^[[:space:]]*#/ {next}
-        /^[[:space:]]*$/ {next}
-        {
-            printf "%-20s | %s\n", $1, $2
-        }
-    ' "$CODEX_SESSIONS_FILE"
+_agent_session_list() {
+    local tool="$1" file="$2"
+    _agent_sessions_ensure_file "$file" || return 1
+    echo "${tool} sessions: $file"
+    awk -F'=' '/^[[:space:]]*#/{next}/^[[:space:]]*$/{next}{printf "%-20s | %s\n",$1,$2}' "$file"
 }
 
-codex_session_edit() {
-    _codex_sessions_ensure_file || return 1
-    "${EDITOR:-vi}" "$CODEX_SESSIONS_FILE"
+_agent_session_edit() {
+    local file="$1"
+    _agent_sessions_ensure_file "$file" || return 1
+    "${EDITOR:-vi}" "$file"
 }
 
-codex_session() {
-    local key=""
+_agent_session_resume() {
+    local tool="$1" file="$2"; shift 2
+    local key="" auto_exec_var="${(U)tool}_SESSION_AUTO_EXEC_NONINTERACTIVE"
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --name)  key="${2:-}"; shift 2 ;;
-            --help|-h) echo "Usage: codex_session [--name <key>]" >&2; return 0 ;;
-            *) key="$1"; shift ;;  # accept bare arg for convenience
+            --help|-h) echo "Usage: ${tool}_session [--name <key>]" >&2; return 0 ;;
+            *) key="$1"; shift ;;
         esac
     done
-    _codex_sessions_ensure_file || return 1
+    _agent_sessions_ensure_file "$file" || return 1
     if [[ -z "$key" ]]; then
-        local choice=""
         if command -v fzf >/dev/null 2>&1; then
-            choice="$(_codex_sessions_list_keys | fzf --prompt='codex session> ')"
+            key="$(_agent_sessions_list_keys "$file" | fzf --prompt="${tool} session> ")"
         else
-            local keys
-            keys=($(_codex_sessions_list_keys))
-            if [[ ${#keys[@]} -eq 0 ]]; then
-                echo "No sessions saved." >&2
-                return 1
-            fi
+            local keys; keys=($(_agent_sessions_list_keys "$file"))
+            if [[ ${#keys[@]} -eq 0 ]]; then echo "No sessions saved." >&2; return 1; fi
             echo "Select session:"
-            select key in "${keys[@]}"; do
-                choice="$key"
-                break
-            done
+            select key in "${keys[@]}"; do break; done
         fi
-        key="$choice"
     fi
-    if [[ -z "$key" ]]; then
-        return 1
-    fi
-    local entry
-    entry="$(_codex_sessions_get "$key" 2>/dev/null || true)"
-    if [[ -z "$entry" ]]; then
-        echo "Key not found: $key" >&2
-        return 1
-    fi
-    local id desc
-    id="${entry%%|*}"
-    desc="${entry#*|}"
-    if [[ "$id" == "$desc" ]]; then
-        desc=""
-    fi
-    local cmd="codex resume $id"
-    if [[ -n "$desc" ]]; then
-        echo "$cmd  # $desc"
-    else
-        echo "$cmd"
-    fi
-    local reply="y"
+    [[ -z "$key" ]] && return 1
+    local entry; entry="$(_agent_sessions_get "$key" "$file" 2>/dev/null || true)"
+    if [[ -z "$entry" ]]; then echo "Key not found: $key" >&2; return 1; fi
+    local id="${entry%%|*}" desc="${entry#*|}"
+    [[ "$id" == "$desc" ]] && desc=""
+    local cmd="${tool} resume $id"
+    [[ -n "$desc" ]] && echo "$cmd  # $desc" || echo "$cmd"
     local should_exec=0
     if [[ -o interactive ]]; then
-        read -r "reply?Execute command? [Y/n]: "
-        reply="${reply:-y}"
+        local reply; read -r "reply?Execute command? [Y/n]: "; reply="${reply:-y}"
         [[ "$reply" =~ ^[Yy]$ ]] && should_exec=1
     else
-        # Non-interactive mode defaults to "show only" unless explicitly enabled.
-        [[ "${CODEX_SESSION_AUTO_EXEC_NONINTERACTIVE:-0}" == "1" ]] && should_exec=1
+        [[ "${(P)auto_exec_var:-0}" == "1" ]] && should_exec=1
     fi
     if (( should_exec )); then
-        if [[ ! "$id" =~ ^[A-Za-z0-9._:-]+$ ]]; then
-            echo "Unsafe session id; refusing execution: $id" >&2
-            return 1
-        fi
-        command codex resume "$id"
+        [[ ! "$id" =~ ^[A-Za-z0-9._:-]+$ ]] && { echo "Unsafe session id: $id" >&2; return 1; }
+        command "$tool" resume "$id"
     fi
 }
+
+# =================================================================
+# Codex wrappers (thin delegates to generic session manager)
+# =================================================================
+codex_session_add()    { _agent_session_add    codex "$CODEX_SESSIONS_FILE" "$@"; }
+codex_session_update() { _agent_session_update codex "$CODEX_SESSIONS_FILE" "$@"; }
+codex_session_remove() { _agent_session_remove codex "$CODEX_SESSIONS_FILE" "$1"; }
+codex_session_list()   { _agent_session_list   codex "$CODEX_SESSIONS_FILE"; }
+codex_session_edit()   { _agent_session_edit   "$CODEX_SESSIONS_FILE"; }
+codex_session()        { _agent_session_resume codex "$CODEX_SESSIONS_FILE" "$@"; }
 
 codex_start_net() {
-    if ! command -v codex >/dev/null 2>&1; then
-        echo "codex not found on PATH" >&2
-        return 1
-    fi
+    command -v codex >/dev/null 2>&1 || { echo "codex not found on PATH" >&2; return 1; }
     codex --sandbox workspace-write -a on-request -c network_access="enabled" "$@"
 }
-
 codex_start_danger() {
-    if ! command -v codex >/dev/null 2>&1; then
-        echo "codex not found on PATH" >&2
-        return 1
-    fi
+    command -v codex >/dev/null 2>&1 || { echo "codex not found on PATH" >&2; return 1; }
     codex --dangerously-bypass-approvals-and-sandbox "$@"
 }
 
 # =================================================================
-# Claude session helpers
+# Claude wrappers (thin delegates to generic session manager)
 # =================================================================
-
-_claude_sessions_ensure_file() {
-    local file="$CLAUDE_SESSIONS_FILE"
-    if [[ ! -f "$file" ]]; then
-        umask 077
-        touch "$file" 2>/dev/null || return 1
-    fi
-    return 0
-}
-
-_claude_sessions_list_keys() {
-    local file="$CLAUDE_SESSIONS_FILE"
-    [[ -f "$file" ]] || return 0
-    awk -F'=' '
-        /^[[:space:]]*#/ {next}
-        /^[[:space:]]*$/ {next}
-        {print $1}
-    ' "$file"
-}
-
-_claude_sessions_get() {
-    local key="$1"
-    local file="$CLAUDE_SESSIONS_FILE"
-    [[ -f "$file" ]] || return 1
-    awk -F'=' -v k="$key" '
-        $1==k {print $2; found=1}
-        END {exit found?0:1}
-    ' "$file"
-}
-
-claude_session_add() {
-    local key="" value=""
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --name)  key="${2:-}"; shift 2 ;;
-            --value) value="${2:-}"; shift 2 ;;
-            --help|-h) echo "Usage: claude_session_add --name <name> --value <id>|<description>" >&2; return 0 ;;
-            *) if [[ -z "$key" ]]; then key="$1"; else value="${value:+$value }$1"; fi; shift ;;
-        esac
-    done
-    if [[ -z "$key" || -z "$value" ]]; then
-        echo "Usage: claude_session_add --name <name> --value <id>|<description>" >&2
-        echo "Example: claude_session_add --name zsh_work --value \"019b...|ZSH refactor work\"" >&2
-        return 1
-    fi
-    _claude_sessions_ensure_file || { echo "Cannot write $CLAUDE_SESSIONS_FILE" >&2; return 1; }
-    if _claude_sessions_get "$key" >/dev/null 2>&1; then
-        echo "Key exists: $key (use claude_session_update)" >&2
-        return 1
-    fi
-    printf '%s=%s\n' "$key" "$value" >> "$CLAUDE_SESSIONS_FILE"
-}
-
-claude_session_update() {
-    local key="" value=""
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --name)  key="${2:-}"; shift 2 ;;
-            --value) value="${2:-}"; shift 2 ;;
-            --help|-h) echo "Usage: claude_session_update --name <name> --value <id>|<description>" >&2; return 0 ;;
-            *) if [[ -z "$key" ]]; then key="$1"; else value="${value:+$value }$1"; fi; shift ;;
-        esac
-    done
-    if [[ -z "$key" || -z "$value" ]]; then
-        echo "Usage: claude_session_update --name <name> --value <id>|<description>" >&2
-        return 1
-    fi
-    _claude_sessions_ensure_file || { echo "Cannot write $CLAUDE_SESSIONS_FILE" >&2; return 1; }
-    local tmp
-    tmp="$(mktemp)" || return 1
-    awk -F'=' -v k="$key" -v v="$value" '
-        BEGIN {updated=0}
-        $1==k {print k "=" v; updated=1; next}
-        {print}
-        END {if (!updated) exit 2}
-    ' "$CLAUDE_SESSIONS_FILE" > "$tmp"
-    local rc=$?
-    if [[ $rc -eq 2 ]]; then
-        rm -f "$tmp"
-        echo "Key not found: $key" >&2
-        return 1
-    fi
-    mv "$tmp" "$CLAUDE_SESSIONS_FILE"
-}
-
-claude_session_remove() {
-    local key="$1"
-    if [[ -z "$key" ]]; then
-        echo "Usage: claude_session_remove <name>" >&2
-        return 1
-    fi
-    local tmp
-    tmp="$(mktemp)" || return 1
-    awk -F'=' -v k="$key" '
-        $1==k {removed=1; next}
-        {print}
-        END {if (!removed) exit 2}
-    ' "$CLAUDE_SESSIONS_FILE" > "$tmp"
-    local rc=$?
-    if [[ $rc -eq 2 ]]; then
-        rm -f "$tmp"
-        echo "Key not found: $key" >&2
-        return 1
-    fi
-    mv "$tmp" "$CLAUDE_SESSIONS_FILE"
-}
-
-claude_session_list() {
-    _claude_sessions_ensure_file || return 1
-    echo "Claude sessions: $CLAUDE_SESSIONS_FILE"
-    awk -F'=' '
-        /^[[:space:]]*#/ {next}
-        /^[[:space:]]*$/ {next}
-        {
-            printf "%-20s | %s\n", $1, $2
-        }
-    ' "$CLAUDE_SESSIONS_FILE"
-}
-
-claude_session_edit() {
-    _claude_sessions_ensure_file || return 1
-    "${EDITOR:-vi}" "$CLAUDE_SESSIONS_FILE"
-}
-
-claude_session() {
-    local key=""
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --name)  key="${2:-}"; shift 2 ;;
-            --help|-h) echo "Usage: claude_session [--name <key>]" >&2; return 0 ;;
-            *) key="$1"; shift ;;  # accept bare arg for convenience
-        esac
-    done
-    _claude_sessions_ensure_file || return 1
-    if [[ -z "$key" ]]; then
-        local choice=""
-        if command -v fzf >/dev/null 2>&1; then
-            choice="$(_claude_sessions_list_keys | fzf --prompt='claude session> ')"
-        else
-            local keys
-            keys=($(_claude_sessions_list_keys))
-            if [[ ${#keys[@]} -eq 0 ]]; then
-                echo "No sessions saved." >&2
-                return 1
-            fi
-            echo "Select session:"
-            select key in "${keys[@]}"; do
-                choice="$key"
-                break
-            done
-        fi
-        key="$choice"
-    fi
-    if [[ -z "$key" ]]; then
-        return 1
-    fi
-    local entry
-    entry="$(_claude_sessions_get "$key" 2>/dev/null || true)"
-    if [[ -z "$entry" ]]; then
-        echo "Key not found: $key" >&2
-        return 1
-    fi
-    local id desc
-    id="${entry%%|*}"
-    desc="${entry#*|}"
-    if [[ "$id" == "$desc" ]]; then
-        desc=""
-    fi
-    local cmd="claude resume $id"
-    if [[ -n "$desc" ]]; then
-        echo "$cmd  # $desc"
-    else
-        echo "$cmd"
-    fi
-    local reply="y"
-    local should_exec=0
-    if [[ -o interactive ]]; then
-        read -r "reply?Execute command? [Y/n]: "
-        reply="${reply:-y}"
-        [[ "$reply" =~ ^[Yy]$ ]] && should_exec=1
-    else
-        [[ "${CLAUDE_SESSION_AUTO_EXEC_NONINTERACTIVE:-0}" == "1" ]] && should_exec=1
-    fi
-    if (( should_exec )); then
-        if [[ ! "$id" =~ ^[A-Za-z0-9._:-]+$ ]]; then
-            echo "Unsafe session id; refusing execution: $id" >&2
-            return 1
-        fi
-        command claude resume "$id"
-    fi
-}
+claude_session_add()    { _agent_session_add    claude "$CLAUDE_SESSIONS_FILE" "$@"; }
+claude_session_update() { _agent_session_update claude "$CLAUDE_SESSIONS_FILE" "$@"; }
+claude_session_remove() { _agent_session_remove claude "$CLAUDE_SESSIONS_FILE" "$1"; }
+claude_session_list()   { _agent_session_list   claude "$CLAUDE_SESSIONS_FILE"; }
+claude_session_edit()   { _agent_session_edit   "$CLAUDE_SESSIONS_FILE"; }
+claude_session()        { _agent_session_resume claude "$CLAUDE_SESSIONS_FILE" "$@"; }
 
 # =================================================================
 # Claude project initialization

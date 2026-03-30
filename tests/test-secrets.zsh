@@ -881,18 +881,7 @@ test_op_verify_accounts_requires_op() {
     rm -rf "$tmp"
 }
 
-test_op_login_headless_requires_op() {
-    local old_path="$PATH"
-    local tmp bin out
-    tmp="$(mktemp -d)"
-    bin="$tmp/bin"
-    mkdir -p "$bin"
-    PATH="$bin"
-    out="$(op_login_headless 2>&1 || true)"
-    assert_contains "$out" "op not found" "headless login should require op"
-    PATH="$old_path"
-    rm -rf "$tmp"
-}
+# test_op_login_headless_requires_op removed — op_login_headless was deprecated and deleted
 
 test_secrets_safe_title() {
     assert_equal "hello" "$(_secrets_safe_title "hello")" "should keep normal title"
@@ -1342,11 +1331,7 @@ test_op_signin_account_usage() {
     assert_contains "$out" "Usage: op_signin_account" "should show usage"
 }
 
-test_op_signin_account_uuid_usage() {
-    local out
-    out="$(op_signin_account_uuid 2>&1 || true)"
-    assert_contains "$out" "Usage: op_signin_account" "should show usage (delegates to op_signin_account)"
-}
+# test_op_signin_account_uuid_usage removed — op_signin_account_uuid was deprecated and deleted
 
 test_op_signin_all_missing_accounts_file() {
     skip_if_missing "op"
@@ -1594,7 +1579,7 @@ register_test "test_op_list_accounts_vaults_empty" "test_op_list_accounts_vaults
 register_test "test_op_list_items_requires_op" "test_op_list_items_requires_op"
 register_test "test_secrets_pull_requires_op" "test_secrets_pull_requires_op"
 register_test "test_secrets_pull_fallback_notes_plain" "test_secrets_pull_fallback_notes_plain"
-register_test "test_op_login_headless_requires_op" "test_op_login_headless_requires_op"
+# test_op_login_headless_requires_op removed (deprecated function deleted)
 register_test "test_secrets_profile_switch_usage" "test_secrets_profile_switch_usage"
 register_test "test_secrets_profile_switch_sets_profile" "test_secrets_profile_switch_sets_profile"
 register_test "test_secrets_profile_switch_persists" "test_secrets_profile_switch_persists"
@@ -1609,7 +1594,7 @@ register_test "test_secrets_policy_status_json_ok" "test_secrets_policy_status_j
 register_test "test_secrets_sync_all_blocks_on_policy_failure" "test_secrets_sync_all_blocks_on_policy_failure"
 register_test "test_vault_without_account_warns" "test_vault_without_account_warns"
 register_test "test_op_signin_account_usage" "test_op_signin_account_usage"
-register_test "test_op_signin_account_uuid_usage" "test_op_signin_account_uuid_usage"
+# test_op_signin_account_uuid_usage removed (deprecated function deleted)
 register_test "test_op_signin_all_missing_accounts_file" "test_op_signin_all_missing_accounts_file"
 register_test "test_secrets_map_envvar_from_line" "test_secrets_map_envvar_from_line"
 register_test "test_secrets_agent_refresh_writes_agent_env" "test_secrets_agent_refresh_writes_agent_env"
