@@ -175,7 +175,7 @@ claude_session()        { _agent_session_resume claude "$CLAUDE_SESSIONS_FILE" "
 claude_init() {
     local project_name org_name git_root current_date
     local add_to_sessions=false
-    local claude_configs_repo="${CLAUDE_CONFIGS_REPO:-https://github.com/siege-analytics/claude-configs.git}"
+    local claude_configs_repo="${CLAUDE_CONFIGS_REPO:-https://github.com/siege-analytics/claude-configs-public.git}"
     local claude_skills_repo="${CLAUDE_SKILLS_REPO:-https://github.com/StrongAI/claude-skills.git}"
 
     # Parse options
