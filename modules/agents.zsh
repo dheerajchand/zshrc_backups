@@ -292,7 +292,17 @@ HELP
     tmp_dir="$(mktemp -d)"
 
     echo "Fetching org configs from $claude_configs_repo..."
-    if git clone --depth 1 "$claude_configs_repo" "$tmp_dir" >/dev/null 2>&1; then
+    # Prefer gh (handles private repos via GitHub CLI auth) over plain git
+    local _clone_ok=false
+    if command -v gh >/dev/null 2>&1; then
+        local _repo_slug="${claude_configs_repo#https://github.com/}"
+        _repo_slug="${_repo_slug%.git}"
+        gh repo clone "$_repo_slug" "$tmp_dir" -- --depth 1 >/dev/null 2>&1 && _clone_ok=true
+    fi
+    if [[ "$_clone_ok" != true ]]; then
+        git clone --depth 1 "$claude_configs_repo" "$tmp_dir" >/dev/null 2>&1 && _clone_ok=true
+    fi
+    if [[ "$_clone_ok" == true ]]; then
         configs_ok=true
         templates_dir="$tmp_dir/templates"
         if [[ -d "$tmp_dir/skills" ]]; then
