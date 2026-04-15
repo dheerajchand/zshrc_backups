@@ -89,6 +89,61 @@ Default attribution policy is strict:
 - `development/` - Coding helpers (empty)
 - `operations/` - Runtime tasks (empty)
 
+### Electron App Window Repair
+
+Electron apps (Craft Agents, Claude, VS Code, Cursor) sometimes launch with no visible window.
+The root cause is typically corrupt or empty window-state data.  The generic engine
+`_electron_fix_window` handles two storage patterns and provides per-app convenience wrappers.
+
+#### Generic Engine
+
+| Function | Purpose | Dependencies | Assumptions |
+|---|---|---|---|
+| `_electron_fix_window` | Kill, reset window state, relaunch, verify | `killall`, `open`, `osascript`, `python3` (embedded format only) | App installed |
+
+**Parameters:**
+
+| Flag | Required | Description |
+|---|---|---|
+| `--app-name` | Yes | Display name and default `killall` target |
+| `--state-file` | Yes | Path to window-state file |
+| `--state-format` | Yes | `standalone` (overwrite entire file) or `embedded` (patch a key in existing JSON) |
+| `--process-name` | No | Override `killall` target (e.g. `Electron` for VS Code) |
+| `--app-path` | No | Explicit `.app` bundle path; falls back to `open -a <app-name>` |
+| `--state-key` | Embedded only | JSON key to overwrite inside the file |
+| `--lock-file` | No | Extra files to remove before relaunch (repeatable) |
+| `--state-builder` | No | Shell function that prints the replacement JSON value |
+
+#### Per-App Wrappers
+
+| Function | App | State Format | Notes |
+|---|---|---|---|
+| `craft_agents_fix` | Craft Agents | standalone | Reads workspace ID from `~/.craft-agent/config.json`; removes `.server.lock` |
+| `claude_desktop_fix` | Claude desktop | standalone | Writes default bounds to `~/Library/Application Support/Claude/window-state.json` |
+| `vscode_fix` | VS Code | embedded | Patches `windowsState` in `globalStorage/storage.json` |
+| `cursor_fix` | Cursor | embedded | Same layout as VS Code |
+
+**Usage:**
+```bash
+craft_agents_fix       # Fix Craft Agents invisible window
+claude_desktop_fix     # Fix Claude desktop invisible window
+vscode_fix             # Fix VS Code invisible window
+cursor_fix             # Fix Cursor invisible window
+```
+
+**Adding a new app:** define a wrapper that calls `_electron_fix_window` with the correct flags.
+If the app needs custom state (like Craft's workspace ID), write a `_<app>_state_builder`
+function and pass it via `--state-builder`.
+
+#### Environment (testing)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `ELECTRON_FIX_KILL_DELAY` | `1` | Seconds to wait after `killall` |
+| `ELECTRON_FIX_LAUNCH_DELAY` | `3` | Seconds to wait after relaunch before verification |
+
+Set both to `0` in tests to eliminate sleep overhead.
+
 ## Notes
 - Format: `name=id|description`
 - If `fzf` is installed, both `codex_session` and `claude_session` use it for selection.

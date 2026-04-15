@@ -29,6 +29,7 @@ Minimal zsh test framework and test suites for this repo.
 - `test-livy.zsh`
 - `test-zeppelin.zsh`
 - `test-compat.zsh`
+- `test-electron-fix.zsh`
 
 ## Run tests
 
