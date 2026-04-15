@@ -731,6 +731,197 @@ ai_init() {
     fi
 }
 
+# =================================================================
+# Electron app window repair
+# =================================================================
+# Electron apps sometimes launch with no visible window due to corrupt
+# or empty window state data. This generic function handles the fix for
+# any Electron app.
+#
+# Two window-state storage patterns exist in the wild:
+#   "standalone"  — a dedicated window-state.json (Craft Agents, Claude)
+#   "embedded"    — a key inside a larger JSON file like Preferences or
+#                   storage.json (VS Code, Cursor, Slack)
+#
+# Per-app wrappers below configure the right paths and call the generic
+# engine.  To add a new app, define a wrapper that calls
+# _electron_fix_window with the appropriate arguments.
+
+# --- generic engine ------------------------------------------------
+
+_electron_fix_window() {
+    local app_name=""           # display name, e.g. "Craft Agents"
+    local process_name=""       # killall target (defaults to app_name)
+    local app_path=""           # /Applications/Foo.app
+    local state_file=""         # path to window-state file
+    local state_format=""       # "standalone" | "embedded"
+    local state_key=""          # JSON key when format=embedded
+    local lock_files=()         # extra files to remove before relaunch
+    local state_builder=""      # optional function that prints the JSON value to write
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --app-name)      app_name="$2";      shift 2 ;;
+            --process-name)  process_name="$2";  shift 2 ;;
+            --app-path)      app_path="$2";      shift 2 ;;
+            --state-file)    state_file="$2";    shift 2 ;;
+            --state-format)  state_format="$2";  shift 2 ;;
+            --state-key)     state_key="$2";     shift 2 ;;
+            --lock-file)     lock_files+=("$2"); shift 2 ;;
+            --state-builder) state_builder="$2"; shift 2 ;;
+            *) echo "Unknown option: $1" >&2; return 1 ;;
+        esac
+    done
+
+    : "${process_name:=$app_name}"
+    local default_bounds='{ "x": 100, "y": 100, "width": 1200, "height": 800 }'
+
+    if [[ -z "$app_name" || -z "$state_file" || -z "$state_format" ]]; then
+        echo "Usage: _electron_fix_window --app-name NAME --state-file PATH --state-format standalone|embedded [options]" >&2
+        return 1
+    fi
+
+    echo "Repairing ${app_name}..."
+
+    # 1. Kill the app
+    killall "$process_name" 2>/dev/null
+    sleep "${ELECTRON_FIX_KILL_DELAY:-1}"
+
+    # 2. Remove stale lock files
+    local lf
+    for lf in "${lock_files[@]}"; do
+        [[ -f "$lf" ]] && rm -f "$lf" && echo "  Removed lock: $lf"
+    done
+
+    # 3. Build the replacement state value
+    local new_state
+    if [[ -n "$state_builder" ]]; then
+        new_state="$($state_builder)" || { echo "  State builder failed" >&2; return 1; }
+    else
+        new_state="$default_bounds"
+    fi
+
+    # 4. Write it
+    mkdir -p "${state_file:h}" 2>/dev/null
+    case "$state_format" in
+        standalone)
+            echo "$new_state" > "$state_file"
+            echo "  Wrote $state_file"
+            ;;
+        embedded)
+            if [[ -z "$state_key" ]]; then
+                echo "  --state-key required for embedded format" >&2; return 1
+            fi
+            if [[ ! -f "$state_file" ]]; then
+                echo "  State file not found: $state_file" >&2; return 1
+            fi
+            python3 -c "
+import json, sys
+path, key = sys.argv[1], sys.argv[2]
+new_val = json.loads(sys.argv[3])
+with open(path, 'r') as f:
+    data = json.load(f)
+data[key] = new_val
+with open(path, 'w') as f:
+    json.dump(data, f, indent=2)
+    f.write('\n')
+" "$state_file" "$state_key" "$new_state" || { echo "  Failed to patch $state_file" >&2; return 1; }
+            echo "  Patched key '$state_key' in $state_file"
+            ;;
+        *)
+            echo "  Unknown format: $state_format" >&2; return 1
+            ;;
+    esac
+
+    # 5. Relaunch
+    if [[ -n "$app_path" && -d "$app_path" ]]; then
+        open "$app_path"
+    else
+        open -a "$app_name"
+    fi
+    sleep "${ELECTRON_FIX_LAUNCH_DELAY:-3}"
+
+    # 6. Verify a window appeared
+    local wcount
+    wcount="$(osascript -e "
+        tell application \"System Events\"
+            tell process \"$process_name\"
+                return count of windows
+            end tell
+        end tell
+    " 2>/dev/null)"
+
+    if [[ "$wcount" -gt 0 ]]; then
+        echo "  Window visible ($wcount window(s))"
+    else
+        echo "  Warning: no window detected after repair." >&2
+        return 1
+    fi
+}
+
+# --- per-app wrappers ----------------------------------------------
+
+# Craft Agents: standalone window-state.json with workspace ID
+_craft_agents_state_builder() {
+    local config_file="$HOME/.craft-agent/config.json"
+    python3 -c "
+import json
+c = json.load(open('$config_file'))
+wid = c.get('activeWorkspaceId') or c.get('workspaces', [{}])[0].get('id', '')
+if not wid:
+    raise SystemExit('no workspace')
+print(json.dumps({
+    'windows': [{
+        'workspaceId': wid,
+        'bounds': {'x': 100, 'y': 100, 'width': 1200, 'height': 800},
+        'focused': True
+    }]
+}, indent=2))
+" 2>/dev/null
+}
+
+craft_agents_fix() {
+    _electron_fix_window \
+        --app-name      "Craft Agents" \
+        --app-path      "/Applications/Craft Agents.app" \
+        --state-file    "$HOME/.craft-agent/window-state.json" \
+        --state-format  standalone \
+        --lock-file     "$HOME/.craft-agent/.server.lock" \
+        --state-builder _craft_agents_state_builder
+}
+
+# Claude desktop: standalone window-state.json, flat bounds object
+claude_desktop_fix() {
+    _electron_fix_window \
+        --app-name      "Claude" \
+        --app-path      "/Applications/Claude.app" \
+        --state-file    "$HOME/Library/Application Support/Claude/window-state.json" \
+        --state-format  standalone
+}
+
+# VS Code: embedded in storage.json under "windowsState"
+vscode_fix() {
+    local storage="$HOME/Library/Application Support/Code/User/globalStorage/storage.json"
+    _electron_fix_window \
+        --app-name      "Code" \
+        --process-name  "Electron" \
+        --app-path      "/Applications/Visual Studio Code.app" \
+        --state-file    "$storage" \
+        --state-format  embedded \
+        --state-key     "windowsState"
+}
+
+# Cursor: same layout as VS Code
+cursor_fix() {
+    local storage="$HOME/Library/Application Support/Cursor/User/globalStorage/storage.json"
+    _electron_fix_window \
+        --app-name      "Cursor" \
+        --app-path      "/Applications/Cursor.app" \
+        --state-file    "$storage" \
+        --state-format  embedded \
+        --state-key     "windowsState"
+}
+
 if [[ -z "${ZSH_TEST_MODE:-}" ]]; then
     echo "✅ agents loaded"
 fi
