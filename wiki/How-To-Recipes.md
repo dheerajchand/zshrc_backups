@@ -83,6 +83,17 @@ backup "feature checkpoint"
 backup_merge_main
 ```
 
+## Fix Electron App With No Visible Window
+If an Electron app (Craft Agents, Claude, VS Code, Cursor) launches but shows no window:
+```bash
+craft_agents_fix       # Craft Agents
+claude_desktop_fix     # Claude desktop
+vscode_fix             # VS Code
+cursor_fix             # Cursor
+```
+Each wrapper kills the app, resets the window-state file, relaunches, and verifies a window appeared.
+See [Module: Agents](Module-Agents#electron-app-window-repair) for details and how to add new apps.
+
 ## Run Focused Test Sets
 ```bash
 zsh run-tests.zsh --test test_settings_load_order
