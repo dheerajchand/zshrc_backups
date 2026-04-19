@@ -43,6 +43,24 @@ done
 grep -qE "^\s+command-not-found\b" "$ZSHRC_FILE" \
     && fail "command-not-found must not be in plugins=(...) — too slow at startup"
 
+# Third-party plugins + deferred loading.
+for _p in zsh-defer zsh-autosuggestions zsh-syntax-highlighting zsh-completions; do
+    grep -qE "^\s+${_p}\b" "$ZSHRC_FILE" \
+        || fail "expected third-party plugin '${_p}' to be enabled"
+done
+# zsh-defer must be the first plugin so later plugins can use it.
+_first_plugin=$(awk '/^plugins=\(/{flag=1; next} flag && /^[ \t]+[a-z]/{print $1; exit}' "$ZSHRC_FILE")
+[[ "$_first_plugin" == "zsh-defer" ]] \
+    || fail "zsh-defer must be the first plugin (got: '${_first_plugin}')"
+# zsh-syntax-highlighting must be the last plugin.
+_last_plugin=$(awk '/^plugins=\(/{flag=1; next} /^\)/{flag=0} flag && /^[ \t]+[a-z]/{p=$1} END{print p}' "$ZSHRC_FILE")
+[[ "$_last_plugin" == "zsh-syntax-highlighting" ]] \
+    || fail "zsh-syntax-highlighting must be the last plugin (got: '${_last_plugin}')"
+
+# command-not-found must be loaded via zsh-defer (not inline).
+grep -q "zsh-defer source .*command-not-found" "$ZSHRC_FILE" \
+    || fail "command-not-found should be deferred via zsh-defer"
+
 # history-substring-search requires arrow-key bindings after OMZ loads.
 grep -q "bindkey '\^\[\[A' history-substring-search-up" "$ZSHRC_FILE" \
     || fail "history-substring-search up-arrow binding missing"

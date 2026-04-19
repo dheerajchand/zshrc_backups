@@ -73,6 +73,7 @@ fi
 export ZSH="$HOME/.dotfiles/oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
 plugins=(
+    zsh-defer                 # must be first: defers other plugin work past first prompt
     git                       # canonical alias set + helpers
     gitfast                   # upstream git completion (faster than OMZ's default)
     gh                        # gh CLI completion
@@ -84,8 +85,9 @@ plugins=(
     history-substring-search  # up-arrow filters history by typed prefix
     aliases                   # `aliases` command lists aliases by group
     brew
-    # command-not-found intentionally excluded: its brew-based init
-    # adds ~150ms to startup. Revisit via zsh-defer (Stage 6).
+    zsh-completions           # extra completions OMZ doesn't ship
+    zsh-autosuggestions       # fish-style greyed suggestions as you type
+    zsh-syntax-highlighting   # MUST BE LAST: colorizes commands as valid/invalid
 )
 
 # OMZ overhead we don't use.
@@ -169,6 +171,14 @@ if [[ -f "$ZSH/oh-my-zsh.sh" ]]; then
     if (( ${+functions[history-substring-search-up]} )); then
         bindkey '^[[A' history-substring-search-up
         bindkey '^[[B' history-substring-search-down
+    fi
+
+    # Deferred completion loads — heavy inits that don't need to block first prompt.
+    # command-not-found runs `brew command-not-found-init` on macOS (~150ms), so we
+    # source its plugin file via zsh-defer rather than listing it in plugins=(...).
+    if (( ${+functions[zsh-defer]} )); then
+        [[ -f "$ZSH/plugins/command-not-found/command-not-found.plugin.zsh" ]] \
+            && zsh-defer source "$ZSH/plugins/command-not-found/command-not-found.plugin.zsh"
     fi
 fi
 
