@@ -27,4 +27,30 @@ for _m in $_archived_modules; do
     fi
 done
 
+# Completion cache must live under $XDG_CACHE_HOME/zsh, not the repo root.
+grep -q 'XDG_CACHE_HOME:=\$HOME/.cache' "$ZSHRC_FILE" || fail "missing XDG_CACHE_HOME default"
+grep -q '_zcompdump="\$XDG_CACHE_HOME/zsh/zcompdump-' "$ZSHRC_FILE" \
+  || fail "_zcompdump path should be rooted in \$XDG_CACHE_HOME/zsh/"
+grep -q 'compinit -d "\$_zcompdump"' "$ZSHRC_FILE" \
+  || fail "compinit must target \$_zcompdump with -d (rebuild path)"
+grep -q 'compinit -C -d "\$_zcompdump"' "$ZSHRC_FILE" \
+  || fail "compinit fast path must target \$_zcompdump with -C -d"
+
+# Behavioral check: executing just the compinit block writes under $XDG_CACHE_HOME/zsh,
+# not into $HOME. Extract lines between the compinit comment and the `unset _zcompdump`
+# marker, then run them in a subshell with scratch HOME/XDG.
+_cache_tmp="$(mktemp -d 2>/dev/null)" || fail "mktemp failed"
+_home_tmp="$(mktemp -d 2>/dev/null)" || fail "mktemp failed"
+trap 'rm -rf "$_cache_tmp" "$_home_tmp"' EXIT
+_block="$(awk '/^# Initialize completion system/,/^unset _zcompdump/' "$ZSHRC_FILE")"
+[[ -n "$_block" ]] || fail "could not extract compinit block from zshrc"
+HOME="$_home_tmp" XDG_CACHE_HOME="$_cache_tmp" \
+  zsh -c "$_block" >/dev/null 2>&1 || fail "compinit block errored under scratch HOME/XDG"
+_dumps=("$_cache_tmp"/zsh/zcompdump-*(N))
+(( ${#_dumps} > 0 )) \
+  || fail "expected zcompdump under \$XDG_CACHE_HOME/zsh/, found none"
+_stragglers=("$_home_tmp"/.zcompdump*(N))
+(( ${#_stragglers} == 0 )) \
+  || fail "compinit block leaked .zcompdump* into \$HOME"
+
 print -- "test-zshrc-startup: ok"
