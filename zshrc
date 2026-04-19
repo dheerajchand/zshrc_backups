@@ -74,6 +74,16 @@ export ZSH="$HOME/.dotfiles/oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
 plugins=(git)
 
+# OMZ overhead we don't use.
+# - auto-update: run manually via `omz update` instead of on every shell.
+# - COMPFIX: compinit security check is already handled above.
+# - MAGIC_FUNCTIONS: bracketed-paste handlers we don't rely on.
+# - AUTO_TITLE: we set our own terminal titles elsewhere.
+zstyle ':omz:update' mode disabled
+ZSH_DISABLE_COMPFIX=true
+DISABLE_MAGIC_FUNCTIONS=true
+DISABLE_AUTO_TITLE=true
+
 
 # Initialize completion system (rebuild dump at most once per day).
 # Cache lives under $XDG_CACHE_HOME/zsh/ (not the repo root). Keyed by host
