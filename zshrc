@@ -82,12 +82,19 @@ plugins=(git)
 [[ -d "$XDG_CACHE_HOME/zsh" ]] || mkdir -p "$XDG_CACHE_HOME/zsh"
 autoload -Uz compinit
 _zcompdump="$XDG_CACHE_HOME/zsh/zcompdump-${HOST}-${ZSH_VERSION}"
-if [[ -f "$_zcompdump" && $(date +'%j') == $(stat -f '%Sm' -t '%j' "$_zcompdump" 2>/dev/null) ]]; then
+# stat -f %m is BSD/macOS; stat -c %Y is GNU/Linux. Fall through both.
+_zcompdump_mtime=0
+if [[ -f "$_zcompdump" ]]; then
+    _zcompdump_mtime="$(stat -f %m "$_zcompdump" 2>/dev/null \
+                       || stat -c %Y "$_zcompdump" 2>/dev/null \
+                       || echo 0)"
+fi
+if (( _zcompdump_mtime > 0 )) && (( $(date +%s) - _zcompdump_mtime < 86400 )); then
     compinit -C -d "$_zcompdump"  # fast: skip security check, use cached dump
 else
     compinit -d "$_zcompdump"      # full rebuild
 fi
-unset _zcompdump
+unset _zcompdump _zcompdump_mtime
 
 # Warp is sensitive to noisy, probe-heavy interactive startup. Default it to a
 # lighter path unless explicitly overridden.
