@@ -75,6 +75,7 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 plugins=(
     zsh-defer                 # must be first: defers other plugin work past first prompt
     git                       # canonical alias set + helpers
+    git-extras                # completion for 60+ git-* subcommands (needs `brew install git-extras`)
     gitfast                   # upstream git completion (faster than OMZ's default)
     gh                        # gh CLI completion
     fzf                       # Ctrl-R history, Ctrl-T file, Alt-C dir (fzf keybinds)

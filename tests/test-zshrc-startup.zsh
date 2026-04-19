@@ -61,6 +61,13 @@ _last_plugin=$(awk '/^plugins=\(/{flag=1; next} /^\)/{flag=0} flag && /^[ \t]+[a
 grep -q "zsh-defer source .*command-not-found" "$ZSHRC_FILE" \
     || fail "command-not-found should be deferred via zsh-defer"
 
+# git-extras plugin enabled.
+grep -qE "^\s+git-extras\b" "$ZSHRC_FILE" \
+    || fail "expected OMZ plugin 'git-extras' to be enabled"
+# Cheat sheet shipped.
+[[ -f "$ROOT_DIR/docs/git-aliases.md" ]] \
+    || fail "docs/git-aliases.md cheat sheet missing"
+
 # history-substring-search requires arrow-key bindings after OMZ loads.
 grep -q "bindkey '\^\[\[A' history-substring-search-up" "$ZSHRC_FILE" \
     || fail "history-substring-search up-arrow binding missing"
