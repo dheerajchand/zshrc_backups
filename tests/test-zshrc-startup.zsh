@@ -18,6 +18,21 @@ grep -q 'ZSH_AUTO_RECOVER_MODE:=auto' "$ZSHRC_FILE" || fail "missing auto-recove
 grep -q 'if _zsh_should_auto_recover_services; then' "$ZSHRC_FILE" || fail "missing guarded auto-recover call"
 grep -q 'if _zsh_show_full_startup_banner; then' "$ZSHRC_FILE" || fail "missing guarded banner call"
 
+# OMZ overhead knobs — all must be set before sourcing oh-my-zsh.sh.
+grep -q "zstyle ':omz:update' mode disabled" "$ZSHRC_FILE" \
+  || fail "missing OMZ auto-update disable"
+grep -q 'ZSH_DISABLE_COMPFIX=true' "$ZSHRC_FILE" \
+  || fail "missing ZSH_DISABLE_COMPFIX=true"
+grep -q 'DISABLE_MAGIC_FUNCTIONS=true' "$ZSHRC_FILE" \
+  || fail "missing DISABLE_MAGIC_FUNCTIONS=true"
+grep -q 'DISABLE_AUTO_TITLE=true' "$ZSHRC_FILE" \
+  || fail "missing DISABLE_AUTO_TITLE=true"
+# Order matters: knobs must appear before the oh-my-zsh.sh source line.
+_knob_line=$(grep -n "zstyle ':omz:update' mode disabled" "$ZSHRC_FILE" | head -1 | cut -d: -f1)
+_omz_line=$(grep -n 'source "\$ZSH/oh-my-zsh.sh"' "$ZSHRC_FILE" | head -1 | cut -d: -f1)
+[[ -n "$_knob_line" && -n "$_omz_line" && "$_knob_line" -lt "$_omz_line" ]] \
+  || fail "OMZ knobs must appear before the oh-my-zsh.sh source line"
+
 # Archived modules must not be loaded from zshrc.
 _archived_modules=("$ROOT_DIR"/modules/archived/*.zsh(N:t:r))
 for _m in $_archived_modules; do
