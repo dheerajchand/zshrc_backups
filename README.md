@@ -266,6 +266,12 @@ git pull origin main
 exec zsh
 ```
 
+### **Git aliases & extras**
+
+For a curated cheat sheet of OMZ git plugin aliases plus `git-extras`
+subcommands worth knowing, see [docs/git-aliases.md](docs/git-aliases.md).
+Requires `brew install git-extras` to get the `git-*` subcommands.
+
 ### **Troubleshooting Installation**
 
 If you encounter issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md):
