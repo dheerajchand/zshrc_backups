@@ -166,7 +166,24 @@ install_oh_my_zsh() {
         git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
             "$HOME/.dotfiles/oh-my-zsh/custom/themes/powerlevel10k"
     fi
-    
+
+    # Install third-party OMZ custom plugins referenced from zshrc.
+    local plugins_dir="$HOME/.dotfiles/oh-my-zsh/custom/plugins"
+    mkdir -p "$plugins_dir"
+    local repo name
+    for repo in \
+        romkatv/zsh-defer \
+        zsh-users/zsh-autosuggestions \
+        zsh-users/zsh-syntax-highlighting \
+        zsh-users/zsh-completions
+    do
+        name="${repo##*/}"
+        if [ ! -d "$plugins_dir/$name" ]; then
+            print_info "Installing $name..."
+            git clone --depth=1 "https://github.com/$repo.git" "$plugins_dir/$name"
+        fi
+    done
+
     print_success "Oh-My-Zsh installed"
 }
 
