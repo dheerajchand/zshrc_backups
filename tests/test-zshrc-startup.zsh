@@ -33,6 +33,22 @@ _omz_line=$(grep -n 'source "\$ZSH/oh-my-zsh.sh"' "$ZSHRC_FILE" | head -1 | cut 
 [[ -n "$_knob_line" && -n "$_omz_line" && "$_knob_line" -lt "$_omz_line" ]] \
   || fail "OMZ knobs must appear before the oh-my-zsh.sh source line"
 
+# Low-cost OMZ plugin enrichment. Each plugin should appear in plugins=(...)
+# and none of the deliberately-excluded heavy ones should leak in.
+for _p in git gitfast gh fzf sudo copybuffer copypath copyfile history-substring-search aliases brew; do
+    grep -qE "^\s+${_p}\b" "$ZSHRC_FILE" \
+        || fail "expected OMZ plugin '${_p}' to be enabled"
+done
+# command-not-found is intentionally excluded (brew init is slow).
+grep -qE "^\s+command-not-found\b" "$ZSHRC_FILE" \
+    && fail "command-not-found must not be in plugins=(...) — too slow at startup"
+
+# history-substring-search requires arrow-key bindings after OMZ loads.
+grep -q "bindkey '\^\[\[A' history-substring-search-up" "$ZSHRC_FILE" \
+    || fail "history-substring-search up-arrow binding missing"
+grep -q "bindkey '\^\[\[B' history-substring-search-down" "$ZSHRC_FILE" \
+    || fail "history-substring-search down-arrow binding missing"
+
 # Archived modules must not be loaded from zshrc.
 _archived_modules=("$ROOT_DIR"/modules/archived/*.zsh(N:t:r))
 for _m in $_archived_modules; do

@@ -72,7 +72,21 @@ fi
 # Oh-My-Zsh setup
 export ZSH="$HOME/.dotfiles/oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
-plugins=(git)
+plugins=(
+    git                       # canonical alias set + helpers
+    gitfast                   # upstream git completion (faster than OMZ's default)
+    gh                        # gh CLI completion
+    fzf                       # Ctrl-R history, Ctrl-T file, Alt-C dir (fzf keybinds)
+    sudo                      # double-ESC prepends sudo to the current line
+    copybuffer                # Ctrl-O copies current command-line to clipboard
+    copypath                  # `copypath` copies $PWD to clipboard
+    copyfile                  # `copyfile <f>` copies contents to clipboard
+    history-substring-search  # up-arrow filters history by typed prefix
+    aliases                   # `aliases` command lists aliases by group
+    brew
+    # command-not-found intentionally excluded: its brew-based init
+    # adds ~150ms to startup. Revisit via zsh-defer (Stage 6).
+)
 
 # OMZ overhead we don't use.
 # - auto-update: run manually via `omz update` instead of on every shell.
@@ -150,6 +164,12 @@ zmodload zsh/compctl 2>/dev/null
 # Load Oh-My-Zsh
 if [[ -f "$ZSH/oh-my-zsh.sh" ]]; then
     source "$ZSH/oh-my-zsh.sh"
+
+    # Bind history-substring-search to arrow keys (plugin must be loaded first).
+    if (( ${+functions[history-substring-search-up]} )); then
+        bindkey '^[[A' history-substring-search-up
+        bindkey '^[[B' history-substring-search-down
+    fi
 fi
 
 # =================================================================
