@@ -18,4 +18,13 @@ grep -q 'ZSH_AUTO_RECOVER_MODE:=auto' "$ZSHRC_FILE" || fail "missing auto-recove
 grep -q 'if _zsh_should_auto_recover_services; then' "$ZSHRC_FILE" || fail "missing guarded auto-recover call"
 grep -q 'if _zsh_show_full_startup_banner; then' "$ZSHRC_FILE" || fail "missing guarded banner call"
 
+# Archived modules must not be loaded from zshrc.
+_archived_modules=("$ROOT_DIR"/modules/archived/*.zsh(N:t:r))
+for _m in $_archived_modules; do
+    [[ "$_m" == "README" ]] && continue
+    if grep -qE "^\s*load_module\s+${_m}\b" "$ZSHRC_FILE"; then
+        fail "archived module '${_m}' is still loaded from zshrc"
+    fi
+done
+
 print -- "test-zshrc-startup: ok"
