@@ -30,3 +30,8 @@ jobs:
         run: |
           brew install --quiet shellcheck
           shellcheck -S error install.sh setup-software.sh bash-bridge.sh
+
+      - name: Shfmt formatting check (bash scripts)
+        run: |
+          brew install --quiet shfmt
+          shfmt -d -i 4 -ci -kp -sr install.sh setup-software.sh bash-bridge.sh
