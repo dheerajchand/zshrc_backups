@@ -272,6 +272,15 @@ Conventions for functions, variables, and error handling across the config
 live in [STYLE.md](STYLE.md). New code must conform; legacy code is
 grandfathered.
 
+To run the same checks CI runs — `shellcheck`, `shfmt -d`, the convention
+linter — before every commit, enable the repo's pre-commit hook:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Skip for a one-off commit with `SKIP_PRECOMMIT=1 git commit ...`.
+
 ### **Git aliases & extras**
 
 For a curated cheat sheet of OMZ git plugin aliases plus `git-extras`
