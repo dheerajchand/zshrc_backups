@@ -31,19 +31,32 @@ test_startup_budget_under_cap() {
         return 1
     }
 
+    # Prepare a ZDOTDIR that points at the repo's zshrc. Without this, a
+    # subprocess `zsh -i` uses $HOME/.zshrc which is missing on CI runners,
+    # and measurement becomes ~7ms of nothing.
+    local zdot
+    zdot="$(mktemp -d)" || {
+        _print_fail "mktemp failed"
+        return 1
+    }
+    ln -sf "$ROOT_DIR/zshrc" "$zdot/.zshrc"
+
     local -a samples
     local i t0 t1 ms
     for (( i = 1; i <= runs; i++ )); do
         t0="$EPOCHREALTIME"
-        ZSH_FORCE_FULL_INIT=1 \
+        ZDOTDIR="$zdot" \
+            ZSH_FORCE_FULL_INIT=1 \
             ZSH_STATUS_BANNER_MODE=off \
             ZSH_AUTO_RECOVER_MODE=off \
+            ZSH_STARTUP_MODE=immediate \
             zsh -i -c exit >/dev/null 2>&1
         t1="$EPOCHREALTIME"
         ms=$(( (t1 - t0) * 1000 ))
         ms=${ms%.*}
         samples+=("$ms")
     done
+    rm -rf "$zdot"
 
     # Discard the first sample as warm-up; median over the rest.
     local -a measured sorted
