@@ -25,3 +25,8 @@ jobs:
           ZEPPELIN_HOME: /tmp/stub-zeppelin
           ZSH_TEST_MODE: "1"
         run: zsh run-tests.zsh --verbose
+
+      - name: Shellcheck (bash scripts only — zsh is not supported by shellcheck)
+        run: |
+          brew install --quiet shellcheck
+          shellcheck -S error install.sh setup-software.sh bash-bridge.sh
