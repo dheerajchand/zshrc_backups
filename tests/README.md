@@ -17,6 +17,7 @@ Minimal zsh test framework and test suites for this repo.
 - `test-utils.zsh`
 - `test-zshrc-startup.zsh`
 - `test-startup-budget.zsh`
+- `test-conventions.zsh`
 - `test-backup.zsh`
 - `test-database.zsh`
 - `test-docker.zsh`
