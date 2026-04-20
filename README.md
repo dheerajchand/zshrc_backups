@@ -266,6 +266,12 @@ git pull origin main
 exec zsh
 ```
 
+### **Style guide**
+
+Conventions for functions, variables, and error handling across the config
+live in [STYLE.md](STYLE.md). New code must conform; legacy code is
+grandfathered.
+
 ### **Git aliases & extras**
 
 For a curated cheat sheet of OMZ git plugin aliases plus `git-extras`
