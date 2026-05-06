@@ -2,6 +2,36 @@
 
 ## Common Issues and Solutions
 
+### JetBrains pinwheels / Finder slow / system feels heavy
+
+Symptom: Finder windows beachball, JetBrains apps stutter, Activity
+Monitor shows `fileproviderd` near the top with high CPU and a long
+ELAPSED time (hours or days).
+
+Cause: a cloud-storage provider's local index (typically iCloud Drive)
+has corrupted or is mid-rebuild and `fileproviderd` is grinding through
+a SQLite VACUUM/reindex with a multi-GB temp spill.
+
+Fix:
+
+```sh
+# 1. See the full picture
+zsh_doctor                  # File providers section flags it
+fileprovider_status         # detail: per-provider DB sizes + spill files
+
+# 2. Try the cheap recovery first — bounce the daemon, watch trajectory
+fileprovider_unwedge        # confirms before sudo killall fileproviderd
+
+# 3. If still wedged after the bounce: toggle iCloud Drive off / on
+#    (System Settings → iCloud → Drive → tap tile → Sync this Mac off,
+#     choose "Keep a Copy", reboot, toggle back on).
+```
+
+The toggle path can't be automated — it requires the GUI. Resist
+suggesting "Optimize Mac Storage" as a follow-up; it has its own sync
+issues. See GitHub issue #161 for the full investigation that produced
+this tooling, and the May 2026 109-hour wedge that motivated it.
+
 ### Test suite flakes with unexplained SIGPIPE / exit 141
 
 Symptom: `tests/test-*.zsh` assertions of the form

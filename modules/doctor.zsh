@@ -100,6 +100,34 @@ zsh_doctor() {
     fi
     print -- ""
 
+    print -- "● File providers"
+    local fpd_pid fpd_cpu_int
+    fpd_pid="$(pgrep -x fileproviderd 2>/dev/null || true)"
+    if [[ -z "$fpd_pid" ]]; then
+        _doctor_ok "fileproviderd not running"
+    else
+        fpd_cpu_int="$(ps -p "$fpd_pid" -o %cpu= 2>/dev/null | awk '{printf "%d", $1}')"
+        if (( ${fpd_cpu_int:-0} >= 50 )); then
+            _doctor_fail "fileproviderd at ${fpd_cpu_int}% CPU — run fileprovider_unwedge"
+        elif (( ${fpd_cpu_int:-0} >= 20 )); then
+            _doctor_warn "fileproviderd at ${fpd_cpu_int}% CPU (probably normal sync activity)"
+        else
+            _doctor_ok "fileproviderd at ${fpd_cpu_int}% CPU"
+        fi
+        # Flag any DB > 1 GB
+        local fp_root="$HOME/Library/Application Support/FileProvider"
+        local big_dbs=()
+        local dbf size
+        for dbf in "$fp_root"/*/database/db(N); do
+            size="$(stat -f%z "$dbf" 2>/dev/null || stat -c%s "$dbf" 2>/dev/null || echo 0)"
+            (( size > 1024**3 )) && big_dbs+=("${dbf:h:h:t}")
+        done
+        if (( ${#big_dbs[@]} > 0 )); then
+            _doctor_warn "FileProvider DB > 1 GB on: ${(j:, :)big_dbs}"
+        fi
+    fi
+    print -- ""
+
     print -- "● Modules"
     local loaded=0 available=0 m
     local modules_dir="${ZSHRC_CONFIG_DIR:-$HOME/.config/zsh}/modules"

@@ -176,6 +176,14 @@ their source order. Underscore-prefixed helpers are included.
 - `zsh_env_snapshot`
 - `zsh_env`
 
+## `modules/fileprovider.zsh`
+
+- `_fp_human_size`
+- `_fp_size_of`
+- `fileprovider_status`
+- `fileprovider_check`
+- `fileprovider_unwedge`
+
 ## `modules/github.zsh`
 
 - `_gh_usage`

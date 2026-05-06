@@ -26,6 +26,7 @@ Minimal zsh test framework and test suites for this repo.
 - `test-doctor.zsh`
 - `test-module-flags.zsh`
 - `test-env-detect.zsh`
+- `test-fileprovider.zsh`
 - `test-backup.zsh`
 - `test-database.zsh`
 - `test-docker.zsh`
