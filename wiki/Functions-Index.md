@@ -263,6 +263,19 @@ their source order. Underscore-prefixed helpers are included.
 - `livy_stop`
 - `livy_logs`
 
+## `modules/ollama.zsh`
+
+- `_ollama_endpoint`
+- `_ollama_endpoint_is_local`
+- `_ollama_pid`
+- `_ollama_url`
+- `ollama_health`
+- `ollama_status`
+- `ollama_logs`
+- `ollama_start`
+- `ollama_stop`
+- `ollama`
+
 ## `modules/paths.zsh`
 
 - `paths_init`
