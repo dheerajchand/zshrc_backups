@@ -38,13 +38,25 @@ test_ollama_endpoint_local_classification() {
 }
 
 test_ollama_start_refuses_remote_host() {
-    local saved="${OLLAMA_HOST-}"
+    # Stub `ollama` so the not-installed branch doesn't short-circuit.
+    local tmp_bin saved_path saved_host
+    tmp_bin="$(mktemp -d)"
+    cat > "$tmp_bin/ollama" <<'STUB'
+#!/usr/bin/env zsh
+exit 0
+STUB
+    chmod +x "$tmp_bin/ollama"
+    saved_path="$PATH"
+    saved_host="${OLLAMA_HOST-}"
+    PATH="$tmp_bin:$PATH"
     local out rc
     out="$(OLLAMA_HOST=studio.local:11434 ollama_start 2>&1)"
     rc=$?
-    [[ -n "$saved" ]] && export OLLAMA_HOST="$saved" || unset OLLAMA_HOST
+    PATH="$saved_path"
+    [[ -n "$saved_host" ]] && export OLLAMA_HOST="$saved_host" || unset OLLAMA_HOST
+    rm -rf "$tmp_bin"
     assert_not_equal "0" "$rc" "ollama_start should refuse for remote host"
-    assert_contains "$out" "remote" "message should explain why"
+    assert_contains "$out" "remote" "message should mention remote"
 }
 
 test_ollama_logs_warns_when_no_log() {
