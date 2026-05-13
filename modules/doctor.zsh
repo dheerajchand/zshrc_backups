@@ -128,6 +128,19 @@ zsh_doctor() {
     fi
     print -- ""
 
+    print -- "● Ollama"
+    if (( ${+commands[ollama]} )); then
+        if typeset -f ollama_health >/dev/null 2>&1 && ollama_health; then
+            local ep="${OLLAMA_HOST:-127.0.0.1:11434}"
+            _doctor_ok "ollama reachable at ${ep}"
+        else
+            _doctor_warn "ollama installed but server unreachable (run: ollama_start)"
+        fi
+    else
+        _doctor_warn "ollama not installed (brew install ollama)"
+    fi
+    print -- ""
+
     print -- "● Modules"
     local loaded=0 available=0 m
     local modules_dir="${ZSHRC_CONFIG_DIR:-$HOME/.config/zsh}/modules"

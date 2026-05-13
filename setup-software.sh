@@ -1265,6 +1265,31 @@ install_shell_tooling() {
     print_success "Shell tooling ready"
 }
 
+install_ollama() {
+    print_header "Installing Ollama"
+    if command -v ollama > /dev/null 2>&1; then
+        print_info "ollama already installed: $(ollama --version 2> /dev/null | head -1)"
+        return 0
+    fi
+    if [[ "$OS" == "macos" ]]; then
+        brew install ollama || {
+            print_warning "ollama install failed"
+            return 1
+        }
+    else
+        # Upstream provides a one-shot script for Linux.
+        print_step "Installing ollama via upstream script"
+        curl -fsSL https://ollama.com/install.sh | sh ||
+               {
+                 print_warning "ollama install failed"
+                                                        return 1
+            }
+    fi
+    print_info "Server is on demand. From a fresh shell: ollama_start"
+    print_info "Or set OLLAMA_AUTO_START=1 to lazy-start on first use"
+    print_success "ollama ready"
+}
+
 # Main installation flow
 main() {
     parse_setup_args "$@"
@@ -1288,6 +1313,7 @@ main() {
     echo "  • 1Password CLI (v2)"
     echo "  • Essential Python packages (pandas, numpy, jupyter, pyspark, etc.)"
     echo "  • Shell tooling (fzf + keybindings, shellcheck, shfmt, jq, delta, git-extras)"
+    echo "  • Ollama (local LLM server, on-demand)"
     echo ""
     if [[ "$SETUP_MODE" == "config" ]]; then
         echo "Estimated time: ~3-10 minutes"
@@ -1317,6 +1343,7 @@ main() {
         install_python
         install_python_packages
         install_shell_tooling
+        install_ollama
         # Optional components
         check_docker
         check_postgresql

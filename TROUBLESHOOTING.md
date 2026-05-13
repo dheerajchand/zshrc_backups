@@ -2,6 +2,24 @@
 
 ## Common Issues and Solutions
 
+### `ollama: could not connect to ollama server`
+
+The brew install caveat warns about this. The server runs on demand
+via `ollama serve`, not as a brew service. From a fresh shell:
+
+```sh
+ollama_start              # background launch with the perf env vars
+ollama_status             # confirm
+ollama run <model>        # use it
+```
+
+Set `OLLAMA_AUTO_START=1` in `vars.mac.env` to make the `ollama`
+wrapper kick `ollama_start` automatically on first call.
+
+For a remote server, set `OLLAMA_HOST=hostname:11434` in the host's
+vars file. `/etc/hosts` aliases work transparently. See
+[wiki/Module-Ollama.md](wiki/Module-Ollama.md) for the full setup.
+
 ### JetBrains pinwheels / Finder slow / system feels heavy
 
 Symptom: Finder windows beachball, JetBrains apps stutter, Activity

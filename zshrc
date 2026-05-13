@@ -308,6 +308,7 @@ if _zsh_startup_use_staggered; then
     load_module doctor       # zsh_doctor health-check
     load_module env_detect   # zsh_env / zsh_env_snapshot registry
     load_module fileprovider # fileprovider_status / unwedge for stuck fileproviderd
+    load_module ollama       # ollama_{start,stop,status,logs,health} + auto-start wrapper
     
     # Tier 2: Credentials & paths (defer in current shell)
     _zsh_load_tier2() {
@@ -371,6 +372,7 @@ else
     load_module doctor
     load_module env_detect
     load_module fileprovider
+    load_module ollama
 
     # Heavy data-platform modules. Defer past first prompt when the
     # user opts in via ZSH_DEFER_DATA_PLATFORM=1. Deferring is not the
