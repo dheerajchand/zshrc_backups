@@ -707,7 +707,9 @@ zsh_help() {
         if [[ "$line" == "  "[a-zA-Z_]* ]]; then
             first_token="${${line##  }%% *}"
             lc_token="${first_token:l}"
-            if [[ "$lc_token" == *"$lc_filter"* ]]; then
+            # Prefix match (not substring): zsh_help op finds op_*, not anything
+            # containing "op" in the middle.
+            if [[ "$lc_token" == "$lc_filter"* ]]; then
                 [[ -n "$current_header" ]] && printf '%s\n' "$current_header"
                 printf '%s\n' "$line"
                 printed=1

@@ -65,7 +65,7 @@ zsh_help() {
         if [[ "$line" == "  "[a-zA-Z_]* ]]; then
             first_token="${${line##  }%% *}"
             lc_token="${first_token:l}"
-            if [[ "$lc_token" == *"$lc_filter"* ]]; then
+            if [[ "$lc_token" == "$lc_filter"* ]]; then
                 [[ -n "$current_header" ]] && printf '%s\n' "$current_header"
                 printf '%s\n' "$line"
                 printed=1
@@ -114,11 +114,25 @@ test_function_name_filter() {
     assert_false "[[ '$out' == *'op_signin_account'* ]]" 'exact-prefix match excludes other op_signin_*'
 }
 
-test_function_name_filter_substring() {
+test_function_name_filter_prefix() {
+    # Prefix match: zsh_help op_signin finds both op_signin_all and
+    # op_signin_account. zsh_help signin (no prefix) does NOT — users
+    # type the prefix they remember.
     local out
-    out=$(zsh_help signin)
-    assert_contains "$out" 'op_signin_all'      'substring matches op_signin_all'
-    assert_contains "$out" 'op_signin_account'  'substring matches op_signin_account'
+    out=$(zsh_help op_signin)
+    assert_contains "$out" 'op_signin_all'      'prefix matches op_signin_all'
+    assert_contains "$out" 'op_signin_account'  'prefix matches op_signin_account'
+}
+
+test_zsh_help_op_lists_op_commands() {
+    # Primary UX path: the user types `zsh_help op` and expects to see
+    # the op_* surface. Regression guard for the substring → prefix
+    # refactor (CodeRabbit feedback on PR #169).
+    local out
+    out=$(zsh_help op)
+    assert_contains "$out" 'op_signin_all'  'zsh_help op surfaces op_signin_all'
+    assert_contains "$out" 'op_signin_account' 'zsh_help op surfaces op_signin_account'
+    assert_contains "$out" 'op_accounts_edit'  'zsh_help op surfaces op_accounts_edit'
 }
 
 test_no_match() {
@@ -139,6 +153,7 @@ register_test "no_arg_full_dump"          test_no_arg_full_dump
 register_test "section_filter_secrets"    test_section_filter_secrets
 register_test "section_filter_disk"       test_section_filter_disk
 register_test "function_name_filter"      test_function_name_filter
-register_test "function_name_filter_sub"  test_function_name_filter_substring
+register_test "function_name_filter_pre"  test_function_name_filter_prefix
+register_test "zsh_help_op_lists_op"      test_zsh_help_op_lists_op_commands
 register_test "no_match"                  test_no_match
 register_test "case_insensitive"          test_case_insensitive
