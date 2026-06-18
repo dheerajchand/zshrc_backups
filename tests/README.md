@@ -42,6 +42,8 @@ Minimal zsh test framework and test suites for this repo.
 - `test-zeppelin.zsh`
 - `test-compat.zsh`
 - `test-electron-fix.zsh`
+- `test-op-help.zsh`
+- `test-zsh-help-filter.zsh`
 
 ## Run tests
 

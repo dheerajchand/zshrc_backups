@@ -414,7 +414,7 @@ fi
 builtin rehash
 
 # Help
-zsh_help() {
+_zsh_help_body() {
     echo "🚀 ZSH Quick Reference"
     echo "===================="
     echo ""
@@ -661,6 +661,67 @@ zsh_help() {
     echo "  claude_session [name]  - Print Claude resume command"
     echo ""
     echo "📚 Full docs: $ZSH_CONFIG_DIR/README.md"
+}
+
+# zsh_help [filter]
+#   No arg: print the full reference.
+#   filter is a section name (e.g. 'secrets', 'op', 'disk') or a
+#   function name (e.g. 'op_signin_all'). Section match prints the
+#   whole section; function match prints the matching line(s) with
+#   the section header for context. No match prints a hint.
+zsh_help() {
+    local filter="${1:-}"
+    if [[ -z "$filter" ]]; then
+        _zsh_help_body
+        return 0
+    fi
+    local -a lines
+    lines=("${(@f)$(_zsh_help_body)}")
+    local lc_filter="${filter:l}"
+    local current_header="" lc_header="" line lc_line first_token lc_token
+    local -a section_buf
+    local -i printed=0 in_match_section=0
+    for line in "${lines[@]}"; do
+        # Section header lines start with a non-ASCII glyph (emoji) and contain ':'.
+        if [[ "$line" == *:* && "$line" != "  "* && "$line" != "==="* && -n "$line" && "${line[1]}" != [a-zA-Z🚀📚] ]]; then
+            # Flush previous matched section
+            if (( in_match_section )); then
+                printf '%s\n' "${section_buf[@]}"
+                printed=1
+                in_match_section=0
+            fi
+            current_header="$line"
+            lc_header="${current_header:l}"
+            section_buf=("$current_header")
+            # Match if the filter appears in the header (e.g. 'secrets' matches '🔐 Secrets:')
+            if [[ "$lc_header" == *"$lc_filter"* ]]; then
+                in_match_section=1
+            fi
+            continue
+        fi
+        if (( in_match_section )); then
+            section_buf+=("$line")
+            continue
+        fi
+        # Per-line match: indented function/command lines look like "  fn_name ..."
+        if [[ "$line" == "  "[a-zA-Z_]* ]]; then
+            first_token="${${line##  }%% *}"
+            lc_token="${first_token:l}"
+            if [[ "$lc_token" == *"$lc_filter"* ]]; then
+                [[ -n "$current_header" ]] && printf '%s\n' "$current_header"
+                printf '%s\n' "$line"
+                printed=1
+            fi
+        fi
+    done
+    if (( in_match_section )); then
+        printf '%s\n' "${section_buf[@]}"
+        printed=1
+    fi
+    if (( ! printed )); then
+        echo "zsh_help: no matches for '$filter' (try: zsh_help with no arg)" >&2
+        return 0
+    fi
 }
 alias zhelp='zsh_help'
 
