@@ -320,6 +320,7 @@ their source order. Underscore-prefixed helpers are included.
 
 - `_op_account_alias`
 - `_op_account_alias_for_uuid`
+- `_op_print_help`
 - `op_accounts_edit`
 - `op_accounts_sanitize`
 - `_op_accounts_write_kv`
