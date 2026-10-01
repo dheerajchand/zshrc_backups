@@ -25,6 +25,9 @@ export ZSHRC_CONFIG_DIR
 : "${ZSH_CONFIG_DIR:=$ZSHRC_CONFIG_DIR}"
 export ZSH_CONFIG_DIR
 
+# Preserve inherited project runtimes, including in the GUI fast path.
+source "$ZSH_CONFIG_DIR/zshenv"
+
 # Minimal init for non-TTY interactive shells (prevents GUI app timeouts)
 # Set ZSH_FORCE_FULL_INIT=1 to override.
 # Known terminal programs (Warp, VS Code, etc.) are always allowed full init.
@@ -32,26 +35,7 @@ if [[ -o interactive && ! -t 0 && ! -t 1 && -z "${ZSH_FORCE_FULL_INIT:-}" \
       && "$TERM_PROGRAM" != "WarpTerminal" \
       && "$TERM_PROGRAM" != "vscode" \
       && -z "${WARP_IS_LOCAL_SHELL_SESSION:-}" ]]; then
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-    else
-        export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-    fi
-    [[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
-    [[ -d "$HOME/bin" ]] && export PATH="$HOME/bin:$PATH"
     return 0
-fi
-
-# Set base PATH
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-else
-    export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-fi
-[[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
-[[ -d "$HOME/bin" ]] && export PATH="$HOME/bin:$PATH"
-if [[ -d "$HOME/.pyenv/bin" && ":$PATH:" != *":$HOME/.pyenv/bin:"* ]]; then
-    export PATH="$HOME/.pyenv/bin:$PATH"
 fi
 
 # Initialize SDKMAN lazily - set *_HOME vars from "current" symlinks now
@@ -66,7 +50,7 @@ export SDKMAN_DIR="$HOME/.sdkman"
 # Add SDKMAN candidate bins to PATH without full init
 if [[ -d "$SDKMAN_DIR/candidates" ]]; then
     for _sdk_cand in "$SDKMAN_DIR"/candidates/*/current/bin(N); do
-        [[ ":$PATH:" != *":$_sdk_cand:"* ]] && export PATH="$_sdk_cand:$PATH"
+        [[ ":$PATH:" != *":$_sdk_cand:"* ]] && export PATH="$PATH:$_sdk_cand"
     done
     unset _sdk_cand
 fi
@@ -319,8 +303,9 @@ if _zsh_startup_use_staggered; then
         load_module gitlab       # GitLab CLI workflows
         load_module dataworld    # data.world CSV retention + geo cleanup
         load_module databricks   # Databricks + Lakebase workflows
+        load_module disk         # Disk audit + safe cache cleanup
     }
-    
+
     # Tier 3: Heavy tools (defer in current shell)
     _zsh_load_tier3() {
         load_module docker       # Docker management
@@ -368,6 +353,7 @@ else
     load_module gitlab
     load_module dataworld
     load_module databricks
+    load_module disk
     load_module docker
     load_module doctor
     load_module env_detect
@@ -399,20 +385,20 @@ fi
 # Solution: Explicitly ensure SDKMAN tools are in PATH after everything loads
 
 if [[ -n "$HADOOP_HOME" && -d "$HADOOP_HOME/bin" ]]; then
-    [[ ":$PATH:" != *":$HADOOP_HOME/bin:"* ]] && export PATH="$HADOOP_HOME/bin:$PATH"
-    [[ ":$PATH:" != *":$HADOOP_HOME/sbin:"* ]] && export PATH="$HADOOP_HOME/sbin:$PATH"
+    [[ ":$PATH:" != *":$HADOOP_HOME/bin:"* ]] && export PATH="$PATH:$HADOOP_HOME/bin"
+    [[ ":$PATH:" != *":$HADOOP_HOME/sbin:"* ]] && export PATH="$PATH:$HADOOP_HOME/sbin"
 fi
 
 if [[ -n "$SPARK_HOME" && -d "$SPARK_HOME/bin" ]]; then
-    [[ ":$PATH:" != *":$SPARK_HOME/bin:"* ]] && export PATH="$SPARK_HOME/bin:$PATH"
-    [[ ":$PATH:" != *":$SPARK_HOME/sbin:"* ]] && export PATH="$SPARK_HOME/sbin:$PATH"
+    [[ ":$PATH:" != *":$SPARK_HOME/bin:"* ]] && export PATH="$PATH:$SPARK_HOME/bin"
+    [[ ":$PATH:" != *":$SPARK_HOME/sbin:"* ]] && export PATH="$PATH:$SPARK_HOME/sbin"
 fi
 
 # Rehash command table after PATH changes without invoking pyenv's wrapper.
 builtin rehash
 
 # Help
-zsh_help() {
+_zsh_help_body() {
     echo "🚀 ZSH Quick Reference"
     echo "===================="
     echo ""
@@ -559,6 +545,15 @@ zsh_help() {
     echo "  hadoop_health           - HDFS/YARN health overview"
     echo "  yarn_health             - YARN health overview"
     echo ""
+    echo "💽 Disk:"
+    echo "  disk_audit [N]                       - Top space consumers in \$HOME (default N=15)"
+    echo "  disk_audit_deep [N]                  - Deeper audit + project virtualenvs"
+    echo "  disk_clean_caches [--execute]        - Sweep regenerable caches (dry-run by default)"
+    echo "  disk_prune_snapshots --root DIR [--keep N] [--pattern GLOB] [--execute] - Prune timestamped snapshots"
+    echo "  disk_prune_jetbrains_stale [--keep-prefix YEAR] [--execute] - Prune stale JetBrains version dirs"
+    echo "  disk_check_icloud_corruption [DIR]   - Detect iCloud duplicate-filename corruption"
+    echo "  disk_icloud_recovery_steps           - Print iCloud git-corruption recovery playbook"
+    echo ""
     echo "📦 Backup:"
     echo "  backup ['message']     - Commit and push current branch"
     echo "  backup_merge_main [branch] - Merge branch into main and push"
@@ -651,6 +646,69 @@ zsh_help() {
     echo ""
     echo "📚 Full docs: $ZSH_CONFIG_DIR/README.md"
 }
+
+# zsh_help [filter]
+#   No arg: print the full reference.
+#   filter is a section name (e.g. 'secrets', 'op', 'disk') or a
+#   function name (e.g. 'op_signin_all'). Section match prints the
+#   whole section; function match prints the matching line(s) with
+#   the section header for context. No match prints a hint.
+zsh_help() {
+    local filter="${1:-}"
+    if [[ -z "$filter" ]]; then
+        _zsh_help_body
+        return 0
+    fi
+    local -a lines
+    lines=("${(@f)$(_zsh_help_body)}")
+    local lc_filter="${filter:l}"
+    local current_header="" lc_header="" line lc_line first_token lc_token
+    local -a section_buf
+    local -i printed=0 in_match_section=0
+    for line in "${lines[@]}"; do
+        # Section header lines start with a non-ASCII glyph (emoji) and contain ':'.
+        if [[ "$line" == *:* && "$line" != "  "* && "$line" != "==="* && -n "$line" && "${line[1]}" != [a-zA-Z🚀📚] ]]; then
+            # Flush previous matched section
+            if (( in_match_section )); then
+                printf '%s\n' "${section_buf[@]}"
+                printed=1
+                in_match_section=0
+            fi
+            current_header="$line"
+            lc_header="${current_header:l}"
+            section_buf=("$current_header")
+            # Match if the filter appears in the header (e.g. 'secrets' matches '🔐 Secrets:')
+            if [[ "$lc_header" == *"$lc_filter"* ]]; then
+                in_match_section=1
+            fi
+            continue
+        fi
+        if (( in_match_section )); then
+            section_buf+=("$line")
+            continue
+        fi
+        # Per-line match: indented function/command lines look like "  fn_name ..."
+        if [[ "$line" == "  "[a-zA-Z_]* ]]; then
+            first_token="${${line##  }%% *}"
+            lc_token="${first_token:l}"
+            # Prefix match (not substring): zsh_help op finds op_*, not anything
+            # containing "op" in the middle.
+            if [[ "$lc_token" == "$lc_filter"* ]]; then
+                [[ -n "$current_header" ]] && printf '%s\n' "$current_header"
+                printf '%s\n' "$line"
+                printed=1
+            fi
+        fi
+    done
+    if (( in_match_section )); then
+        printf '%s\n' "${section_buf[@]}"
+        printed=1
+    fi
+    if (( ! printed )); then
+        echo "zsh_help: no matches for '$filter' (try: zsh_help with no arg)" >&2
+        return 0
+    fi
+}
 alias zhelp='zsh_help'
 
 # Show loaded modules
@@ -673,6 +731,7 @@ modules() {
     echo "✅ paths       - Custom path aliases"
     echo "✅ settings    - Vars/Aliases/Paths"
     echo "✅ backup      - Git self-backup system"
+    echo "✅ disk        - Disk audit + safe cache/snapshot cleanup"
     echo "✅ github      - GitHub CLI repo/issue/PR workflows"
     echo "✅ gitlab      - GitLab CLI repo/issue/MR workflows"
     echo "✅ databricks  - Databricks + Lakebase workflows"
@@ -847,9 +906,11 @@ zsh_status_banner() {
     fi
 
     # Python environment
-    local pyenv_version="system"
-    if command -v pyenv >/dev/null 2>&1; then
-        pyenv_version="$(pyenv version-name 2>/dev/null || echo 'system')"
+    local python_manager="system"
+    local python_path=""
+    if (( ${+functions[get_python_path]} )); then
+        python_path="$(get_python_path 2>/dev/null)"
+        python_manager="$(_python_manager "$python_path")"
     fi
     local py_bin="python"
     command -v python >/dev/null 2>&1 || py_bin="python3"
@@ -857,10 +918,10 @@ zsh_status_banner() {
     if command -v "$py_bin" >/dev/null 2>&1; then
         py_version="$("$py_bin" --version 2>&1 | head -1)"
     fi
-    printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🐍 Python:" "$reset_color" "$pyenv_version (${py_version})"
-    if command -v pyenv >/dev/null 2>&1; then
+    printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🐍 Python:" "$reset_color" "$python_manager (${py_version})"
+    if [[ "$python_manager" == pyenv ]]; then
         local default_venv="${PYENV_DEFAULT_VENV:-${DEFAULT_PYENV_VENV:-}}"
-        [[ -n "$default_venv" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🧪 Pyenv venv:" "$reset_color" "$pyenv_version (default: $default_venv)"
+        [[ -n "$default_venv" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🧪 Pyenv venv:" "$reset_color" "$(_python_active "$python_manager" "$python_path") (default: $default_venv)"
     fi
 
     # Machine profile (env/role/host)
@@ -1036,7 +1097,7 @@ fi
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
 if [[ "$OSTYPE" == "darwin"* && -d "$HOME/.rd/bin" ]]; then
-    export PATH="$HOME/.rd/bin:$PATH"
+    [[ ":$PATH:" != *":$HOME/.rd/bin:"* ]] && export PATH="$PATH:$HOME/.rd/bin"
 fi
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
@@ -1047,6 +1108,9 @@ fi
 # For screen/tmux sessions, call setup_pyenv manually if needed
 
 # cd to STARTUP_DIR if set (configured in vars.env or machine overrides)
-if [[ -o interactive && -n "${STARTUP_DIR:-}" && -d "$STARTUP_DIR" ]]; then
+if [[ -o interactive && "${ZSH_STARTUP_CD:-0}" == 1 && -n "${STARTUP_DIR:-}" && -d "$STARTUP_DIR" ]]; then
     cd "$STARTUP_DIR"
 fi
+
+# Install optional interactive hooks after startup PATH and directory changes.
+load_module mise

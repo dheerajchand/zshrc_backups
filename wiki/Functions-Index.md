@@ -152,6 +152,19 @@ their source order. Underscore-prefixed helpers are included.
 - `dataworld_sync_csv`
 - `data_csv_prune_derived`
 
+## `modules/disk.zsh`
+
+- `_disk_size`
+- `_disk_is_icloud_path`
+- `_disk_top_n`
+- `disk_audit`
+- `disk_audit_deep`
+- `disk_check_icloud_corruption`
+- `disk_clean_caches`
+- `disk_prune_snapshots`
+- `disk_prune_jetbrains_stale`
+- `disk_icloud_recovery_steps`
+
 ## `modules/docker.zsh`
 
 - `docker_status`
@@ -263,6 +276,10 @@ their source order. Underscore-prefixed helpers are included.
 - `livy_stop`
 - `livy_logs`
 
+## `modules/mise.zsh`
+
+- `_zsh_mise_init`
+
 ## `modules/ollama.zsh`
 
 - `_ollama_endpoint`
@@ -285,9 +302,12 @@ their source order. Underscore-prefixed helpers are included.
 ## `modules/python.zsh`
 
 - `_pyenv_default_venv`
+- `_python_initialize`
 - `py_env_switch`
 - `get_python_path`
 - `get_python_version`
+- `_python_manager`
+- `_python_active`
 - `python_status`
 - `python_config_status`
 - `pyenv_use_version`
@@ -307,6 +327,7 @@ their source order. Underscore-prefixed helpers are included.
 
 - `_op_account_alias`
 - `_op_account_alias_for_uuid`
+- `_op_print_help`
 - `op_accounts_edit`
 - `op_accounts_sanitize`
 - `_op_accounts_write_kv`

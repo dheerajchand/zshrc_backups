@@ -168,6 +168,10 @@ zsh run-tests.zsh --coverage # Run tests with coverage
 - **Backup System**: [zshrc_backups](https://github.com/dheerajchand/zshrc_backups)
 - **Main Dotfiles**: [~/.dotfiles](https://github.com/dheerajchand/dotfiles)
 
+## Runtime managers
+
+See [Runtime Managers](Runtime-Managers) for mise, pyenv, SDKMAN, and inherited environment setup.
+
 ## 📖 **Getting Started**
 
 1. **Read the [Shell Operations Guide](Shell-Operations-Guide)** for complete workflows

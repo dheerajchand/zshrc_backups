@@ -12,6 +12,7 @@ Minimal zsh test framework and test suites for this repo.
 - `test-secrets-profile.zsh`
 - `test-secrets-misc.zsh`
 - `test-python.zsh`
+- `test-runtime-managers.zsh`
 - `test-spark-hadoop.zsh`
 - `test-system-diagnostics.zsh`
 - `test-agents.zsh`
@@ -28,6 +29,7 @@ Minimal zsh test framework and test suites for this repo.
 - `test-env-detect.zsh`
 - `test-fileprovider.zsh`
 - `test-ollama.zsh`
+- `test-disk.zsh`
 - `test-backup.zsh`
 - `test-database.zsh`
 - `test-docker.zsh`
@@ -41,6 +43,8 @@ Minimal zsh test framework and test suites for this repo.
 - `test-zeppelin.zsh`
 - `test-compat.zsh`
 - `test-electron-fix.zsh`
+- `test-op-help.zsh`
+- `test-zsh-help-filter.zsh`
 
 ## Run tests
 

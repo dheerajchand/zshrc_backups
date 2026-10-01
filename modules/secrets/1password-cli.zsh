@@ -46,7 +46,93 @@ _op_account_alias_for_uuid() {
     return 1
 }
 
+# Per-function help printer for the public op_* surface. Invoked by
+# each op_* function's leading -h/--help guard. Keeps each public
+# function's own body uncluttered by a multi-line heredoc.
+_op_print_help() {
+    case "$1" in
+        op_accounts_edit) cat <<'EOF'
+Usage: op_accounts_edit
+Open the 1Password account-aliases file ($OP_ACCOUNTS_FILE) in $EDITOR.
+Creates the file from the example if missing.
+EOF
+            ;;
+        op_accounts_sanitize) cat <<'EOF'
+Usage: op_accounts_sanitize [--fix]
+Validate the account-aliases file: drop blanks/comments, dedupe, sort.
+Default is check-only; --fix rewrites the file in place.
+EOF
+            ;;
+        op_accounts_set_alias) cat <<'EOF'
+Usage: op_accounts_set_alias <alias> <account-uuid>
+Append/update <alias>=<account-uuid> in the aliases file.
+Alias must be alphanumeric/underscore.
+EOF
+            ;;
+        op_accounts_seed) cat <<'EOF'
+Usage: op_accounts_seed
+Interactively prompt for an alias for each 1Password account on the device.
+Requires an interactive shell and the op CLI signed in.
+EOF
+            ;;
+        op_verify_accounts) cat <<'EOF'
+Usage: op_verify_accounts
+For each alias in the aliases file, sign in (cached) and run a smoke
+read to confirm credentials work. Reports pass/fail per alias.
+EOF
+            ;;
+        op_set_default) cat <<'EOF'
+Usage: op_set_default <account-uuid-or-shorthand> [vault]
+Export OP_ACCOUNT (and OP_VAULT if given) for this shell. Without args
+prints the current defaults.
+EOF
+            ;;
+        op_list_accounts_vaults) cat <<'EOF'
+Usage: op_list_accounts_vaults
+List all configured 1Password accounts and the vaults visible in each.
+EOF
+            ;;
+        op_list_items) cat <<'EOF'
+Usage: op_list_items [account] [vault] [filter-regex]
+List items in the given account/vault. Defaults to $OP_ACCOUNT/$OP_VAULT.
+Optional filter is a case-insensitive regex applied to item titles.
+EOF
+            ;;
+        op_find_item_across_accounts) cat <<'EOF'
+Usage: op_find_item_across_accounts <title>
+Search every configured 1Password account for items whose title
+exactly matches <title>. Prints account UUID + item id + vault for hits.
+EOF
+            ;;
+        op_signin_account) cat <<'EOF'
+Usage: op_signin_account <account-alias>
+Sign in to a single account by alias and export its OP_SESSION_* token
+into the current shell.
+EOF
+            ;;
+        op_signin_all) cat <<'EOF'
+Usage: op_signin_all
+Sign in to every alias in the aliases file and write the session tokens
+to $OP_SESSIONS_FILE (mode 600). Source with op_sessions_source.
+EOF
+            ;;
+        op_sessions_source) cat <<'EOF'
+Usage: op_sessions_source
+Load OP_SESSION_* exports from $OP_SESSIONS_FILE into the current shell.
+Run op_signin_all first to populate the file.
+EOF
+            ;;
+        op_set_default_alias) cat <<'EOF'
+Usage: op_set_default_alias <account-alias> [vault]
+Resolve <account-alias> via the aliases file, then call op_set_default.
+EOF
+            ;;
+        *) echo "Usage: $1 (no help registered)" >&2; return 1 ;;
+    esac
+}
+
 op_accounts_edit() {
+    case "${1:-}" in -h|--help) _op_print_help op_accounts_edit; return 0 ;; esac
     local editor="${EDITOR:-vi}"
     if [[ ! -f "$OP_ACCOUNTS_FILE" ]]; then
         umask 077
@@ -60,6 +146,7 @@ op_accounts_edit() {
 }
 
 op_accounts_sanitize() {
+    case "${1:-}" in -h|--help) _op_print_help op_accounts_sanitize; return 0 ;; esac
     local mode="check"
     local file="${OP_ACCOUNTS_FILE:-}"
     if [[ "${1:-}" == "--fix" ]]; then
@@ -230,6 +317,7 @@ _op_resolve_account_arg() {
 }
 
 op_accounts_set_alias() {
+    case "${1:-}" in -h|--help) _op_print_help op_accounts_set_alias; return 0 ;; esac
     local alias_name="${1:-}"
     local uuid="${2:-}"
     if [[ -z "$alias_name" || -z "$uuid" ]]; then
@@ -245,6 +333,7 @@ op_accounts_set_alias() {
 }
 
 op_accounts_seed() {
+    case "${1:-}" in -h|--help) _op_print_help op_accounts_seed; return 0 ;; esac
     _secrets_require_op "cannot seed aliases" || return 1
     if [[ -z "${ZSH_TEST_MODE:-}" && ! -o interactive ]]; then
         _secrets_warn "Interactive shell required to seed aliases"
@@ -286,6 +375,7 @@ PY
 }
 
 op_verify_accounts() {
+    case "${1:-}" in -h|--help) _op_print_help op_verify_accounts; return 0 ;; esac
     local rc=0
     (
         emulate -L zsh -o no_xtrace -o no_verbose
@@ -456,6 +546,7 @@ PY
 }
 
 op_set_default() {
+    case "${1:-}" in -h|--help) _op_print_help op_set_default; return 0 ;; esac
     local account="${1:-}"
     local vault="${2:-}"
     if [[ -n "$vault" && -z "$account" ]]; then
@@ -488,6 +579,7 @@ op_set_default() {
 }
 
 op_list_accounts_vaults() {
+    case "${1:-}" in -h|--help) _op_print_help op_list_accounts_vaults; return 0 ;; esac
     _secrets_require_op "cannot list accounts/vaults" || return 1
     local accounts_json
     accounts_json="$(op account list --format=json 2>/dev/null)"
@@ -545,6 +637,7 @@ PY
 }
 
 op_list_items() {
+    case "${1:-}" in -h|--help) _op_print_help op_list_items; return 0 ;; esac
     local account_arg="${1:-${OP_ACCOUNT-}}"
     local vault_arg="${2:-${OP_VAULT-}}"
     local filter="${3:-}"
@@ -599,6 +692,7 @@ PY
 }
 
 op_find_item_across_accounts() {
+    case "${1:-}" in -h|--help) _op_print_help op_find_item_across_accounts; return 0 ;; esac
     local title="${1:-}"
     if [[ -z "$title" ]]; then
         _secrets_warn "Usage: op_find_item_across_accounts <title>"
@@ -652,6 +746,7 @@ PY
 }
 
 op_signin_account() {
+    case "${1:-}" in -h|--help) _op_print_help op_signin_account; return 0 ;; esac
     local account_alias="${1:-}"
     if [[ -z "$account_alias" ]]; then
         echo "Usage: op_signin_account <account-alias>" >&2
@@ -683,6 +778,7 @@ op_signin_account() {
 }
 
 op_signin_all() {
+    case "${1:-}" in -h|--help) _op_print_help op_signin_all; return 0 ;; esac
     setopt local_options
     unsetopt xtrace verbose
     if ! command -v op >/dev/null 2>&1; then
@@ -819,6 +915,7 @@ _op_sessions_save() {
 }
 
 op_sessions_source() {
+    case "${1:-}" in -h|--help) _op_print_help op_sessions_source; return 0 ;; esac
     local sessions_file="${OP_SESSIONS_FILE:-$HOME/.config/zsh/.op-sessions.env}"
     if [[ ! -f "$sessions_file" ]]; then
         _secrets_warn "No sessions file: $sessions_file (run op_signin_all first)"
@@ -835,6 +932,7 @@ op_sessions_source() {
 }
 
 op_set_default_alias() {
+    case "${1:-}" in -h|--help) _op_print_help op_set_default_alias; return 0 ;; esac
     local account_alias="${1:-}"
     local vault="${2:-}"
     if [[ -z "$account_alias" ]]; then
