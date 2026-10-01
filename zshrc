@@ -226,6 +226,45 @@ _zsh_startup_use_staggered() {
     esac
 }
 
+# Shared startup groups drive both loading and the status inventory.
+# Keep the immediate startup order; staggered startup moves the extra
+# helpers ahead of the deferred tools and data-platform groups.
+typeset -ga _zsh_core_modules=(
+    utils settings compat secrets python system_diagnostics agents paths screen
+)
+typeset -ga _zsh_tool_modules=(
+    credentials database backup github gitlab dataworld databricks disk
+)
+typeset -ga _zsh_extra_modules=(doctor env_detect fileprovider ollama)
+typeset -ga _zsh_data_modules=(spark hadoop livy zeppelin)
+typeset -ga _zsh_module_order=(
+    "${_zsh_core_modules[@]}" "${_zsh_tool_modules[@]}" docker
+    "${_zsh_extra_modules[@]}" "${_zsh_data_modules[@]}" mise
+)
+typeset -gA _zsh_module_state=() _zsh_module_result=()
+typeset -g _zsh_module
+for _zsh_module in "${_zsh_module_order[@]}"; do
+    _zsh_module_state[$_zsh_module]=pending
+done
+unset _zsh_module
+
+# Descriptions are optional: a newly loaded module appears without one.
+typeset -gA _zsh_module_descriptions=(
+    utils 'Core utilities' settings 'Vars, aliases, and paths'
+    compat 'Version compatibility' secrets 'Local + 1Password secrets'
+    python 'Python/pyenv management' system_diagnostics 'System diagnostics'
+    agents 'Agent session helpers' paths 'Custom path aliases'
+    screen 'GNU screen helpers' credentials 'Secure credential storage'
+    database 'PostgreSQL connections' backup 'Git self-backup'
+    github 'GitHub CLI workflows' gitlab 'GitLab CLI workflows'
+    dataworld 'data.world workflows' databricks 'Databricks + Lakebase'
+    disk 'Disk audit and cleanup' docker 'Container management'
+    doctor 'Shell health checks' env_detect 'Environment detection'
+    fileprovider 'File provider diagnostics' ollama 'Local model service'
+    spark 'Spark cluster operations' hadoop 'Hadoop/YARN management'
+    livy 'Livy server' zeppelin 'Zeppelin notebooks' mise 'Project runtimes'
+)
+
 # Module loader.
 #
 # Per-module opt-out flag: set `ZSH_DISABLE_<UPPERNAME>=1` to skip a
@@ -235,20 +274,37 @@ _zsh_startup_use_staggered() {
 #   ZSH_DISABLE_ZEPPELIN=1  # skip modules/zeppelin.zsh
 #   ZSH_DISABLE_SECRETS=1   # skip modules/secrets.zsh (advanced)
 #
-# Useful in per-host vars files or on-the-fly for debugging.
+# Source a module and record the result of its latest load attempt.
 load_module() {
     local module="$1"
+    local result=0
+    typeset -ga _zsh_module_order
+    typeset -gA _zsh_module_state _zsh_module_result
+    if (( ! ${+_zsh_module_state[$module]} )); then
+        _zsh_module_order+=("$module")
+    fi
     local flag_name="ZSH_DISABLE_${module:u}"
     flag_name="${flag_name//-/_}"
     if [[ "${(P)flag_name:-0}" == "1" ]]; then
+        _zsh_module_state[$module]=disabled
+        _zsh_module_result[$module]=0
         return 0
     fi
     if [[ -f "$ZSH_CONFIG_DIR/modules/$module.zsh" ]]; then
-        source "$ZSH_CONFIG_DIR/modules/$module.zsh"
+        _zsh_module_state[$module]=loading
+        source "$ZSH_CONFIG_DIR/modules/$module.zsh" || result=$?
+        if (( result == 0 )); then
+            _zsh_module_state[$module]=loaded
+        else
+            _zsh_module_state[$module]=failed
+        fi
     else
-        echo "❌ Module not found: $module"
-        return 1
+        _zsh_module_state[$module]=missing
+        print -u2 -- "❌ Module not found: $module"
+        result=1
     fi
+    _zsh_module_result[$module]=$result
+    return "$result"
 }
 
 # =================================================================
@@ -280,40 +336,26 @@ if _zsh_startup_use_staggered; then
     echo "🖥️  Staggered startup mode (${mode_label}) - integrated terminal optimization enabled"
     
     # Tier 1: Essential (load immediately - IDE needs Python right away)
-    load_module utils       # Provides is_online, mkcd, extract, path_add
-    load_module settings    # vars/aliases/paths
-    load_module compat      # Stack compatibility profiles + guards
-    load_module secrets     # Local + 1Password env vars
-    load_module python      # Python environment (geo31111 auto-activated)
-    load_module system_diagnostics  # iCloud/Dropbox helpers
-    load_module agents
-    load_module paths
-    load_module screen      # GNU screen helpers
-    load_module doctor       # zsh_doctor health-check
-    load_module env_detect   # zsh_env / zsh_env_snapshot registry
-    load_module fileprovider # fileprovider_status / unwedge for stuck fileproviderd
-    load_module ollama       # ollama_{start,stop,status,logs,health} + auto-start wrapper
+    for _zsh_module in "${_zsh_core_modules[@]}" "${_zsh_extra_modules[@]}"; do
+        load_module "$_zsh_module"
+    done
+    unset _zsh_module
     
     # Tier 2: Credentials & paths (defer in current shell)
     _zsh_load_tier2() {
-        load_module credentials  # 1Password/Keychain
-        load_module database     # PostgreSQL with credentials
-        load_module backup       # Git self-backup
-        load_module github       # GitHub CLI workflows
-        load_module gitlab       # GitLab CLI workflows
-        load_module dataworld    # data.world CSV retention + geo cleanup
-        load_module databricks   # Databricks + Lakebase workflows
-        load_module disk         # Disk audit + safe cache cleanup
+        local module
+        for module in "${_zsh_tool_modules[@]}"; do
+            load_module "$module"
+        done
     }
 
     # Tier 3: Heavy tools (defer in current shell)
     _zsh_load_tier3() {
-        load_module docker       # Docker management
-        load_module spark        # Spark cluster (uses is_online!)
-        load_module hadoop       # Hadoop/YARN/HDFS
-        load_module livy         # Livy server (Zeppelin Spark 4.1 path)
-        load_module zeppelin     # Zeppelin notebooks
-        echo "✅ All modules loaded" >&2
+        local module
+        for module in docker "${_zsh_data_modules[@]}"; do
+            load_module "$module"
+        done
+        print -u2 -- "Module startup finished; run modules for status"
     }
     
     if zmodload zsh/sched 2>/dev/null; then
@@ -337,28 +379,10 @@ else
     # Regular terminal - load everything immediately (fast enough)
     echo "🚀 Loading modules..."
 
-    load_module utils
-    load_module settings
-    load_module compat
-    load_module secrets
-    load_module python
-    load_module system_diagnostics
-    load_module agents
-    load_module paths
-    load_module screen
-    load_module credentials
-    load_module database
-    load_module backup
-    load_module github
-    load_module gitlab
-    load_module dataworld
-    load_module databricks
-    load_module disk
-    load_module docker
-    load_module doctor
-    load_module env_detect
-    load_module fileprovider
-    load_module ollama
+    for _zsh_module in "${_zsh_core_modules[@]}" "${_zsh_tool_modules[@]}" docker "${_zsh_extra_modules[@]}"; do
+        load_module "$_zsh_module"
+    done
+    unset _zsh_module
 
     # Heavy data-platform modules. Defer past first prompt when the
     # user opts in via ZSH_DEFER_DATA_PLATFORM=1. Deferring is not the
@@ -366,16 +390,15 @@ else
     # functions during init; deferring breaks them in that window.
     if [[ "${ZSH_DEFER_DATA_PLATFORM:-0}" == "1" ]] \
        && (( ${+functions[zsh-defer]} )); then
-        zsh-defer load_module spark
-        zsh-defer load_module hadoop
-        zsh-defer load_module livy
-        zsh-defer load_module zeppelin
+        for _zsh_module in "${_zsh_data_modules[@]}"; do
+            zsh-defer load_module "$_zsh_module"
+        done
     else
-        load_module spark
-        load_module hadoop
-        load_module livy
-        load_module zeppelin
+        for _zsh_module in "${_zsh_data_modules[@]}"; do
+            load_module "$_zsh_module"
+        done
     fi
+    unset _zsh_module
 fi
 
 # =================================================================
@@ -711,35 +734,29 @@ zsh_help() {
 }
 alias zhelp='zsh_help'
 
-# Show loaded modules
+# Show each registered module's latest load result, including pending work.
 modules() {
-    echo "📦 Loaded Modules"
-    echo "================"
-    echo "✅ utils       - Core utilities (is_online, mkcd, extract)"
-    echo "✅ python      - Python/pyenv management"
-    if (( ${+functions[_zsh_mise_status]} )); then
-        echo "✅ mise        - Project runtimes ($(_zsh_mise_status))"
-    else
-        echo "⏭️ mise        - Module not loaded"
-    fi
-    echo "✅ spark       - Spark cluster operations"
-    echo "✅ hadoop      - Hadoop/YARN management"
-    echo "✅ livy        - Livy server for Zeppelin Spark 4.1 integration"
-    echo "✅ zeppelin    - Zeppelin notebooks"
-    echo "✅ docker      - Container management"
-    echo "✅ database    - PostgreSQL connections"
-    echo "✅ credentials - Secure credential storage"
-    echo "✅ secrets     - Local + 1Password secrets"
-    echo "✅ system_diagnostics - iCloud/Dropbox/Linux diagnostics"
-    echo "✅ agents      - Codex session helpers"
-    echo "✅ compat      - Version compatibility matrix + profile guards"
-    echo "✅ paths       - Custom path aliases"
-    echo "✅ settings    - Vars/Aliases/Paths"
-    echo "✅ backup      - Git self-backup system"
-    echo "✅ disk        - Disk audit + safe cache/snapshot cleanup"
-    echo "✅ github      - GitHub CLI repo/issue/PR workflows"
-    echo "✅ gitlab      - GitLab CLI repo/issue/MR workflows"
-    echo "✅ databricks  - Databricks + Lakebase workflows"
+    local module state icon detail description
+    print -- "📦 Module Status"
+    print -- "================"
+    for module in "${_zsh_module_order[@]}"; do
+        state="${_zsh_module_state[$module]:-pending}"
+        case "$state" in
+            loaded)   icon='✅'; detail='Loaded' ;;
+            disabled) icon='⏭️'; detail='Disabled' ;;
+            missing)  icon='❌'; detail='File missing' ;;
+            failed)   icon='❌'; detail="Load failed (exit ${_zsh_module_result[$module]})" ;;
+            loading)  icon='⏳'; detail='Loading' ;;
+            *)        icon='⏳'; detail='Pending' ;;
+        esac
+        if [[ "$module" == mise && ( "$state" == loaded || "$state" == failed ) ]] \
+           && (( ${+functions[_zsh_mise_status]} )); then
+            detail+="; $(_zsh_mise_status)"
+        fi
+        description="${_zsh_module_descriptions[$module]:-}"
+        [[ -n "$description" ]] && detail+=" — $description"
+        printf '%s %-18s %s\n' "$icon" "$module" "$detail"
+    done
 }
 
 # Powerlevel10k configuration

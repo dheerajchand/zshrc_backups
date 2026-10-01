@@ -108,7 +108,7 @@ test_runtime_pyenv_controls() {
     out="$(_runtime_shell "$fixture" 'print -r -- "HELPER=${+functions[py_env_switch]} HOOKS=${precmd_functions[*]}"; modules' ZSH_PYENV_AUTO_INIT=0)"
     assert_contains "$out" 'HELPER=1' "helpers remain available without initialization"
     assert_contains "$out" '✅ mise loaded (shell hooks inactive)' "startup distinguishes loading from activation"
-    assert_contains "$out" 'mise        - Project runtimes (shell hooks inactive)' "module listing includes inactive mise"
+    assert_contains "$out" 'mise               Loaded; shell hooks inactive' "module listing includes inactive mise"
     assert_false "[[ -s '$fixture/log' ]]" "disabled init never calls pyenv or mise"
     out="$(_runtime_shell "$fixture" 'print -r -- "HOOKS=${precmd_functions[*]}"' ZSH_PYENV_AUTO_ACTIVATE=0)"
     assert_contains "$(cat "$fixture/log")" 'init - --no-rehash' "manual mode keeps pyenv shell commands"
@@ -139,7 +139,7 @@ test_runtime_mise_is_opt_in_and_idempotent() {
     assert_equal 'activate zsh' "$(cat "$fixture/log")" "mise activates once and pyenv never initializes"
     assert_contains "$out" 'HOOKS=_mise_hook' "mise hook is installed"
     assert_contains "$out" '✅ mise loaded (shell hooks active)' "startup reports active hooks"
-    assert_contains "$out" 'mise        - Project runtimes (shell hooks active)' "module listing reports active hooks"
+    assert_contains "$out" 'mise               Loaded; shell hooks active' "module listing reports active hooks"
     : > "$fixture/log"
     out="$(_runtime_shell "$fixture" ':' ZSH_MISE_ACTIVATE=1 VIRTUAL_ENV=/personal/venv PYENV_VIRTUAL_ENV=/personal/venv 2>&1 || true)"
     assert_contains "$out" 'deactivate the current virtualenv' "personal virtualenv requires explicit deactivation"
@@ -147,7 +147,7 @@ test_runtime_mise_is_opt_in_and_idempotent() {
     assert_not_contains "$out" '✅ mise loaded' "failed activation does not report success"
     assert_false "[[ -s '$fixture/log' ]]" "conflicting virtualenv does not activate mise"
     out="$(_runtime_shell "$fixture" 'modules' ZSH_DISABLE_MISE=1 ZSH_PYENV_AUTO_INIT=0)"
-    assert_contains "$out" 'mise        - Module not loaded' "disabled module is not listed as loaded"
+    assert_contains "$out" 'mise               Disabled' "disabled module is not listed as loaded"
     assert_not_contains "$out" 'mise loaded (' "disabled module emits no startup line"
     out="$(_runtime_shell "$fixture" ':' ZSH_TEST_MODE=1)"
     assert_not_contains "$out" 'mise loaded (' "test mode suppresses startup messages"
@@ -171,6 +171,58 @@ test_runtime_python_follows_selected_interpreter() {
     rm -rf "$fixture"
 }
 
+test_runtime_module_inventory_and_reload() {
+    local fixture out
+    fixture="$(_runtime_fixture)"
+    out="$(_runtime_shell "$fixture" '
+        modules
+        print -- "ORDER=${_zsh_module_order[*]}"
+        source "$ZSH_CONFIG_DIR/zshrc"
+        print -- "RELOAD_COUNT=${#_zsh_module_order}"
+        print -- "DOCTOR=${_zsh_module_state[doctor]} MISE=${_zsh_module_state[mise]}"
+    ' ZSH_PYENV_AUTO_INIT=0 ZSH_DISABLE_DOCKER=1)"
+    assert_contains "$out" 'screen             Loaded' "previously omitted module appears automatically"
+    assert_contains "$out" 'doctor             Loaded' "extra helper module appears automatically"
+    assert_contains "$out" 'docker             Disabled' "ordinary disabled modules are not marked loaded"
+    assert_contains "$out" 'ORDER=utils settings compat secrets python system_diagnostics agents paths screen credentials database backup github gitlab dataworld databricks disk docker doctor env_detect fileprovider ollama spark hadoop livy zeppelin mise' "inventory preserves immediate startup order"
+    assert_contains "$out" 'RELOAD_COUNT=27' "re-sourcing does not duplicate inventory"
+    assert_contains "$out" 'DOCTOR=loaded MISE=loaded' "re-sourcing refreshes load results"
+    rm -rf "$fixture"
+}
+
+test_runtime_module_deferred_status() {
+    local fixture out
+    fixture="$(_runtime_fixture)"
+    mkdir -p "$fixture/home/.dotfiles/oh-my-zsh"
+    # Capture deferral without timers or prompt hooks racing the assertions.
+    cat > "$fixture/home/.dotfiles/oh-my-zsh/oh-my-zsh.sh" <<'STUB'
+sched() { return 0; }
+zsh-defer() { print -r -- "$*" >> "$HOME/deferred.log"; }
+STUB
+    out="$(_runtime_shell "$fixture" '
+        modules
+        print -- "BEFORE=${_zsh_module_state[github]},${_zsh_module_state[spark]}"
+        _zsh_load_tier2
+        _zsh_load_tier3
+        print -- "AFTER=${_zsh_module_state[github]},${_zsh_module_state[spark]}"
+    ' ZSH_PYENV_AUTO_INIT=0 ZSH_STARTUP_MODE=staggered)"
+    assert_contains "$out" 'github             Pending' "staggered tools appear before they load"
+    assert_contains "$out" 'spark              Pending' "staggered data modules appear before they load"
+    assert_contains "$out" 'BEFORE=pending,pending' "queued modules are not prematurely marked loaded"
+    assert_contains "$out" 'AFTER=loaded,loaded' "scheduled callbacks update status"
+    out="$(_runtime_shell "$fixture" '
+        print -- "BEFORE=${_zsh_module_state[spark]} DOCKER=${_zsh_module_state[docker]}"
+        modules
+        while read -r command module; do "$command" "$module"; done < "$HOME/deferred.log"
+        print -- "AFTER=${_zsh_module_state[spark]}"
+    ' ZSH_PYENV_AUTO_INIT=0 ZSH_DEFER_DATA_PLATFORM=1)"
+    assert_contains "$out" 'BEFORE=pending DOCKER=loaded' "prompt deferral applies only to data modules"
+    assert_contains "$out" 'spark              Pending' "prompt-deferred modules are listed"
+    assert_contains "$out" 'AFTER=loaded' "prompt-deferred callback updates status"
+    assert_equal $'load_module spark\nload_module hadoop\nload_module livy\nload_module zeppelin' "$(cat "$fixture/home/deferred.log")" "data modules retain deferred order"
+    rm -rf "$fixture"
+}
+
 test_runtime_startup_directory_is_opt_in() {
     local fixture out
     fixture="$(_runtime_fixture)"
@@ -191,6 +243,8 @@ register_test runtime_pyenv_controls test_runtime_pyenv_controls
 register_test runtime_inherited_environment_skips_pyenv test_runtime_inherited_environment_skips_pyenv
 register_test runtime_mise_is_opt_in_and_idempotent test_runtime_mise_is_opt_in_and_idempotent
 register_test runtime_python_follows_selected_interpreter test_runtime_python_follows_selected_interpreter
+register_test runtime_module_inventory_and_reload test_runtime_module_inventory_and_reload
+register_test runtime_module_deferred_status test_runtime_module_deferred_status
 register_test runtime_startup_directory_is_opt_in test_runtime_startup_directory_is_opt_in
 
 # Exercise installer entry points with scratch homes; never run either main().
