@@ -80,6 +80,19 @@ test_runtime_gui_fast_path_preserves_environment() {
     rm -rf "$fixture"
 }
 
+test_runtime_empty_path_has_no_current_directory_entry() {
+    local out
+    out="$(env PATH= /bin/zsh -dfc '
+        source "$1"
+        for dir in "${path[@]}"; do
+            [[ -n "$dir" ]] || { print EMPTY_ENTRY; exit 1; }
+        done
+        [[ ":$PATH:" == *":/usr/bin:"* ]] && print DEFAULTS_PRESENT
+    ' -- "$ROOT_DIR/zshenv")"
+    assert_not_contains "$out" EMPTY_ENTRY "empty PATH must not introduce a current-directory entry"
+    assert_contains "$out" DEFAULTS_PRESENT "empty PATH receives usable fallback paths"
+}
+
 test_runtime_default_java_is_fallback() {
     local fixture out
     fixture="$(_runtime_fixture)"
@@ -159,6 +172,7 @@ test_runtime_startup_directory_is_opt_in() {
 
 register_test runtime_child_preserves_environment test_runtime_child_preserves_environment
 register_test runtime_gui_fast_path_preserves_environment test_runtime_gui_fast_path_preserves_environment
+register_test runtime_empty_path_has_no_current_directory_entry test_runtime_empty_path_has_no_current_directory_entry
 register_test runtime_default_java_is_fallback test_runtime_default_java_is_fallback
 register_test runtime_pyenv_controls test_runtime_pyenv_controls
 register_test runtime_inherited_environment_skips_pyenv test_runtime_inherited_environment_skips_pyenv

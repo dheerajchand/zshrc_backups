@@ -10,6 +10,8 @@ export PYENV_ROOT="${PYENV_ROOT:-$HOME/.pyenv}"
 
 _zsh_environment_defaults() {
     local dir
+    # An empty PATH is a single empty array entry (implicit current directory).
+    [[ -n "${PATH:-}" ]] || path=()
     local -a defaults=("$HOME/bin" "$HOME/.local/bin" "$PYENV_ROOT/bin")
     [[ "$OSTYPE" == darwin* ]] && defaults+=(/opt/homebrew/bin)
     defaults+=(/usr/local/bin /usr/bin /bin /usr/sbin /sbin)
