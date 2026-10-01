@@ -22,7 +22,7 @@ _test_zshrc_structure() {
 
     local _p _m _first_plugin _last_plugin
     local _knob_line _omz_line
-    local _cache_tmp _home_tmp _block
+    local _cache_tmp _home_tmp _block _plan _planned
     local -a _archived_modules _dumps _stragglers
 
     fail() {
@@ -81,10 +81,13 @@ _test_zshrc_structure() {
         || { fail "history-substring-search down-arrow binding missing"; return 1; }
 
     # Archived modules must not be loaded from zshrc.
+    _plan="$(awk '/^# Shared startup groups/,/^# Module loader\./' "$ZSHRC_FILE")"
+    _planned="$(zsh -fc "$_plan"'; print -l -- "${_zsh_module_order[@]}"')"
     _archived_modules=("$ROOT_DIR"/modules/archived/*.zsh(N:t:r))
     for _m in $_archived_modules; do
         [[ "$_m" == "README" ]] && continue
-        if grep -qE "^\s*load_module\s+${_m}\b" "$ZSHRC_FILE"; then
+        if grep -qE "^\s*load_module\s+${_m}\b" "$ZSHRC_FILE" \
+           || print -r -- "$_planned" | grep -Fxq "$_m"; then
             fail "archived module '${_m}' is still loaded from zshrc"; return 1
         fi
     done

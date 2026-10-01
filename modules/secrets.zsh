@@ -94,6 +94,8 @@ if [[ -z "${ZSH_TEST_MODE:-}" ]]; then
     load_secrets
     _secrets_auto_signin_all_on_load || true
     _secrets_check_profile
-    [[ "${ZSH_SECRETS_VERBOSE:-}" == "1" ]] && echo "✅ secrets loaded"
+    # Quiet startup is a successful load, not a failed verbosity predicate.
+    if [[ "${ZSH_SECRETS_VERBOSE:-}" == "1" ]]; then
+        echo "✅ secrets loaded"
+    fi
 fi
-
