@@ -32,7 +32,7 @@ _zsh_mise_status() {
 _zsh_mise_load() {
     local result=0
     _zsh_mise_init || result=$?
-    if [[ -z "${ZSH_TEST_MODE:-}" ]]; then
+    if [[ -o interactive && -z "${ZSH_TEST_MODE:-}" ]]; then
         if (( result == 0 )); then
             print -- "✅ mise loaded ($(_zsh_mise_status))"
         else

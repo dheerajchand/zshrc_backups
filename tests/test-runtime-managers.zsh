@@ -151,6 +151,8 @@ test_runtime_mise_is_opt_in_and_idempotent() {
     assert_not_contains "$out" 'mise loaded (' "disabled module emits no startup line"
     out="$(_runtime_shell "$fixture" ':' ZSH_TEST_MODE=1)"
     assert_not_contains "$out" 'mise loaded (' "test mode suppresses startup messages"
+    out="$(env ZSH_TEST_MODE= ZSH_MISE_ACTIVATE=1 /bin/zsh -dfc 'source "$1"' -- "$fixture/config/modules/mise.zsh" 2>&1)"
+    assert_equal '' "$out" "noninteractive sourcing remains quiet"
     rm -rf "$fixture"
 }
 
