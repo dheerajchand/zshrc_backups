@@ -73,6 +73,12 @@ Use a new shell when changing activation flags; they do not unload hooks
 already installed in the current process. `ZSH_DISABLE_MISE=1` disables the
 module through the standard module loader.
 
+Startup prints `mise loaded` with the hook state, and `modules` lists mise
+alongside Python and the other modules. `shell hooks inactive` is the normal
+default: the module is loaded and explicit `mise exec` / `mise run` commands
+remain available. Missing CLI, failed activation, and a module skipped by
+`ZSH_DISABLE_MISE=1` are reported separately.
+
 Automatic switching is provided by mise's own directory and prompt hooks.
 Configuration discovery follows mise's normal project/ancestor/global rules;
 this flag does not restrict mise to a particular client directory.

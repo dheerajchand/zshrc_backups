@@ -105,8 +105,10 @@ test_runtime_default_java_is_fallback() {
 test_runtime_pyenv_controls() {
     local fixture out
     fixture="$(_runtime_fixture)"
-    out="$(_runtime_shell "$fixture" 'print -r -- "HELPER=${+functions[py_env_switch]} HOOKS=${precmd_functions[*]}"' ZSH_PYENV_AUTO_INIT=0)"
+    out="$(_runtime_shell "$fixture" 'print -r -- "HELPER=${+functions[py_env_switch]} HOOKS=${precmd_functions[*]}"; modules' ZSH_PYENV_AUTO_INIT=0)"
     assert_contains "$out" 'HELPER=1' "helpers remain available without initialization"
+    assert_contains "$out" '✅ mise loaded (shell hooks inactive)' "startup distinguishes loading from activation"
+    assert_contains "$out" 'mise        - Project runtimes (shell hooks inactive)' "module listing includes inactive mise"
     assert_false "[[ -s '$fixture/log' ]]" "disabled init never calls pyenv or mise"
     out="$(_runtime_shell "$fixture" 'print -r -- "HOOKS=${precmd_functions[*]}"' ZSH_PYENV_AUTO_ACTIVATE=0)"
     assert_contains "$(cat "$fixture/log")" 'init - --no-rehash' "manual mode keeps pyenv shell commands"
@@ -133,13 +135,24 @@ test_runtime_inherited_environment_skips_pyenv() {
 test_runtime_mise_is_opt_in_and_idempotent() {
     local fixture out
     fixture="$(_runtime_fixture)"
-    out="$(_runtime_shell "$fixture" 'source "$ZSH_CONFIG_DIR/modules/mise.zsh"; print -r -- "HOOKS=${precmd_functions[*]}"' ZSH_MISE_ACTIVATE=1)"
+    out="$(_runtime_shell "$fixture" 'source "$ZSH_CONFIG_DIR/modules/mise.zsh"; print -r -- "HOOKS=${precmd_functions[*]}"; modules' ZSH_MISE_ACTIVATE=1)"
     assert_equal 'activate zsh' "$(cat "$fixture/log")" "mise activates once and pyenv never initializes"
     assert_contains "$out" 'HOOKS=_mise_hook' "mise hook is installed"
+    assert_contains "$out" '✅ mise loaded (shell hooks active)' "startup reports active hooks"
+    assert_contains "$out" 'mise        - Project runtimes (shell hooks active)' "module listing reports active hooks"
     : > "$fixture/log"
     out="$(_runtime_shell "$fixture" ':' ZSH_MISE_ACTIVATE=1 VIRTUAL_ENV=/personal/venv PYENV_VIRTUAL_ENV=/personal/venv 2>&1 || true)"
     assert_contains "$out" 'deactivate the current virtualenv' "personal virtualenv requires explicit deactivation"
+    assert_contains "$out" 'activation failed)' "failed activation is visible"
+    assert_not_contains "$out" '✅ mise loaded' "failed activation does not report success"
     assert_false "[[ -s '$fixture/log' ]]" "conflicting virtualenv does not activate mise"
+    out="$(_runtime_shell "$fixture" 'modules' ZSH_DISABLE_MISE=1 ZSH_PYENV_AUTO_INIT=0)"
+    assert_contains "$out" 'mise        - Module not loaded' "disabled module is not listed as loaded"
+    assert_not_contains "$out" 'mise loaded (' "disabled module emits no startup line"
+    out="$(_runtime_shell "$fixture" ':' ZSH_TEST_MODE=1)"
+    assert_not_contains "$out" 'mise loaded (' "test mode suppresses startup messages"
+    out="$(env ZSH_TEST_MODE= ZSH_MISE_ACTIVATE=1 /bin/zsh -dfc 'source "$1"' -- "$fixture/config/modules/mise.zsh" 2>&1)"
+    assert_equal '' "$out" "noninteractive sourcing remains quiet"
     rm -rf "$fixture"
 }
 

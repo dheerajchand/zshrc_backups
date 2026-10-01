@@ -279,6 +279,8 @@ their source order. Underscore-prefixed helpers are included.
 ## `modules/mise.zsh`
 
 - `_zsh_mise_init`
+- `_zsh_mise_status`
+- `_zsh_mise_load`
 
 ## `modules/ollama.zsh`
 
