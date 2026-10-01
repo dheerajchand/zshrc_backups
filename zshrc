@@ -717,6 +717,11 @@ modules() {
     echo "================"
     echo "✅ utils       - Core utilities (is_online, mkcd, extract)"
     echo "✅ python      - Python/pyenv management"
+    if (( ${+functions[_zsh_mise_status]} )); then
+        echo "✅ mise        - Project runtimes ($(_zsh_mise_status))"
+    else
+        echo "⏭️ mise        - Module not loaded"
+    fi
     echo "✅ spark       - Spark cluster operations"
     echo "✅ hadoop      - Hadoop/YARN management"
     echo "✅ livy        - Livy server for Zeppelin Spark 4.1 integration"
