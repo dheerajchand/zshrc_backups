@@ -17,12 +17,12 @@ test_hadoop_health_defined() {
 }
 
 test_spark_home_sdkman_preferred() {
-    local out
-    if [[ ! -d "$HOME/.sdkman/candidates/spark/current" ]]; then
-        return 0
-    fi
-    out="$(ZSH_TEST_MODE=1 zsh -fc "source $ROOT_DIR/modules/spark.zsh; print -r -- \"\$SPARK_HOME\"" | tail -n 1)"
-    assert_equal "$HOME/.sdkman/candidates/spark/current" "$out" "should prefer SDKMAN Spark path"
+    local tmp out
+    tmp="$(mktemp -d)"
+    mkdir -p "$tmp/.sdkman/candidates/spark/current"
+    out="$(HOME="$tmp" SPARK_HOME= ZSH_TEST_MODE=1 zsh -dfc "source $ROOT_DIR/modules/spark.zsh; print -r -- \"\$SPARK_HOME\"" | tail -n 1)"
+    assert_equal "$tmp/.sdkman/candidates/spark/current" "$out" "should prefer SDKMAN Spark path when unset"
+    rm -rf "$tmp"
 }
 
 test_spark_install_from_tar_usage() {
@@ -42,12 +42,12 @@ test_spark_install_from_tar_dry_run() {
 }
 
 test_hadoop_home_sdkman_preferred() {
-    local out
-    if [[ ! -d "$HOME/.sdkman/candidates/hadoop/current" ]]; then
-        return 0
-    fi
-    out="$(ZSH_TEST_MODE=1 zsh -fc "source $ROOT_DIR/modules/hadoop.zsh; print -r -- \"\$HADOOP_HOME\"" | tail -n 1)"
-    assert_equal "$HOME/.sdkman/candidates/hadoop/current" "$out" "should prefer SDKMAN Hadoop path"
+    local tmp out
+    tmp="$(mktemp -d)"
+    mkdir -p "$tmp/.sdkman/candidates/hadoop/current"
+    out="$(HOME="$tmp" HADOOP_HOME= ZSH_TEST_MODE=1 zsh -dfc "source $ROOT_DIR/modules/hadoop.zsh; print -r -- \"\$HADOOP_HOME\"" | tail -n 1)"
+    assert_equal "$tmp/.sdkman/candidates/hadoop/current" "$out" "should prefer SDKMAN Hadoop path when unset"
+    rm -rf "$tmp"
 }
 
 test_hadoop_conf_dir_overrides_invalid() {
