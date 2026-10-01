@@ -15,31 +15,43 @@ _pyenv_default_venv() {
 
 # Provide python shim on Linux when only python3 exists
 if ! command -v python >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
-    python() { command python3 "$@"; }
+    python() {
+        # A manager may add `python` after this module has loaded.
+        if whence -p python >/dev/null 2>&1; then
+            command python "$@"
+        else
+            command python3 "$@"
+        fi
+    }
 fi
 
-# Initialize pyenv if available (skip in test mode)
-if [[ -z "${ZSH_TEST_MODE:-}" ]] && command -v pyenv >/dev/null 2>&1; then
-    export PYENV_ROOT="$HOME/.pyenv"
-    export PATH="$PYENV_ROOT/bin:$PATH"
-    
-    # Avoid pyenv startup rehash: on this shell config noclobber can make
-    # pyenv-rehash block for 60s trying to rewrite .pyenv-shim.
+# Initialize only when this shell owns Python selection. Helpers always load.
+_python_initialize() {
+    [[ -z "${ZSH_TEST_MODE:-}" ]] || return 0
+    [[ "${ZSH_PYENV_AUTO_INIT:-1}" == 1 && "${ZSH_MISE_ACTIVATE:-0}" != 1 ]] || return 0
+    # Preserve inherited mise/venv environments in nested interactive shells.
+    [[ -z "${__MISE_DIFF:-}${VIRTUAL_ENV:-}" ]] || return 0
+    command -v pyenv >/dev/null 2>&1 || return 0
+    export PYENV_ROOT="${PYENV_ROOT:-$HOME/.pyenv}"
+    [[ ":$PATH:" == *":$PYENV_ROOT/bin:"* ]] || export PATH="$PATH:$PYENV_ROOT/bin"
     eval "$(pyenv init --path --no-rehash 2>/dev/null)"
     eval "$(pyenv init - --no-rehash 2>/dev/null)"
-    
-    # Initialize virtualenv plugin if available
-    if pyenv commands --bare 2>/dev/null | grep -q "^virtualenv-init$"; then
+
+    # Disabling activation also disables the virtualenv prompt hook.
+    [[ "${ZSH_PYENV_AUTO_ACTIVATE:-1}" == 1 ]] || return 0
+    local pyenv_commands default_venv versions
+    pyenv_commands="$(pyenv commands --bare 2>/dev/null)"
+    if [[ $'\n'"$pyenv_commands"$'\n' == *$'\nvirtualenv-init\n'* ]]; then
         eval "$(pyenv virtualenv-init - 2>/dev/null)"
     fi
-    
-    # Auto-activate default environment
-    local default_venv
     default_venv="$(_pyenv_default_venv)"
-    if [[ -n "$default_venv" ]] && pyenv versions --bare | grep -q "^${default_venv}$"; then
+    versions="$(pyenv versions --bare 2>/dev/null)"
+    if [[ -n "$default_venv" && $'\n'"$versions"$'\n' == *$'\n'"$default_venv"$'\n'* ]]; then
         pyenv activate "$default_venv" 2>/dev/null || pyenv shell "$default_venv" 2>/dev/null
     fi
-fi
+    return 0
+}
+_python_initialize
 
 # Switch Python environments
 py_env_switch() {
@@ -92,76 +104,97 @@ py_env_switch() {
     fi
 }
 
-# Get current Python executable path (for external tools)
+# Get the executable selected by PATH, resolving shims through Python itself.
 get_python_path() {
-    # Returns the actual Python binary path, not shim
-    if command -v pyenv >/dev/null 2>&1; then
-        # Use pyenv's Python
-        echo "$(pyenv which python 2>/dev/null || which python)"
-    else
-        which python
-    fi
+    local py_bin=python
+    command -v "$py_bin" >/dev/null 2>&1 || py_bin=python3
+    "$py_bin" -c 'import sys; print(sys.executable)'
 }
 
-# Get current Python version (major.minor)
+# Get current Python version (major.minor).
 get_python_version() {
-    python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"
+    local py_bin=python
+    command -v "$py_bin" >/dev/null 2>&1 || py_bin=python3
+    "$py_bin" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'
 }
 
-# Show Python environment status
+_python_manager() {
+    local executable="${1:-}"
+    [[ -n "$executable" ]] || executable="$(get_python_path 2>/dev/null)" || true
+    local pyenv_root="${PYENV_ROOT:-$HOME/.pyenv}"
+    local mise_data="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}"
+    case "$executable" in
+        "$pyenv_root"/versions/*) print -- pyenv ;;
+        "$mise_data"/installs/python/*) print -- mise ;;
+        *)
+            if [[ -n "${VIRTUAL_ENV:-}" && "$executable" == "$VIRTUAL_ENV"/* ]]; then
+                print -- virtualenv
+            else
+                print -- system
+            fi
+            ;;
+    esac
+}
+
+_python_active() {
+    local manager="$1" executable="$2"
+    case "$manager" in
+        pyenv|mise|virtualenv) print -- "${executable:h:h:t}" ;;
+        *) print -- system ;;
+    esac
+}
+
+# Show the selected Python and its owning environment.
 python_status() {
-    local manager="system"
-    if command -v pyenv >/dev/null 2>&1; then
-        manager="pyenv"
-    fi
-    local active="system"
-    if command -v pyenv >/dev/null 2>&1; then
-        active="$(pyenv version-name 2>/dev/null || echo 'system')"
-    fi
+    local executable manager active py_bin=python
+    executable="$(get_python_path 2>/dev/null)" || true
+    manager="$(_python_manager "$executable")"
+    active="$(_python_active "$manager" "$executable")"
+    command -v "$py_bin" >/dev/null 2>&1 || py_bin=python3
     echo "🐍 Python Environment"
     echo "===================="
     echo "Manager: $manager"
     echo "Active: $active"
-    if command -v python >/dev/null 2>&1; then
-        echo "Python: $(python --version 2>&1)"
+    if [[ -n "$executable" ]]; then
+        echo "Python: $("$py_bin" --version 2>&1)"
         echo "Version: $(get_python_version)"
-        echo "Location: $(which python)"
-        echo "Actual Binary: $(get_python_path)"
+        echo "Location: $(command -v "$py_bin")"
+        echo "Actual Binary: $executable"
     else
         echo "Python: not found"
     fi
-    
     if command -v uv >/dev/null 2>&1; then
         echo "UV: $(uv --version 2>&1 | head -1)"
     fi
 }
 
+# Show Python defaults alongside the interpreter actually selected.
 python_config_status() {
-    local manager="system"
-    local active="system"
-    if command -v pyenv >/dev/null 2>&1; then
-        manager="pyenv"
-        active="$(pyenv version-name 2>/dev/null || echo 'system')"
-    fi
-    local py_bin="python"
-    command -v python >/dev/null 2>&1 || py_bin="python3"
-    local py_version="not found"
-    if command -v "$py_bin" >/dev/null 2>&1; then
-        py_version="$("$py_bin" --version 2>&1 | head -1)"
-    fi
+    local executable manager py_bin=python
+    executable="$(get_python_path 2>/dev/null)" || true
+    manager="$(_python_manager "$executable")"
+    command -v "$py_bin" >/dev/null 2>&1 || py_bin=python3
     echo "⚙️  Python Configuration"
-    echo "======================"
+    echo "======================="
     echo "Manager: $manager"
-    echo "Active: $active"
-    echo "Python: $py_version"
+    echo "Active: $(_python_active "$manager" "$executable")"
+    if [[ -n "$executable" ]]; then
+        echo "Python: $("$py_bin" --version 2>&1 | head -1)"
+        echo "Actual Binary: $executable"
+    else
+        echo "Python: not found"
+    fi
+    echo "Pyenv auto-init: ${ZSH_PYENV_AUTO_INIT:-1}"
+    echo "Pyenv auto-activate: ${ZSH_PYENV_AUTO_ACTIVATE:-1}"
     if command -v pyenv >/dev/null 2>&1; then
         echo "PYENV_ROOT: ${PYENV_ROOT:-$HOME/.pyenv}"
-        local default_venv
-        default_venv="$(_pyenv_default_venv)"
+        local default_venv="$(_pyenv_default_venv)"
         [[ -n "$default_venv" ]] && echo "Default venv: $default_venv"
     fi
+    return 0
 }
 
+# Select a pyenv version for this shell.
 pyenv_use_version() {
     local version="$1"
     if [[ -z "$version" ]]; then
@@ -200,11 +233,14 @@ pyenv_default_version() {
 with_python() {
     local cmd="$1"
     shift
+    local python_path
+    python_path="$(get_python_path)" || return $?
+    [[ -n "$python_path" ]] || return 1
     
     # Set Python env vars for the command
-    PYSPARK_PYTHON="$(get_python_path)" \
-    PYSPARK_DRIVER_PYTHON="$(get_python_path)" \
-    JUPYTER_PYTHON="$(get_python_path)" \
+    PYSPARK_PYTHON="$python_path" \
+    PYSPARK_DRIVER_PYTHON="$python_path" \
+    JUPYTER_PYTHON="$python_path" \
     "$cmd" "$@"
 }
 
@@ -275,5 +311,5 @@ alias ipy='ipython'
 alias jn='jupyter notebook'
 
 if [[ -z "${ZSH_TEST_MODE:-}" ]]; then
-    echo "✅ python loaded ($(pyenv version-name 2>/dev/null || echo 'system'))"
+    echo "✅ python loaded"
 fi

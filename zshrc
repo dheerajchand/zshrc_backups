@@ -25,6 +25,9 @@ export ZSHRC_CONFIG_DIR
 : "${ZSH_CONFIG_DIR:=$ZSHRC_CONFIG_DIR}"
 export ZSH_CONFIG_DIR
 
+# Preserve inherited project runtimes, including in the GUI fast path.
+source "$ZSH_CONFIG_DIR/zshenv"
+
 # Minimal init for non-TTY interactive shells (prevents GUI app timeouts)
 # Set ZSH_FORCE_FULL_INIT=1 to override.
 # Known terminal programs (Warp, VS Code, etc.) are always allowed full init.
@@ -32,26 +35,7 @@ if [[ -o interactive && ! -t 0 && ! -t 1 && -z "${ZSH_FORCE_FULL_INIT:-}" \
       && "$TERM_PROGRAM" != "WarpTerminal" \
       && "$TERM_PROGRAM" != "vscode" \
       && -z "${WARP_IS_LOCAL_SHELL_SESSION:-}" ]]; then
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-    else
-        export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-    fi
-    [[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
-    [[ -d "$HOME/bin" ]] && export PATH="$HOME/bin:$PATH"
     return 0
-fi
-
-# Set base PATH
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-else
-    export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-fi
-[[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
-[[ -d "$HOME/bin" ]] && export PATH="$HOME/bin:$PATH"
-if [[ -d "$HOME/.pyenv/bin" && ":$PATH:" != *":$HOME/.pyenv/bin:"* ]]; then
-    export PATH="$HOME/.pyenv/bin:$PATH"
 fi
 
 # Initialize SDKMAN lazily - set *_HOME vars from "current" symlinks now
@@ -66,7 +50,7 @@ export SDKMAN_DIR="$HOME/.sdkman"
 # Add SDKMAN candidate bins to PATH without full init
 if [[ -d "$SDKMAN_DIR/candidates" ]]; then
     for _sdk_cand in "$SDKMAN_DIR"/candidates/*/current/bin(N); do
-        [[ ":$PATH:" != *":$_sdk_cand:"* ]] && export PATH="$_sdk_cand:$PATH"
+        [[ ":$PATH:" != *":$_sdk_cand:"* ]] && export PATH="$PATH:$_sdk_cand"
     done
     unset _sdk_cand
 fi
@@ -401,13 +385,13 @@ fi
 # Solution: Explicitly ensure SDKMAN tools are in PATH after everything loads
 
 if [[ -n "$HADOOP_HOME" && -d "$HADOOP_HOME/bin" ]]; then
-    [[ ":$PATH:" != *":$HADOOP_HOME/bin:"* ]] && export PATH="$HADOOP_HOME/bin:$PATH"
-    [[ ":$PATH:" != *":$HADOOP_HOME/sbin:"* ]] && export PATH="$HADOOP_HOME/sbin:$PATH"
+    [[ ":$PATH:" != *":$HADOOP_HOME/bin:"* ]] && export PATH="$PATH:$HADOOP_HOME/bin"
+    [[ ":$PATH:" != *":$HADOOP_HOME/sbin:"* ]] && export PATH="$PATH:$HADOOP_HOME/sbin"
 fi
 
 if [[ -n "$SPARK_HOME" && -d "$SPARK_HOME/bin" ]]; then
-    [[ ":$PATH:" != *":$SPARK_HOME/bin:"* ]] && export PATH="$SPARK_HOME/bin:$PATH"
-    [[ ":$PATH:" != *":$SPARK_HOME/sbin:"* ]] && export PATH="$SPARK_HOME/sbin:$PATH"
+    [[ ":$PATH:" != *":$SPARK_HOME/bin:"* ]] && export PATH="$PATH:$SPARK_HOME/bin"
+    [[ ":$PATH:" != *":$SPARK_HOME/sbin:"* ]] && export PATH="$PATH:$SPARK_HOME/sbin"
 fi
 
 # Rehash command table after PATH changes without invoking pyenv's wrapper.
@@ -922,9 +906,11 @@ zsh_status_banner() {
     fi
 
     # Python environment
-    local pyenv_version="system"
-    if command -v pyenv >/dev/null 2>&1; then
-        pyenv_version="$(pyenv version-name 2>/dev/null || echo 'system')"
+    local python_manager="system"
+    local python_path=""
+    if (( ${+functions[get_python_path]} )); then
+        python_path="$(get_python_path 2>/dev/null)"
+        python_manager="$(_python_manager "$python_path")"
     fi
     local py_bin="python"
     command -v python >/dev/null 2>&1 || py_bin="python3"
@@ -932,10 +918,10 @@ zsh_status_banner() {
     if command -v "$py_bin" >/dev/null 2>&1; then
         py_version="$("$py_bin" --version 2>&1 | head -1)"
     fi
-    printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🐍 Python:" "$reset_color" "$pyenv_version (${py_version})"
-    if command -v pyenv >/dev/null 2>&1; then
+    printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🐍 Python:" "$reset_color" "$python_manager (${py_version})"
+    if [[ "$python_manager" == pyenv ]]; then
         local default_venv="${PYENV_DEFAULT_VENV:-${DEFAULT_PYENV_VENV:-}}"
-        [[ -n "$default_venv" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🧪 Pyenv venv:" "$reset_color" "$pyenv_version (default: $default_venv)"
+        [[ -n "$default_venv" ]] && printf "\033[%sm%s\033[%sm %s\n" "$accent_color" "🧪 Pyenv venv:" "$reset_color" "$(_python_active "$python_manager" "$python_path") (default: $default_venv)"
     fi
 
     # Machine profile (env/role/host)
@@ -1111,7 +1097,7 @@ fi
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
 if [[ "$OSTYPE" == "darwin"* && -d "$HOME/.rd/bin" ]]; then
-    export PATH="$HOME/.rd/bin:$PATH"
+    [[ ":$PATH:" != *":$HOME/.rd/bin:"* ]] && export PATH="$PATH:$HOME/.rd/bin"
 fi
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
@@ -1122,6 +1108,9 @@ fi
 # For screen/tmux sessions, call setup_pyenv manually if needed
 
 # cd to STARTUP_DIR if set (configured in vars.env or machine overrides)
-if [[ -o interactive && -n "${STARTUP_DIR:-}" && -d "$STARTUP_DIR" ]]; then
+if [[ -o interactive && "${ZSH_STARTUP_CD:-0}" == 1 && -n "${STARTUP_DIR:-}" && -d "$STARTUP_DIR" ]]; then
     cd "$STARTUP_DIR"
 fi
+
+# Install optional interactive hooks after startup PATH and directory changes.
+load_module mise

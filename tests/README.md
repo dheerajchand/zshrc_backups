@@ -12,6 +12,7 @@ Minimal zsh test framework and test suites for this repo.
 - `test-secrets-profile.zsh`
 - `test-secrets-misc.zsh`
 - `test-python.zsh`
+- `test-runtime-managers.zsh`
 - `test-spark-hadoop.zsh`
 - `test-system-diagnostics.zsh`
 - `test-agents.zsh`

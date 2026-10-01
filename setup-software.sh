@@ -371,13 +371,19 @@ _resolve_java_home() {
 }
 
 ensure_java_home_in_zshenv() {
+    # A symlink may point into a dotfiles repository. Never rewrite its source,
+    # including when this installer was downloaded and run outside that repo.
+    if [[ -L "$HOME/.zshenv" ]]; then
+        print_info "Symlinked ~/.zshenv kept; configure any JAVA_HOME fallback in its source"
+        return 0
+    fi
     if ! command -v java > /dev/null 2>&1; then
         print_warning "java not found; skipping JAVA_HOME setup"
         return 1
     fi
     local java_home line
     java_home="$(_resolve_java_home)"
-    line="export JAVA_HOME=\"$java_home\""
+    line="export JAVA_HOME=\"\${JAVA_HOME:-$java_home}\""
     if [[ -f "$HOME/.zshenv" ]]; then
         if grep -q "^export JAVA_HOME=" "$HOME/.zshenv"; then
             if command -v sed > /dev/null 2>&1; then

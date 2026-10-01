@@ -48,6 +48,12 @@ bash <(curl -fsSL https://raw.githubusercontent.com/dheerajchand/siege_analytics
 
 ---
 
+## Project runtimes with mise
+
+Mise can manage an individual project alongside pyenv and SDKMAN. See the
+[runtime manager guide](wiki/Runtime-Managers.md) for setup, migration of an
+existing `~/.zshenv`, optional shell activation, and verification.
+
 ## 🐧 Ubuntu / Linux Notes
 
 This repo supports macOS and Ubuntu/Debian. For Linux:

@@ -221,6 +221,14 @@ create_symlinks() {
     ln -s "$CONFIG_DIR/zshrc" ~/.zshrc
     print_success "Created symlink: ~/.zshrc -> $CONFIG_DIR/zshrc"
 
+    # Existing .zshenv may contain personal settings; never replace it.
+    if [ ! -e "$HOME/.zshenv" ] && [ ! -L "$HOME/.zshenv" ]; then
+        ln -s "$CONFIG_DIR/zshenv" "$HOME/.zshenv"
+        print_success "Created symlink: ~/.zshenv -> $CONFIG_DIR/zshenv"
+    else
+        print_info "Existing ~/.zshenv kept; see wiki/Runtime-Managers.md for migration"
+    fi
+
     # Verify symlink
     if [ -L ~/.zshrc ]; then
         print_success "Symlink verified"

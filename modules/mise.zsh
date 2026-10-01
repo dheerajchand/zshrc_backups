@@ -1,0 +1,21 @@
+#!/usr/bin/env zsh
+# Opt-in shell integration. Explicit `mise exec` / `mise run` need no hooks.
+_zsh_mise_init() {
+    [[ -o interactive && "${ZSH_MISE_ACTIVATE:-0}" == 1 ]] || return 0
+    [[ -z "${ZSH_TEST_MODE:-}" ]] || return 0
+    if ! command -v mise >/dev/null 2>&1; then
+        print -u2 -- "mise: ZSH_MISE_ACTIVATE=1 but mise is not installed"
+        return 1
+    fi
+    # Never silently carry a personal virtualenv into a project shell.
+    if [[ -n "${PYENV_VIRTUAL_ENV:-}" || ( -n "${VIRTUAL_ENV:-}" && -z "${__MISE_DIFF:-}" ) ]]; then
+        print -u2 -- "mise: deactivate the current virtualenv before starting a mise shell"
+        return 1
+    fi
+    # Re-sourcing zshrc must not register duplicate hooks.
+    (( ${+functions[_mise_hook]} )) && return 0
+    local activation
+    activation="$(mise activate zsh)" || return $?
+    eval "$activation"
+}
+_zsh_mise_init

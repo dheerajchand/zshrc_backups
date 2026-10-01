@@ -36,7 +36,11 @@ _make_stub_python() {
     local bin_dir="$1"
     cat > "$bin_dir/python" <<'PY'
 #!/usr/bin/env zsh
-echo "Python 3.11.0"
+case "$*" in
+    *sys.executable*) echo "${STUB_PYTHON_EXE:-/usr/bin/python}" ;;
+    *sys.version_info*) echo "3.11" ;;
+    *) echo "Python 3.11.0" ;;
+esac
 PY
     chmod +x "$bin_dir/python"
 }
@@ -74,7 +78,7 @@ PY3
     chmod +x "$bin/python3"
     old_path="$PATH"
     PATH="$bin:/usr/bin:/bin"
-    out="$(ZSH_TEST_MODE=1 zsh -fc 'source $HOME/.config/zsh/modules/python.zsh; python_status')"
+    out="$(ROOT_DIR="$ROOT_DIR" ZSH_TEST_MODE=1 zsh -fc 'source "$ROOT_DIR/modules/python.zsh"; python_status')"
     assert_contains "$out" "Python: Python 3.12.3" "should use python3 shim"
     PATH="$old_path"
     rm -rf "$tmp"
@@ -91,7 +95,7 @@ test_python_status_with_pyenv() {
     _make_stub_pyenv "$bin"
     _make_stub_python "$bin"
     PATH="$bin:/usr/bin:/bin"
-    out="$(python_status)"
+    out="$(STUB_PYTHON_EXE="${PYENV_ROOT:-$HOME/.pyenv}/versions/testenv/bin/python" python_status)"
     assert_contains "$out" "Manager: pyenv" "should report pyenv manager"
     assert_contains "$out" "Active: testenv" "should report active pyenv env"
     if [[ -n "$old_pyenv_fn" ]]; then
@@ -108,7 +112,7 @@ test_python_config_status_defined() {
 test_pyenv_default_venv_variable() {
     skip_in_ci
     local out
-    out="$(PYENV_DEFAULT_VENV=geo31111 ZSH_TEST_MODE=1 zsh -fc 'source $HOME/.config/zsh/modules/python.zsh; python_config_status')"
+    out="$(PYENV_DEFAULT_VENV=geo31111 ROOT_DIR="$ROOT_DIR" ZSH_TEST_MODE=1 zsh -fc 'source "$ROOT_DIR/modules/python.zsh"; python_config_status')"
     assert_contains "$out" "Default venv: geo31111" "should show default venv"
 }
 

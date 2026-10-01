@@ -276,6 +276,10 @@ their source order. Underscore-prefixed helpers are included.
 - `livy_stop`
 - `livy_logs`
 
+## `modules/mise.zsh`
+
+- `_zsh_mise_init`
+
 ## `modules/ollama.zsh`
 
 - `_ollama_endpoint`
@@ -298,9 +302,12 @@ their source order. Underscore-prefixed helpers are included.
 ## `modules/python.zsh`
 
 - `_pyenv_default_venv`
+- `_python_initialize`
 - `py_env_switch`
 - `get_python_path`
 - `get_python_version`
+- `_python_manager`
+- `_python_active`
 - `python_status`
 - `python_config_status`
 - `pyenv_use_version`
